@@ -1,8 +1,8 @@
 # 프로젝트 헌법 (CONSTITUTION.md)
 
-> 프로젝트: 팀 협업 프로젝트 관리 시스템 (가칭 TeamBoard) | 방식: SDD | 버전: v0.4
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 방식: SDD | 버전: v0.5
 > 상위 문서: 팀 협업 관리 시스템 기획서 (정식 문서)
-> 하위 문서: [REQUIREMENTS.md](./REQUIREMENTS.md), [USER-STORIES.md](./USER-STORIES.md), [DATABASE.md](./DATABASE.md), `API-SPEC.md`(작성 예정)
+> 하위 문서: [REQUIREMENTS.md](./REQUIREMENTS.md), [SPEC.md](./SPEC.md), [USER-STORIES.md](./USER-STORIES.md), [DATABASE.md](./DATABASE.md), [API-SPEC.md](./API-SPEC.md)(초안)
 
 이 문서는 기획서가 정한 목표·범위·인원·일정 안에서, 모든 명세, 설계, 코드가 지켜야 하는 **작업 원칙**을 정합니다.
 
@@ -68,11 +68,11 @@
 
 | 영역 | 사용 기술 |
 | --- | --- |
-| 프론트엔드 | React, JavaScript, Tailwind CSS, Axios, React Hooks + Context API |
-| 백엔드 | Python, FastAPI, Pydantic |
+| 프론트엔드 | React, JavaScript, Vite(빌드), React Router(화면 주소), Tailwind CSS, Axios, React Hooks + Context API |
+| 백엔드 | Python, FastAPI, Pydantic, Uvicorn(ASGI 서버), python-dotenv(.env 읽기) |
 | DB / ORM | **MariaDB**, SQLAlchemy 2.x, Alembic, PyMySQL |
-| 인증 | JWT(Access Token), bcrypt |
-| 테스트 | pytest, Postman |
+| 인증 | JWT(Access Token, PyJWT), bcrypt |
+| 테스트 | pytest + httpx(TestClient), Postman |
 | 코드 스타일 | 백엔드: ruff(린트) + black(포맷) / 프론트: ESLint + Prettier |
 | 협업 | Git, GitHub |
 
@@ -124,7 +124,7 @@
 ## 9. 테스트와 품질
 
 1. P0 기능의 핵심 API(인증, 권한, 업무 CRUD)는 **pytest 테스트가 통과해야 완료**로 봅니다. 그 밖의 API는 Postman 컬렉션으로 확인하고, 컬렉션 파일을 저장소에 함께 올립니다.
-2. 권한 테스트에는 반드시 실패 경우를 넣습니다. (예: 비멤버의 접근은 403, MEMBER가 남의 업무 삭제 시 403)
+2. 권한 테스트에는 반드시 실패 경우를 넣습니다. (예: 비멤버의 접근은 403, MEMBER가 남의 업무 수정·삭제 시 403, 담당자가 아닌 MEMBER의 상태 변경 시 403)
 3. `main` 브랜치에 직접 push하지 않습니다. 기능 브랜치에서 작업하고 **PR 리뷰 1명 이상의 승인**을 받아 병합합니다. GitHub 브랜치 보호 규칙으로 강제합니다.
 4. PR을 올리기 전에 포맷터·린터를 실행합니다. **ruff, black, ESLint, Prettier 검사를 통과하지 못한 PR은 병합하지 않습니다.** (pre-commit 훅 또는 GitHub Actions로 자동 검사 권장)
 5. 하루 작업이 끝나면 `main`에서 서버와 화면이 실행되는 상태를 유지합니다.
@@ -138,7 +138,7 @@
    - DB: 테이블은 복수형 `snake_case` (예: `task_comments`)
 3. 커밋 메시지는 `종류(기능 ID): 한국어 설명` 형식입니다. 종류는 `feat`, `fix`, `refactor`, `test`, `docs`, `chore` 중 하나입니다.
    - 예: `feat(TASK-02): 업무 상태 변경 API 추가`
-4. 브랜치 이름은 `feat/TASK-02-status-change`, `fix/AUTH-01-email-dup`처럼 종류, 기능 ID, 영어 요약을 붙입니다.
+4. 브랜치 이름은 `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup`처럼 종류, 기능 ID, 영어 요약을 붙입니다.
 
 ## 11. 단순함
 
@@ -155,3 +155,4 @@
 | 2026-11-10 | v0.2 | 결정 12개 반영: 4~5명 팀 운영, MariaDB, 역할 2단계(OWNER·MEMBER), Access Token + localStorage, 포맷터 강제, AI 사용 규칙, 언어 규칙 | 마로 |
 | 2026-11-10 | v0.3 | 서문 수정: 기획서를 상위 문서로 명시, 문서 우선순위(기획서 → 헌법 → 하위 명세 → 코드) 정의 | 마로 |
 | 2026-11-10 | v0.4 | 기획서 기준 정합: 팀 4명 고정·역할표에 담당자 기입(팀장/PM 행 삭제), 제외 범위에 AI 모델 학습·VIEWER 추가, 토큰 만료 2시간 확정, 프로젝트 보관은 P2로 명시 | 마로 |
+| 2026-11-11 | v0.5 | 프로젝트명 동잇(Doing_It) 확정. 기술 스택 보완: 구현에 필요하지만 목록에 없던 PyJWT, Uvicorn, python-dotenv, httpx(테스트), Vite, React Router 추가(이유는 README 의존성 기록). 하위 문서에 SPEC·API-SPEC 추가. 권한 테스트 예시에 업무 수정·상태 변경 403 추가 | 마로 |

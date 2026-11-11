@@ -1,7 +1,7 @@
 # 데이터베이스 설계 (DATABASE.md)
 
-> 프로젝트: 팀 협업 프로젝트 관리 시스템 (TeamBoard) | DB: MariaDB 10.11 | ORM: SQLAlchemy 2.x + Alembic + PyMySQL
-> 버전: v0.2 (MariaDB 전환, 프로젝트 역할 2단계) | 관련 문서: [REQUIREMENTS.md](./REQUIREMENTS.md)
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | DB: MariaDB 10.11 | ORM: SQLAlchemy 2.x + Alembic + PyMySQL
+> 버전: v0.5 (users.deleted_at 추가(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (프로젝트 이름·업무 제목 30자, task_checklist_items 추가(P2)) · v0.3 (users.email 삭제 → login_id로 대체) | 관련 문서: [REQUIREMENTS.md](./REQUIREMENTS.md)
 
 ## 1. ERD
 
@@ -17,14 +17,16 @@ erDiagram
     USERS ||--o{ TASK_COMMENTS : "작성"
     TASKS ||--o{ TASK_ACTIVITIES : "변경 이력"
     USERS ||--o{ TASK_ACTIVITIES : "변경자"
+    TASKS ||--o{ TASK_CHECKLIST_ITEMS : "체크리스트(P2)"
 
     USERS {
         bigint id PK
-        varchar email UK
+        varchar login_id UK
         varchar password_hash
         varchar name
         varchar system_role "ADMIN | USER"
         boolean is_active
+        datetime deleted_at "nullable, P2 탈퇴"
         datetime created_at
         datetime updated_at
     }
@@ -65,7 +67,7 @@ erDiagram
         bigint id PK
         bigint task_id FK
         bigint user_id FK
-        text content
+        varchar content "1~300자"
         datetime created_at
         datetime updated_at
     }
@@ -80,6 +82,15 @@ erDiagram
         varchar new_value "nullable"
         datetime created_at
     }
+    TASK_CHECKLIST_ITEMS {
+        bigint id PK
+        bigint task_id FK
+        varchar content
+        boolean is_done
+        int position "항목 순서"
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ## 2. 관계 요약
@@ -91,6 +102,7 @@ erDiagram
 | Users → Tasks (담당) | 일대다, 선택 | 담당자가 없을 수 있음. 사용자 삭제 시 NULL |
 | Tasks → TaskComments | 일대다 | 업무 삭제 시 댓글도 삭제 |
 | Tasks → TaskActivities | 일대다 | 업무가 삭제되어도 이력은 남기도록 `task_id`를 NULL 처리 |
+| Tasks → TaskChecklistItems | 일대다 (P2) | 업무 삭제 시 체크리스트 항목도 삭제(CASCADE) |
 
 ## 3. 테이블 상세
 
@@ -99,11 +111,12 @@ erDiagram
 | 컬럼 | 타입 | 제약조건 | 설명 |
 | --- | --- | --- | --- |
 | id | BIGINT AUTO_INCREMENT | PK | |
-| email | VARCHAR(255) | NOT NULL, UNIQUE | 로그인 ID. 소문자로 저장 |
+| login_id | VARCHAR(20) | NOT NULL, UNIQUE, CHECK (login_id REGEXP '^[a-z0-9]{4,20}$') | 로그인 아이디. 소문자로 변환해 저장. 멤버 추가 시 검색 키 |
 | password_hash | VARCHAR(255) | NOT NULL | bcrypt 해시 |
 | name | VARCHAR(50) | NOT NULL | 표시 이름 |
 | system_role | VARCHAR(10) | NOT NULL, DEFAULT 'USER', CHECK IN ('ADMIN','USER') | |
 | is_active | TINYINT(1) | NOT NULL, DEFAULT 1 | 비활성 계정은 로그인 불가 |
+| deleted_at | DATETIME | NULL | 회원 탈퇴 시각 (AUTH-08, P2 마이그레이션으로 추가). 값이 있으면 탈퇴한 사용자. 행은 지우지 않고 `name`을 "탈퇴한 사용자"로 바꾸며, `login_id`는 남겨 재사용을 막는다 |
 | created_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
 | updated_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
 
@@ -112,7 +125,7 @@ erDiagram
 | 컬럼 | 타입 | 제약조건 | 설명 |
 | --- | --- | --- | --- |
 | id | BIGINT AUTO_INCREMENT | PK | |
-| name | VARCHAR(100) | NOT NULL | |
+| name | VARCHAR(30) | NOT NULL | 1~30자 (PRJ-01). 한글도 1자로 셈(utf8mb4) |
 | description | TEXT | NULL | |
 | start_date | DATE | NULL | |
 | end_date | DATE | NULL, CHECK (end_date >= start_date) | |
@@ -139,7 +152,7 @@ erDiagram
 | --- | --- | --- | --- |
 | id | BIGINT AUTO_INCREMENT | PK | |
 | project_id | BIGINT | NOT NULL, FK → projects.id ON DELETE CASCADE | |
-| title | VARCHAR(200) | NOT NULL | |
+| title | VARCHAR(30) | NOT NULL | 1~30자 (TASK-01) |
 | description | TEXT | NULL | |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'TODO', CHECK IN ('TODO','IN_PROGRESS','DONE') | |
 | priority | VARCHAR(10) | NOT NULL, DEFAULT 'MEDIUM', CHECK IN ('LOW','MEDIUM','HIGH','URGENT') | |
@@ -157,7 +170,7 @@ erDiagram
 | id | BIGINT AUTO_INCREMENT | PK | |
 | task_id | BIGINT | NOT NULL, FK → tasks.id ON DELETE CASCADE | |
 | user_id | BIGINT | NOT NULL, FK → users.id ON DELETE CASCADE | |
-| content | TEXT | NOT NULL, CHECK (CHAR_LENGTH(content) > 0) | |
+| content | VARCHAR(300) | NOT NULL, CHECK (CHAR_LENGTH(content) > 0) | 1~300자 (CMT-01) |
 | created_at / updated_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
 
 ### 3.6 task_activities (변경 이력)
@@ -177,11 +190,28 @@ erDiagram
 - 이력은 업무 수정과 **같은 트랜잭션**에서 기록한다. 수정이 실패하면 이력도 남지 않아야 한다.
 - 한 번의 수정에서 여러 항목이 바뀌면 항목마다 1행씩 기록한다.
 
+### 3.7 task_checklist_items (업무 체크리스트, P2)
+
+TASK-09·TASK-10용. P0·P1이 끝난 뒤 별도 Alembic 마이그레이션으로 추가한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| id | BIGINT AUTO_INCREMENT | PK | |
+| task_id | BIGINT | NOT NULL, FK → tasks.id ON DELETE CASCADE | |
+| content | VARCHAR(100) | NOT NULL, CHECK (CHAR_LENGTH(content) > 0) | 해야 할 일 내용 |
+| is_done | TINYINT(1) | NOT NULL, DEFAULT 0 | 완료 체크 |
+| position | INTEGER | NOT NULL, DEFAULT 0 | 업무 안에서 항목 순서 |
+| created_at / updated_at | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
+
+- 체크리스트 변경은 `task_activities` 기록 대상이 아니다(LOG-01 범위: 생성·상태·담당자·마감일·우선순위·삭제).
+- 접근 권한은 상위 업무의 프로젝트 멤버십으로 검사한다.
+- **업무당 최대 10개**는 여러 행에 걸친 규칙이라 서비스 계층에서 검사한다(`CHECKLIST_LIMIT_EXCEEDED`). 동시에 추가해 11개가 되지 않도록 개수 확인 전에 해당 업무 행을 `SELECT ... FOR UPDATE`로 잠근다.
+
 ## 4. 인덱스
 
 | 테이블 | 인덱스 | 용도 |
 | --- | --- | --- |
-| users | UNIQUE (email) | 로그인 조회 |
+| users | UNIQUE (login_id) | 로그인 조회, 멤버 추가 시 사용자 찾기 |
 | project_members | UNIQUE (project_id, user_id) | 중복 방지, 멤버십 확인 |
 | project_members | (user_id) | 내 프로젝트 목록 |
 | tasks | (project_id, status, position) | 칸반 보드 조회 |
@@ -190,10 +220,11 @@ erDiagram
 | task_comments | (task_id, created_at) | 댓글 목록 |
 | task_activities | (task_id, created_at DESC) | 업무 이력 |
 | task_activities | (project_id, created_at DESC) | 프로젝트 최근 이력 |
+| task_checklist_items | (task_id, position) | 업무 체크리스트 목록 (P2) |
 
 ## 5. 주요 조회 쿼리
 
-**프로젝트 진행률 (DASH-01)**
+**프로젝트 진행률 (DASH-01, P1)**
 ```sql
 SELECT p.id,
        COUNT(t.id)                                        AS total,
@@ -218,14 +249,28 @@ GROUP BY u.id, u.name, t.status;
 **마감 임박·지연 업무 (DASH-03)**
 ```sql
 SELECT *,
-       CASE WHEN due_date < CURRENT_DATE THEN 'OVERDUE' ELSE 'DUE_SOON' END AS alert
+       CASE WHEN due_date < :today THEN 'OVERDUE' ELSE 'DUE_SOON' END AS alert
 FROM tasks
 WHERE project_id = :project_id
   AND status <> 'DONE'
   AND due_date IS NOT NULL
-  AND due_date <= CURRENT_DATE + INTERVAL 3 DAY
+  AND due_date <= :today + INTERVAL 3 DAY
 ORDER BY due_date;
 ```
+- 마감일이 오늘이면 `DUE_SOON`(임박)이다.
+- `:today`는 앱에서 넘긴다. DB 세션이 UTC(`+00:00`)라 `CURRENT_DATE`를 쓰면 한국 시간 오전 9시 전에 하루가 어긋난다(기준 시간대는 API-SPEC §9-4).
+
+**업무 진행률 (TASK-10, P2)**
+```sql
+SELECT task_id,
+       COUNT(*)                          AS total,
+       SUM(is_done = 1)                  AS done,
+       ROUND(100 * SUM(is_done = 1) / COUNT(*)) AS progress
+FROM task_checklist_items
+WHERE task_id IN (:task_ids)
+GROUP BY task_id;
+```
+항목이 없는 업무는 결과에 나오지 않으며, 화면에서는 진행률을 표시하지 않는다.
 
 ## 6. 구현 메모
 
@@ -234,6 +279,6 @@ ORDER BY due_date;
 - 모든 테이블은 `ENGINE=InnoDB`, `CHARSET=utf8mb4`, `COLLATE=utf8mb4_unicode_ci`로 만든다. (한글·이모지 저장, FK·트랜잭션 지원)
 - MariaDB `DATETIME`은 시간대 정보를 저장하지 않는다. 앱에서 항상 **UTC로 변환해 저장**하고, 응답에는 ISO 8601 형식(`Z` 포함)으로 내보내 화면에서 한국 시간으로 바꾼다. DB 세션도 `SET time_zone = '+00:00'`으로 맞춘다.
 - `updated_at`은 SQLAlchemy `onupdate=func.now()`로 갱신한다.
-- 접속 URL 예: `mysql+pymysql://user:password@localhost:3306/teamboard?charset=utf8mb4`
+- 접속 URL 예: `mysql+pymysql://user:password@localhost:3306/Doing_It?charset=utf8mb4`
 - MariaDB는 `SUM(조건식)`으로 조건부 개수를 셀 수 있다(참이면 1). PostgreSQL의 `FILTER` 구문은 쓰지 않는다.
 - 초기 데이터: Alembic 이후 `seed.py`로 ADMIN 1명, 샘플 프로젝트 1개, 업무 10개 정도를 넣어 시연에 활용한다.

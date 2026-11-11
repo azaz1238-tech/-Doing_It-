@@ -1,8 +1,8 @@
-# Project: TeamBoard (팀 협업 프로젝트 관리 시스템)
+# Project: 동잇 (Doing_It) — 팀 협업 프로젝트 관리 시스템
 
 > 이 파일은 Claude가 이 저장소에서 작업할 때 따르는 지침이다.
-> 근거 문서: docs/PROPOSAL.md(기획서) → docs/CONSTITUTION.md(헌법) → docs/REQUIREMENTS.md · docs/USER-STORIES.md · docs/DATABASE.md · docs/API-SPEC.md(작성 예정) → 코드.
-> 빠른 요약: docs/IDEA.md(기획서 한 장 요약 — 기획서와 다르면 기획서를 따른다).
+> 근거 문서: docs/PROPOSAL.md(기획서) → docs/CONSTITUTION.md(헌법) → docs/REQUIREMENTS.md · docs/SPEC.md(기능 스펙 F1~F5, Given-When-Then — 기능 ID·우선순위는 REQUIREMENTS 우선) · docs/USER-STORIES.md · docs/DATABASE.md · docs/API-SPEC.md(초안) → 코드.
+> 빠른 요약: docs/PROJECT-OVERVIEW.md(처음 보는 사람용 1페이지 소개 — 기획서와 다르면 기획서를 따른다), docs/PRD.md(목표·사용자·MoSCoW 기능·스토리 연결 안내 — 원본 문서가 우선, 새 ID를 만들지 않는다).
 > 문서끼리 충돌하면 앞쪽 문서를 따른다. 이 파일과 docs가 다르면 docs가 우선이며, 이 파일을 docs에 맞게 고친다.
 
 ## 1. Overview
@@ -15,11 +15,11 @@
 ## 2. Tech Stack (고정 — 목록에 없는 라이브러리 추가 금지)
 | 영역 | 기술 |
 | --- | --- |
-| Frontend | React, JavaScript, Tailwind CSS, Axios, React Hooks + Context API |
-| Backend | Python, FastAPI, Pydantic |
+| Frontend | React, JavaScript, Vite(빌드), React Router(화면 주소), Tailwind CSS, Axios, React Hooks + Context API |
+| Backend | Python, FastAPI, Pydantic, Uvicorn(ASGI 서버), python-dotenv(.env 읽기) |
 | DB / ORM | MariaDB 10.11 LTS(Docker), SQLAlchemy 2.x, Alembic, PyMySQL |
-| Auth | JWT Access Token(만료 2시간, localStorage), bcrypt |
-| Test | pytest(P0 핵심 API), Postman(그 외, 컬렉션 저장소에 포함) |
+| Auth | JWT Access Token(만료 2시간, localStorage, PyJWT), bcrypt |
+| Test | pytest + httpx(TestClient)(P0 핵심 API), Postman(그 외, 컬렉션 저장소에 포함) |
 | Lint / Format | BE: ruff + black / FE: ESLint + Prettier |
 
 ## 3. 범위 규칙
@@ -31,7 +31,7 @@
 
 ## 4. Directory Structure (제안 — 팀 확정 필요)
 ```
-docs/            명세 문서 (IDEA, PROPOSAL, CONSTITUTION, REQUIREMENTS, USER-STORIES, DATABASE, API-SPEC)
+docs/            명세 문서 (PROJECT-OVERVIEW, PRD, SPEC, PROPOSAL, CONSTITUTION, REQUIREMENTS, USER-STORIES, DATABASE, API-SPEC)
 backend/app/     routers/ · services/ · models/ · schemas/
 backend/core/    ★ 스타터킷: 인증, DB 세션, 공통 예외 처리
 backend/tests/   pytest
@@ -74,7 +74,7 @@ frontend/src/core/ ★ 스타터킷: API 클라이언트(Axios), 인증 Context,
 
 ## 6. Workflow
 - 커밋: `종류(기능 ID): 한국어 설명` — 종류는 feat|fix|refactor|test|docs|chore. 예: `feat(TASK-02): 업무 상태 변경 API 추가`
-- 브랜치: `feat/TASK-02-status-change`, `fix/AUTH-01-email-dup`. `main`에 직접 push 금지, PR 리뷰 1명 승인 후 병합.
+- 브랜치: `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup`. `main`에 직접 push 금지, PR 리뷰 1명 승인 후 병합.
 - PR 전에 ruff·black·ESLint·Prettier를 통과시킨다.
 - P0 핵심 API(인증·권한·업무 CRUD)는 pytest가 통과해야 완료로 본다. 권한 테스트에는 **실패 케이스(403)를 반드시 포함**한다.
 

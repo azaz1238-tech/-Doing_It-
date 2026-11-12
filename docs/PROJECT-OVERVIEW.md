@@ -50,11 +50,12 @@ flowchart LR
 
 | 영역 | 기술 |
 | --- | --- |
-| 화면 | React · Vite · React Router · Tailwind CSS · Axios |
-| 서버 | FastAPI · Pydantic · Uvicorn |
+| 화면 | React 19 · Vite · React Router · Tailwind CSS 4 · Axios (Node 22) |
+| 서버 | FastAPI · Pydantic · Uvicorn (Python 3.12) |
 | DB | MariaDB 10.11(Docker) · SQLAlchemy 2.x · Alembic · PyMySQL |
 | 인증 | JWT Access Token(2시간, PyJWT) · bcrypt |
 | 테스트 | pytest(P0 핵심 API) · Postman |
+| 시연 | 로컬(Docker MariaDB + 시드 데이터) |
 
 **개발 방식 SDD:** 명세 작성 → AI로 구현 → 사람이 검토 → 테스트 → 명세와 비교. 명세에 없는 기능·API·테이블은 만들지 않는다.
 
@@ -82,6 +83,8 @@ flowchart LR
 | 기능 ID·우선순위·권한 | [REQUIREMENTS.md](./REQUIREMENTS.md) |
 | 기능별 동작(Given-When-Then) | [SPEC.md](./SPEC.md) |
 | 사용자 스토리·수용 기준 | [USER-STORIES.md](./USER-STORIES.md) |
-| 테이블 설계 | [DATABASE.md](./DATABASE.md) |
+| 테이블 설계 | [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) |
 | API | [API-SPEC.md](./API-SPEC.md) |
+| 화면 구성·표시 규칙 | [UI-DESIGN.md](./UI-DESIGN.md) |
+| 폴더·계층·버전·실행 환경 | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | 기능과 스토리 연결표 | [PRD.md](./PRD.md) |

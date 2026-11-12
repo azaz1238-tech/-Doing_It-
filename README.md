@@ -3,7 +3,7 @@
 팀이 프로젝트 단위로 업무를 등록하고 담당자·마감일·우선순위를 정해 칸반 보드로 관리하는 웹 서비스입니다.
 업무 **변경 이력**과 **마감 임박·지연 대시보드**로 "누가 언제 무엇을 바꿨는지", "무엇이 늦어지는지"를 한눈에 봅니다.
 
-> **현재 단계:** 스프린트 0 (명세·설계) — 코드 작성 전입니다. 처음이라면 [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)부터 읽어 주세요.
+> **현재 단계:** 스프린트 0 (명세·설계) 완료 — 11/13 스프린트 1부터 코드 작성. 처음이라면 [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)부터 읽어 주세요.
 
 ## 주요 기능
 
@@ -15,8 +15,8 @@
 
 | 영역 | 기술 |
 | --- | --- |
-| Frontend | React, JavaScript, Vite, React Router, Tailwind CSS, Axios, React Hooks + Context API |
-| Backend | Python, FastAPI, Pydantic, Uvicorn, python-dotenv |
+| Frontend | React 19, JavaScript, Vite, React Router, Tailwind CSS 4, Axios, React Hooks + Context API (Node 22 LTS) |
+| Backend | Python 3.12, FastAPI, Pydantic 2, Uvicorn, python-dotenv |
 | DB / ORM | MariaDB 10.11 LTS (Docker), SQLAlchemy 2.x, Alembic, PyMySQL |
 | Auth | JWT Access Token (2시간, localStorage, PyJWT), bcrypt |
 | Test | pytest + httpx (P0 핵심 API), Postman |
@@ -51,16 +51,21 @@ cp .env.example .env   # .env는 Git에 올리지 않습니다
 
 | 변수 | 설명 | 예시 |
 | --- | --- | --- |
-| `DB_HOST` / `DB_PORT` | MariaDB 주소 | `localhost` / `3306` |
-| `DB_USER` / `DB_PASSWORD` | DB 계정 | 각자 설정 |
-| `DB_NAME` | DB 이름 | `Doing_It` |
-| `JWT_SECRET` | 토큰 서명 키 | 각자 긴 임의 문자열 |
-| `ALGORITHM` | 토큰 알고리즘 | `HS256` |
+| `MARIADB_ROOT_PASSWORD` | DB 관리자 비밀번호 (docker compose) | 각자 설정 |
+| `MARIADB_USER` / `MARIADB_PASSWORD` | DB 계정 (docker compose·백엔드) | `doingit` / 각자 설정 |
+| `DATABASE_URL` | 개발 DB 접속 주소 | `mysql+pymysql://doingit:비밀번호@localhost:3306/doing_it?charset=utf8mb4` |
+| `TEST_DATABASE_URL` | pytest 전용 DB | `...@localhost:3306/doing_it_test?charset=utf8mb4` |
+| `JWT_SECRET_KEY` | 토큰 서명 키 (HS256) | 32자 이상 임의 문자열 |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | 토큰 만료(분) | `120` |
+| `FRONTEND_ORIGIN` | CORS 허용 주소 | `http://localhost:5173` |
+
+변수 목록의 기준은 [docs/ARCHITECTURE.md §6](docs/ARCHITECTURE.md)입니다.
 
 ### 2. DB (MariaDB 10.11, Docker)
 
-_실행 방법 작성 예정_
+```bash
+docker compose up -d     # MariaDB만 컨테이너로 실행 (doing_it, doing_it_test 스키마 생성)
+```
 
 ### 3. 백엔드
 
@@ -76,15 +81,17 @@ _마이그레이션·서버 실행 명령 작성 예정_
 
 _작성 예정_
 
-## 폴더 구조 (예정 — 팀 확정 필요)
+## 폴더 구조 (확정 — 상세는 [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md))
 
 ```
-docs/               명세 문서
-backend/app/        routers · services · models · schemas
-backend/core/       ★ 공통: 인증, DB 세션, 예외 처리
-backend/tests/      pytest
-frontend/src/       pages · components · features
-frontend/src/core/  ★ 공통: API 클라이언트, 인증 Context, 공통 UI
+docs/                    명세 문서
+docker-compose.yml       MariaDB만
+backend/app/             routers · services · models · schemas
+backend/core/            ★ 공통: 설정, DB 세션, 보안, 인증 의존성, 예외 처리
+backend/alembic/ · backend/scripts/seed.py · backend/tests/
+frontend/src/features/   auth · projects · tasks
+frontend/src/core/       ★ 공통: API 클라이언트, 인증 Context, 공통 UI, 아이콘
+postman/                 Postman 컬렉션
 ```
 
 ★ = 다른 프로젝트에서 재사용할 스타터킷
@@ -99,8 +106,10 @@ frontend/src/core/  ★ 공통: API 클라이언트, 인증 Context, 공통 UI
 | [REQUIREMENTS](docs/REQUIREMENTS.md) | 기능 ID·우선순위·권한 |
 | [SPEC](docs/SPEC.md) | 기능 스펙 (Given-When-Then) |
 | [USER-STORIES](docs/USER-STORIES.md) | 사용자 스토리 |
-| [DATABASE](docs/DATABASE.md) | DB 설계 |
+| [DATABASE-DESIGN](docs/DATABASE-DESIGN.md) | DB 설계 |
 | [API-SPEC](docs/API-SPEC.md) | API 명세 |
+| [UI-DESIGN](docs/UI-DESIGN.md) | 화면 설계 |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | 폴더·계층·버전·실행 환경 |
 | [PRD](docs/PRD.md) | 기능·스토리 연결표 |
 
 문서끼리 다르면 위쪽(기획서 → 헌법 → 요구사항) 문서를 따릅니다.
@@ -109,7 +118,7 @@ frontend/src/core/  ★ 공통: API 클라이언트, 인증 Context, 공통 UI
 
 - **브랜치:** `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup` — `main`에 직접 push 금지
 - **커밋:** `종류(기능 ID): 한국어 설명` — 예: `feat(TASK-02): 업무 상태 변경 API 추가`
-- **PR:** 리뷰 1명 승인 + ruff·black·ESLint·Prettier 통과 후 병합
+- **PR:** 리뷰 1명 승인 + ruff·black·ESLint·Prettier 통과 후 병합. CI가 없으므로 로컬 실행 결과(백엔드는 pytest 포함)를 PR 설명에 한 줄 적는다
 - **완료 기준:** P0 핵심 API는 pytest 통과(권한 실패 403 케이스 포함)
 
 ## 팀

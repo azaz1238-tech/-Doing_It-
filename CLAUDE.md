@@ -1,7 +1,7 @@
 # Project: 동잇 (Doing_It) — 팀 협업 프로젝트 관리 시스템
 
 > 이 파일은 Claude가 이 저장소에서 작업할 때 따르는 지침이다.
-> 근거 문서: docs/PROPOSAL.md(기획서) → docs/CONSTITUTION.md(헌법) → docs/REQUIREMENTS.md · docs/SPEC.md(기능 스펙 F1~F5, Given-When-Then — 기능 ID·우선순위는 REQUIREMENTS 우선) · docs/USER-STORIES.md · docs/DATABASE.md · docs/API-SPEC.md(초안) → 코드.
+> 근거 문서: docs/PROPOSAL.md(기획서) → docs/CONSTITUTION.md(헌법) → docs/REQUIREMENTS.md · docs/SPEC.md(기능 스펙 F1~F5, Given-When-Then — 기능 ID·우선순위는 REQUIREMENTS 우선) · docs/USER-STORIES.md · docs/DATABASE-DESIGN.md · docs/API-SPEC.md · docs/UI-DESIGN.md · docs/ARCHITECTURE.md(폴더·계층·버전) → 코드.
 > 빠른 요약: docs/PROJECT-OVERVIEW.md(처음 보는 사람용 1페이지 소개 — 기획서와 다르면 기획서를 따른다), docs/PRD.md(목표·사용자·MoSCoW 기능·스토리 연결 안내 — 원본 문서가 우선, 새 ID를 만들지 않는다).
 > 문서끼리 충돌하면 앞쪽 문서를 따른다. 이 파일과 docs가 다르면 docs가 우선이며, 이 파일을 docs에 맞게 고친다.
 
@@ -10,17 +10,20 @@
 - **차별화 기능:** 업무 변경 이력(Activity Log), 마감 임박(3일 이내)·지연 업무 대시보드.
 - **팀·일정:** 4명(BE 2, FE 2), 2026-11-10 ~ 11-26, 총 92시간. **11/19 P0 완료 게이트**, 11/26 최종 발표.
 - **개발 방식:** SDD — 명세 작성 → AI 구현 → 코드 검토 → 테스트 → 명세와 비교.
-- **현재 단계:** 스프린트 0(명세·설계). 코드는 아직 없음.
+- **현재 단계:** 스프린트 0(명세·설계) 완료 — 11/12 설계 확정. 11/13 스프린트 1(MVP 1) 시작. 코드는 아직 없음.
+- **시연:** 로컬(발표자 PC + Docker MariaDB + 시드 데이터). 클라우드 배포는 여유 있을 때만(ARCHITECTURE §9).
 
 ## 2. Tech Stack (고정 — 목록에 없는 라이브러리 추가 금지)
 | 영역 | 기술 |
 | --- | --- |
-| Frontend | React, JavaScript, Vite(빌드), React Router(화면 주소), Tailwind CSS, Axios, React Hooks + Context API |
-| Backend | Python, FastAPI, Pydantic, Uvicorn(ASGI 서버), python-dotenv(.env 읽기) |
+| Frontend | React 19, JavaScript, Vite(빌드), React Router(화면 주소), Tailwind CSS 4, Axios, React Hooks + Context API — Node 22 LTS |
+| Backend | Python 3.12, FastAPI, Pydantic 2, Uvicorn(ASGI 서버), python-dotenv(.env 읽기) |
 | DB / ORM | MariaDB 10.11 LTS(Docker), SQLAlchemy 2.x, Alembic, PyMySQL |
 | Auth | JWT Access Token(만료 2시간, localStorage, PyJWT), bcrypt |
 | Test | pytest + httpx(TestClient)(P0 핵심 API), Postman(그 외, 컬렉션 저장소에 포함) |
 | Lint / Format | BE: ruff + black / FE: ESLint + Prettier |
+
+- 쓰지 않는 패키지: passlib(bcrypt 직접 사용), python-multipart(로그인은 JSON), tzdata(UTC+9 고정), 아이콘·차트·상태관리 라이브러리. 상세는 ARCHITECTURE §2.
 
 ## 3. 범위 규칙
 - 기능은 REQUIREMENTS.md의 **기능 ID(예: TASK-01)와 수용 기준이 있어야** 구현한다.
@@ -29,17 +32,19 @@
 - 명세에 없는 API·테이블·라이브러리를 만들지 않는다. 필요하면 바로 구현하지 말고 명세 수정을 제안한다(새 아이디어는 P2로 등록).
 - 칸반 상태 변경은 버튼(드롭다운) 방식. 드래그 앤 드롭은 P2.
 
-## 4. Directory Structure (제안 — 팀 확정 필요)
+## 4. Directory Structure (확정 — 상세는 docs/ARCHITECTURE.md §3~§5)
 ```
-docs/            명세 문서 (PROJECT-OVERVIEW, PRD, SPEC, PROPOSAL, CONSTITUTION, REQUIREMENTS, USER-STORIES, DATABASE, API-SPEC)
-backend/app/     routers/ · services/ · models/ · schemas/
-backend/core/    ★ 스타터킷: 인증, DB 세션, 공통 예외 처리
-backend/tests/   pytest
-frontend/src/    pages/ · components/ · features/
-frontend/src/core/ ★ 스타터킷: API 클라이언트(Axios), 인증 Context, 공통 UI
+docs/            명세 문서 (PROPOSAL, CONSTITUTION, REQUIREMENTS, SPEC, USER-STORIES, DATABASE-DESIGN, API-SPEC, UI-DESIGN, ARCHITECTURE, PRD, PROJECT-OVERVIEW)
+docker-compose.yml  MariaDB만
+backend/app/     routers/ · services/ · models/ · schemas/ · main.py
+backend/core/    ★ 스타터킷: config, DB 세션, 보안(bcrypt·JWT), 인증 의존성, 공통 예외 처리, clock(한국 날짜), 페이지네이션
+backend/alembic/ · backend/scripts/seed.py · backend/tests/
+frontend/src/features/  auth/ · projects/ · tasks/ (화면·기능별 컴포넌트와 api.js)
+frontend/src/core/ ★ 스타터킷: API 클라이언트(Axios), 인증 Context, 공통 UI, 아이콘(SVG), 날짜 유틸
 ```
-- 계층: 라우터(요청 검증·인증 의존성) → 서비스(권한 검사·업무 로직·이력 기록) → 모델.
-- ★ 공통 모듈은 처음부터 분리된 폴더에 둔다(스타터킷 재사용).
+- 계층: 라우터(요청 검증·인증 의존성) → 서비스(권한 검사·업무 로직·이력 기록·커밋) → 모델.
+- ★ `core/`는 `app/`·`features/`를 import하지 않는다(스타터킷 재사용).
+- 엔드포인트는 `async def`가 아니라 `def`로 쓴다(동기 DB 드라이버). 이력 기록 함수는 커밋하지 않는다.
 
 ## 5. Coding Principles
 ### 백엔드
@@ -56,9 +61,11 @@ frontend/src/core/ ★ 스타터킷: API 클라이언트(Axios), 인증 Context,
 
 ### API
 - REST: 복수형 명사 + HTTP 메서드 (`GET /projects/{id}/tasks`, `PATCH /tasks/{id}`).
-- 성공: 리소스 객체 또는 `{ "items": [...], "total": n, "page": 1, "size": 20 }`. 목록은 페이지네이션 기본 20건.
-- 실패: `{ "code": "ASSIGNEE_NOT_MEMBER", "message": "한국어 메시지" }`.
-- 상태 코드: 400 업무 규칙 위반 · 401 인증 실패 · 403 권한 없음 · 404 없음 · 409 중복 · 422 입력 검증 실패(Pydantic, 필드별 오류).
+- 모든 API 경로 앞에 **`/api`** 를 붙인다(예: `/api/projects`). 개발 중 프론트는 Vite 프록시로 호출하고, 백엔드 CORS는 `.env`의 `FRONTEND_ORIGIN`만 허용한다.
+- 성공: 리소스 객체 또는 `{ "items": [...], "total": n, "page": 1, "size": 20 }`. 목록은 페이지네이션 기본 20건, 최대 100건. 집계 API는 페이지네이션하지 않는다.
+- 실패: `{ "code": "ASSIGNEE_NOT_MEMBER", "message": "한국어 메시지" }`. 422는 여기에 `errors: [{ "field", "message" }]`를 더한다(FastAPI 기본 `detail` 형식은 공통 예외 처리에서 변환).
+- 상태 코드: 400 업무 규칙 위반 · 401 인증 실패 · 403 권한 없음 · 404 없음 · 409 중복 · 422 입력 검증 실패. 검사 순서는 401 → 422 → 404 → 403 → 400.
+- 마감 임박·지연의 "오늘"은 한국 날짜(UTC+9 고정)로 서버에서 계산한다.
 - API를 바꿀 때는 **API-SPEC.md를 먼저 수정**한다.
 
 ### 프론트엔드
@@ -75,7 +82,7 @@ frontend/src/core/ ★ 스타터킷: API 클라이언트(Axios), 인증 Context,
 ## 6. Workflow
 - 커밋: `종류(기능 ID): 한국어 설명` — 종류는 feat|fix|refactor|test|docs|chore. 예: `feat(TASK-02): 업무 상태 변경 API 추가`
 - 브랜치: `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup`. `main`에 직접 push 금지, PR 리뷰 1명 승인 후 병합.
-- PR 전에 ruff·black·ESLint·Prettier를 통과시킨다.
+- PR 전에 ruff·black·ESLint·Prettier(백엔드는 pytest도)를 로컬에서 통과시키고, **PR 설명에 결과를 한 줄 적는다.** CI는 두지 않으므로 리뷰어는 이 줄이 없으면 승인하지 않는다.
 - P0 핵심 API(인증·권한·업무 CRUD)는 pytest가 통과해야 완료로 본다. 권한 테스트에는 **실패 케이스(403)를 반드시 포함**한다.
 
 ## 7. Response Guidelines (For Claude)

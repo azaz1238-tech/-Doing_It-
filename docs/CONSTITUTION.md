@@ -1,12 +1,12 @@
 # 프로젝트 헌법 (CONSTITUTION.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 방식: SDD | 버전: v0.5
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 방식: SDD | 버전: v0.6
 > 상위 문서: 팀 협업 관리 시스템 기획서 (정식 문서)
-> 하위 문서: [REQUIREMENTS.md](./REQUIREMENTS.md), [SPEC.md](./SPEC.md), [USER-STORIES.md](./USER-STORIES.md), [DATABASE.md](./DATABASE.md), [API-SPEC.md](./API-SPEC.md)(초안)
+> 하위 문서: [REQUIREMENTS.md](./REQUIREMENTS.md), [SPEC.md](./SPEC.md), [USER-STORIES.md](./USER-STORIES.md), [DATABASE-DESIGN.md](./DATABASE-DESIGN.md), [API-SPEC.md](./API-SPEC.md), [UI-DESIGN.md](./UI-DESIGN.md), [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 이 문서는 기획서가 정한 목표·범위·인원·일정 안에서, 모든 명세, 설계, 코드가 지켜야 하는 **작업 원칙**을 정합니다.
 
-문서 간 우선순위는 **기획서 → 헌법 → 하위 명세(요구사항 명세, 사용자 스토리, DB 설계, API 명세) → 코드** 순서입니다.
+문서 간 우선순위는 **기획서 → 헌법 → 하위 명세(요구사항 명세, 기능 스펙, 사용자 스토리, DB 설계, API 명세, UI 설계, 아키텍처) → 코드** 순서입니다.
 
 - 기획서와 이 문서가 충돌하면 기획서를 따르고, 이 문서를 기획서에 맞게 고칩니다.
 - 하위 명세나 AI가 만든 코드가 이 문서와 충돌하면 이 문서가 우선합니다.
@@ -37,7 +37,7 @@
 
 ## 2. AI 코딩 도구 사용 규칙
 
-1. AI에게 코드를 요청할 때는 관련 기능 ID, 해당 명세(REQUIREMENTS, API-SPEC, DATABASE의 관련 부분), 이 헌법을 함께 제공합니다.
+1. AI에게 코드를 요청할 때는 관련 기능 ID, 해당 명세(REQUIREMENTS, API-SPEC, DATABASE-DESIGN의 관련 부분), 이 헌법을 함께 제공합니다.
 2. AI가 만든 코드의 정확성과 설계 적합성은 **그 코드를 PR로 올린 팀원이 책임**집니다. 이해하지 못한 코드는 올리지 않습니다.
 3. AI가 명세에 없는 기능, 라이브러리, 테이블을 추가하면 그대로 쓰지 않고 지웁니다. 필요하면 명세부터 고칩니다(1-2).
 4. 리뷰어는 "AI가 만들었으니 맞을 것"이라고 가정하지 않고, 사람이 쓴 코드와 같은 기준으로 봅니다.
@@ -68,8 +68,8 @@
 
 | 영역 | 사용 기술 |
 | --- | --- |
-| 프론트엔드 | React, JavaScript, Vite(빌드), React Router(화면 주소), Tailwind CSS, Axios, React Hooks + Context API |
-| 백엔드 | Python, FastAPI, Pydantic, Uvicorn(ASGI 서버), python-dotenv(.env 읽기) |
+| 프론트엔드 | React 19, JavaScript, Vite(빌드), React Router(화면 주소), Tailwind CSS 4, Axios, React Hooks + Context API — Node 22 LTS |
+| 백엔드 | Python 3.12, FastAPI, Pydantic 2, Uvicorn(ASGI 서버), python-dotenv(.env 읽기) |
 | DB / ORM | **MariaDB**, SQLAlchemy 2.x, Alembic, PyMySQL |
 | 인증 | JWT(Access Token, PyJWT), bcrypt |
 | 테스트 | pytest + httpx(TestClient), Postman |
@@ -78,8 +78,8 @@
 
 1. 위 목록에 없는 라이브러리를 추가하려면 팀 합의가 필요합니다. 합의한 내용은 README의 의존성 목록에 이유와 함께 적습니다.
 2. DB 스키마는 **반드시 Alembic 마이그레이션으로만** 바꿉니다. DB에 직접 DDL을 실행하지 않습니다.
-3. 모든 팀원은 같은 MariaDB 버전(10.11 LTS 권장)을 Docker로 실행해 개발 환경 차이를 없앱니다.
-4. 상태·역할 값은 Python `Enum`으로 정의하고 DB에는 VARCHAR + CHECK 제약으로 저장합니다. (`DATABASE.md` 6절)
+3. 모든 팀원은 같은 MariaDB 버전(10.11 LTS)을 Docker로 실행하고, 같은 Python·Node 버전을 써서 개발 환경 차이를 없앱니다. 패키지 버전은 `requirements.txt`·`package-lock.json`에 고정합니다(`ARCHITECTURE.md` §2).
+4. 상태·역할 값은 Python `Enum`으로 정의하고 DB에는 VARCHAR + CHECK 제약으로 저장합니다. (`DATABASE-DESIGN.md` §1·§10)
 
 ## 6. 보안과 권한
 
@@ -126,7 +126,7 @@
 1. P0 기능의 핵심 API(인증, 권한, 업무 CRUD)는 **pytest 테스트가 통과해야 완료**로 봅니다. 그 밖의 API는 Postman 컬렉션으로 확인하고, 컬렉션 파일을 저장소에 함께 올립니다.
 2. 권한 테스트에는 반드시 실패 경우를 넣습니다. (예: 비멤버의 접근은 403, MEMBER가 남의 업무 수정·삭제 시 403, 담당자가 아닌 MEMBER의 상태 변경 시 403)
 3. `main` 브랜치에 직접 push하지 않습니다. 기능 브랜치에서 작업하고 **PR 리뷰 1명 이상의 승인**을 받아 병합합니다. GitHub 브랜치 보호 규칙으로 강제합니다.
-4. PR을 올리기 전에 포맷터·린터를 실행합니다. **ruff, black, ESLint, Prettier 검사를 통과하지 못한 PR은 병합하지 않습니다.** (pre-commit 훅 또는 GitHub Actions로 자동 검사 권장)
+4. PR을 올리기 전에 포맷터·린터를 실행합니다. **ruff, black, ESLint, Prettier 검사를 통과하지 못한 PR은 병합하지 않습니다.** 자동 검사(CI)는 두지 않으므로, PR을 올린 사람이 로컬 실행 결과(린트, 백엔드는 pytest 포함)를 PR 설명에 한 줄 적고, 리뷰어는 그 줄이 없으면 승인하지 않습니다.
 5. 하루 작업이 끝나면 `main`에서 서버와 화면이 실행되는 상태를 유지합니다.
 
 ## 10. 이름과 언어 규칙
@@ -152,7 +152,8 @@
 | 날짜 | 버전 | 내용 | 합의자 |
 | --- | --- | --- | --- |
 | 2026-11-10 | v0.1 | 초안 작성 | |
-| 2026-11-10 | v0.2 | 결정 12개 반영: 4~5명 팀 운영, MariaDB, 역할 2단계(OWNER·MEMBER), Access Token + localStorage, 포맷터 강제, AI 사용 규칙, 언어 규칙 | 마로 |
-| 2026-11-10 | v0.3 | 서문 수정: 기획서를 상위 문서로 명시, 문서 우선순위(기획서 → 헌법 → 하위 명세 → 코드) 정의 | 마로 |
-| 2026-11-10 | v0.4 | 기획서 기준 정합: 팀 4명 고정·역할표에 담당자 기입(팀장/PM 행 삭제), 제외 범위에 AI 모델 학습·VIEWER 추가, 토큰 만료 2시간 확정, 프로젝트 보관은 P2로 명시 | 마로 |
-| 2026-11-11 | v0.5 | 프로젝트명 동잇(Doing_It) 확정. 기술 스택 보완: 구현에 필요하지만 목록에 없던 PyJWT, Uvicorn, python-dotenv, httpx(테스트), Vite, React Router 추가(이유는 README 의존성 기록). 하위 문서에 SPEC·API-SPEC 추가. 권한 테스트 예시에 업무 수정·상태 변경 403 추가 | 마로 |
+| 2026-11-10 | v0.2 | 결정 12개 반영: 4~5명 팀 운영, MariaDB, 역할 2단계(OWNER·MEMBER), Access Token + localStorage, 포맷터 강제, AI 사용 규칙, 언어 규칙 | 양준석, 서승범, 최진영, 김서현 |
+| 2026-11-10 | v0.3 | 서문 수정: 기획서를 상위 문서로 명시, 문서 우선순위(기획서 → 헌법 → 하위 명세 → 코드) 정의 | 양준석, 서승범, 최진영, 김서현 |
+| 2026-11-10 | v0.4 | 기획서 기준 정합: 팀 4명 고정·역할표에 담당자 기입(팀장/PM 행 삭제), 제외 범위에 AI 모델 학습·VIEWER 추가, 토큰 만료 2시간 확정, 프로젝트 보관은 P2로 명시 | 양준석, 서승범, 최진영, 김서현 |
+| 2026-11-11 | v0.5 | 프로젝트명 동잇(Doing_It) 확정. 기술 스택 보완: 구현에 필요하지만 목록에 없던 PyJWT, Uvicorn, python-dotenv, httpx(테스트), Vite, React Router 추가(이유는 README 의존성 기록). 하위 문서에 SPEC·API-SPEC 추가. 권한 테스트 예시에 업무 수정·상태 변경 403 추가 | 양준석, 서승범, 최진영, 김서현 |
+| 2026-11-12 | v0.6 | 설계 확정 반영: 기술 스택 버전 고정(React 19·Tailwind 4·Node 22 / Python 3.12·Pydantic 2), CI 없이 로컬 검사 결과를 PR 설명에 기록, 하위 문서에 UI-DESIGN·ARCHITECTURE 추가, DATABASE.md → DATABASE-DESIGN.md | 양준석, 서승범, 최진영, 김서현 |

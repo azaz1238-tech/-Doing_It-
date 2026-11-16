@@ -5,9 +5,9 @@
 - 세션 시작 시 alembic upgrade head로 테이블을 만든다(마이그레이션 자체도 매번 검증됨).
 - 테스트 함수마다 모든 테이블을 TRUNCATE한다. 트랜잭션 롤백 방식은 쓰지 않는다:
   동시성 테스트(OWNER 동시 제거)가 실제로 커밋해야 하기 때문이다.
-- API 테스트용 client(TestClient) 픽스처는 첫 API 테스트(T-F1-01 등)를 쓸 때 여기에 추가한다.
-  ⚠ 그때 반드시 app.dependency_overrides[get_db]로 테스트 DB 세션을 넣는다.
-  빠뜨리면 API가 core.db.engine(= 개발 DB, DATABASE_URL)에 쓰고, 위 _test 안전장치도 우회된다.
+- API 테스트는 client(TestClient) 픽스처를 쓴다. app.dependency_overrides[get_db]로
+  테스트 DB 세션을 넣는다. 빠뜨리면 API가 core.db.engine(= 개발 DB, DATABASE_URL)에 쓰고,
+  위 _test 안전장치도 우회된다.
 """
 
 from collections.abc import Iterator
@@ -16,12 +16,14 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import Engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.main import create_app
 from app.models import Base
 from core.config import get_settings
-from core.db import create_db_engine
+from core.db import create_db_engine, get_db
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 TEST_DATABASE_URL = get_settings().test_database_url
@@ -79,3 +81,24 @@ def db(engine: Engine) -> Iterator[Session]:
     finally:
         session.rollback()
         session.close()
+
+
+@pytest.fixture
+def client(engine: Engine) -> Iterator[TestClient]:
+    """API 테스트용. get_db를 테스트 DB 세션으로 바꿔 끼운다 (개발 DB 보호)."""
+    test_session = sessionmaker(bind=engine)
+
+    def _get_test_db() -> Iterator[Session]:
+        db = test_session()
+        try:
+            yield db
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    app = create_app()
+    app.dependency_overrides[get_db] = _get_test_db
+    with TestClient(app) as test_client:
+        yield test_client

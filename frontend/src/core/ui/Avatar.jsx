@@ -10,14 +10,22 @@ const SIZES = {
   md: "size-8 text-sm",
 };
 
+// 시안 v0.3: 한국 이름은 성을 뺀 이름 첫 글자(김민호 → 민). 같은 성이 많아 성으로는 구분이 안 된다.
+// 한글 3자 이름만 둘째 글자를 쓰고, 그 밖(2자·4자·영문 등)은 첫 글자를 쓴다. 규칙은 김서현과 확인한다.
+function getInitial(name) {
+  const trimmed = name.trim();
+  return /^[가-힣]{3}$/.test(trimmed) ? trimmed.charAt(1) : trimmed.charAt(0);
+}
+
 /**
  * Avatar — UI-DESIGN §5: 이름 첫 글자 + 사용자별 고정 색. 담당자 없음은 `?` 회색.
+ * 표시 글자는 getInitial 규칙을 따른다 (김민호 → 민, Jisu → J).
  * @param {{ id: number, name: string } | null} user 없으면 "담당자 없음"
  */
 export default function Avatar({ user, size = "md", className }) {
   const empty = !user;
   const color = empty ? "bg-neutral-300" : COLORS[user.id % COLORS.length];
-  const initial = empty ? "?" : user.name.trim().charAt(0);
+  const initial = empty ? "?" : getInitial(user.name);
 
   return (
     <span

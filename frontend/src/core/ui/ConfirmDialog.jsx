@@ -4,6 +4,7 @@ import Modal from "./Modal";
 /**
  * ConfirmDialog — 되돌릴 수 없는 동작(삭제·멤버 제거) 전에 한 번 더 묻는다.
  * 사용처: S6 업무 삭제, S7 프로젝트 삭제·멤버 제거
+ * 시안 v0.3처럼 ✕가 없다 — `취소`·ESC·바깥 클릭으로 닫는다.
  *
  * @param {string} message 본문 문구 (~합니다체, 끝 마침표 없음)
  * @param {boolean} [danger] 삭제처럼 위험한 동작이면 확인 버튼을 빨간색으로
@@ -30,6 +31,7 @@ export default function ConfirmDialog({
       onClose={onCancel}
       title={title}
       size="sm"
+      showClose={false}
       footer={
         <>
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
@@ -46,7 +48,7 @@ export default function ConfirmDialog({
         </>
       }
     >
-      {message && <p className="text-neutral-700">{message}</p>}
+      {message && <p className="text-neutral-600">{message}</p>}
       {children && <div className="mt-3">{children}</div>}
     </Modal>
   );

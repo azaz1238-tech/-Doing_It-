@@ -69,6 +69,11 @@ export default function ComponentPreviewPage() {
   const [confirm, setConfirm] = useState(null);
   const [typedName, setTypedName] = useState("");
 
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalName("");
+  };
+
   const closeConfirm = () => {
     setConfirm(null);
     setTypedName("");
@@ -224,22 +229,19 @@ export default function ComponentPreviewPage() {
 
         <Modal
           open={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModalName("");
-          }}
+          onClose={closeModal}
           title="새 프로젝트"
+          subtitle="만든 사람이 OWNER가 됩니다"
           isDirty={modalName !== ""}
           footer={
             <>
-              <Button variant="secondary" onClick={() => setModalOpen(false)}>
+              <Button variant="secondary" onClick={closeModal}>
                 취소
               </Button>
               <Button disabled={modalName.trim() === ""}>만들기</Button>
             </>
           }
         >
-          <p className="mb-4 text-neutral-500">만든 사람이 OWNER가 됩니다</p>
           <Input
             label="이름"
             required

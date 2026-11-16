@@ -254,7 +254,9 @@ export default function ComponentPreviewPage() {
         <ConfirmDialog
           open={confirm === "task"}
           title="이 업무를 삭제하시겠습니까?"
-          message="'업무 상태 변경 API' 업무가 삭제됩니다. 변경 이력은 남습니다"
+          message={
+            "'업무 상태 변경 API' 업무가 삭제됩니다.\n변경 이력은 남습니다"
+          }
           confirmLabel="삭제"
           danger
           onConfirm={closeConfirm}
@@ -263,7 +265,15 @@ export default function ComponentPreviewPage() {
         <ConfirmDialog
           open={confirm === "member"}
           title="김민호님을 멤버에서 제거하시겠습니까?"
-          message="김민호님이 담당하던 업무는 담당자 없음이 됩니다"
+          message={
+            <>
+              김민호님이 담당하던 업무는{" "}
+              <strong className="font-semibold text-neutral-900">
+                담당자 없음
+              </strong>
+              이 됩니다
+            </>
+          }
           confirmLabel="제거"
           danger
           onConfirm={closeConfirm}
@@ -272,7 +282,9 @@ export default function ComponentPreviewPage() {
         <ConfirmDialog
           open={confirm === "project"}
           title="프로젝트를 삭제하시겠습니까?"
-          message="업무 12개가 함께 삭제되고 되돌릴 수 없습니다. 확인을 위해 프로젝트 이름(백엔드 MVP)을 입력해 주세요"
+          message={
+            "업무 12개가 함께 삭제되고 되돌릴 수 없습니다.\n확인을 위해 프로젝트 이름(백엔드 MVP)을 입력해 주세요"
+          }
           confirmLabel="삭제"
           danger
           confirmDisabled={typedName !== "백엔드 MVP"}

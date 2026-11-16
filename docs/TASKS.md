@@ -139,12 +139,12 @@
 | --- | --- | --- | --- | :-: | :-: | --- | --- | --- |
 | T-F0-02 | — | `docker-compose.yml`(MariaDB 10.11, utf8mb4) + `init.sql`(doing_it·doing_it_test) | 서승범 | 2 | 11/13 | — | `docker compose up -d` 후 두 스키마 확인 | 완료 |
 | T-F0-03 | — | `.env.example`(ARCHITECTURE §6), `requirements.txt`(실행용+개발용 한 파일) | 서승범 | 1 | 11/13 | — | `pip install -r requirements.txt` 성공 | 완료 |
-| T-F0-04 | — | 백엔드 뼈대: `main.py`(`/api`, CORS), `core/config.py`, `/api/health` | 양준석 | 1.5 | 11/13 | F0-03 | `/api/health` 200 | 예정 (마감 지남) |
+| T-F0-04 | — | 백엔드 뼈대: `main.py`(`/api`, CORS), `core/config.py`, `/api/health` | 양준석 | 1.5 | 11/13 | F0-03 | `/api/health` 200 | 완료 (11/16) |
 | T-F0-05 | — | Vite + React 19 + Tailwind 4 + 프록시, ESLint·Prettier, `.nvmrc` | 최진영 | 3 | 11/13 | — | `npm run dev`에서 `/api/health` 호출 | 예정 (마감 지남) |
-| T-F0-06 | — | `core/db.py`: engine·`get_db()`·`time_zone='+00:00'` | 서승범 | 1 | 11/16 | F0-02 | `SELECT 1` 성공 | 완료 |
-| T-F0-07 | — | 모델 5개 + `enums.py` + Alembic `0001_p0_initial` (= DB 스키마 스크립트) | 서승범 | 4 | 11/16 | F0-06 | 테이블 5개·CHECK·FK 확인 | 완료 |
-| T-F0-08 | — | `core/`: security·auth·exceptions·clock·pagination | 양준석 | 4 | 11/16 | F0-04 | 잘못된 토큰 401, 422 공통 형식 | 예정 |
-| T-F0-09 | — | pytest 기반: `conftest.py`(테스트 DB·TRUNCATE), `factories.py` | 서승범 | 1.5 | 11/16 | F0-07 | 샘플 테스트 통과 | 완료 |
+| T-F0-06 | — | `core/db.py`: engine·`get_db()`·`time_zone='+00:00'` | 서승범 | 1 | 11/16 | F0-02 | `SELECT 1` 성공 | 완료 (11/16) |
+| T-F0-07 | — | 모델 5개 + `enums.py` + Alembic `0001_p0_initial` (= DB 스키마 스크립트) | 서승범 | 4 | 11/16 | F0-06 | 테이블 5개·CHECK·FK 확인 | 완료 (11/16) |
+| T-F0-08 | — | `core/`: security·auth(토큰 검사)·exceptions·clock·pagination | 양준석 | 4 | 11/16 | F0-04 | 잘못된 토큰 401, 422 공통 형식 | 완료 (11/16) |
+| T-F0-09 | — | pytest 기반: `conftest.py`(테스트 DB·TRUNCATE), `factories.py` | 서승범 | 1.5 | 11/16 | F0-07 | 샘플 테스트 통과 | 완료 (11/16) |
 | T-F0-10 | — | `scripts/seed.py` 시연 데이터 | 서승범 | 2 | 11/18 | F0-07 | 빈 DB에 실행 후 시연 가능 | 예정 |
 | T-F0-11 | — | 프론트 `core/`: Axios(JWT 헤더·401 처리), AuthContext | 최진영 | 3 | 11/16 | F0-05 | 토큰 없으면 `/login` | 예정 |
 | T-F0-12 | — | 공통 레이아웃 + Button·Input·Modal·Toast (= 공통 컴포넌트 목록) | 최진영 | 3 | 11/16 | F0-05 | UI-DESIGN §5 해당 항목 | 예정 |
@@ -157,7 +157,7 @@
 | --- | --- | --- | --- | :-: | :-: | --- | --- | --- |
 | T-F1-01 | AUTH-01, 03 | 회원가입 API (소문자 아이디, 8~64자·72바이트, bcrypt) | 양준석 | 2.5 | 11/16 | F0-08, F0-09 | 중복 409, 73바이트 한글 422 | 예정 |
 | T-F1-02 | AUTH-02 | 로그인 API (JWT) | 양준석 | 1.5 | 11/17 | F1-01 | 틀린 비밀번호 401 | 예정 |
-| T-F1-03 | AUTH-04 | 내 정보 조회 API | 양준석 | 0.5 | 11/17 | F1-02 | 토큰 없음 401 | 예정 |
+| T-F1-03 | AUTH-04 | 내 정보 조회 API + `get_current_user`(`app/services/auth_service.py`, 비활성 403) | 양준석 | 1 | 11/17 | F1-02, F0-07 | 토큰 없음 401, 비활성 403 | 예정 |
 | T-F1-04 | AUTH-01 | S2 회원가입 화면 | 최진영 | 2.5 | 11/17 | F0-11, F0-12 | 오류 문구, 가입 후 로그인 이동 | 예정 |
 | T-F1-05 | AUTH-02, 04 | S1 로그인 화면 + 보호 라우트·새로고침 복원·로그아웃 | 최진영 | 2.5 | 11/17 | F1-04 | 새로고침해도 로그인 유지 | 예정 |
 | T-F1-06 | AUTH-06 (P1·2순위) | 내 이름 수정 API | 양준석 | 1 | 11/23 | P0 게이트 | 31자 422 | 예정 |

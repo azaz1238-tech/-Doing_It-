@@ -1,6 +1,6 @@
 # 아키텍처 설계 (ARCHITECTURE.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.1 (2026-11-16 §3 저장소 구조에 루트 파일·문서 산출물 위치 추가, §8 완료 표시) · v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.3 (2026-11-16 §4.1·§4.4 get_current_user를 app/services/auth_service로, core/auth는 토큰 검사만) · v1.2 (2026-11-16 §1·§3 가상환경 위치를 저장소 루트 `.venv`로) · v1.1 (2026-11-16 §3 저장소 구조에 루트 파일·문서 산출물 위치 추가, §8 완료 표시) · v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
 > 근거: PROPOSAL §5·§6 → CONSTITUTION §4~§9 → REQUIREMENTS v1.0 → API-SPEC v1.0 · DATABASE-DESIGN v1.0 · UI-DESIGN v1.0
 > 이 문서는 **코드를 어디에, 어떤 규칙으로 둘지**를 정한다. 기능·API·테이블 정의는 위 문서를 따르고 여기서 다시 적지 않는다.
 
@@ -17,7 +17,7 @@ flowchart LR
 | 구성 | 실행 방법 | 포트 |
 | --- | --- | --- |
 | MariaDB | `docker compose up -d` (DB만 컨테이너) | 3307 (PC) → 3306 (컨테이너) |
-| 백엔드 | `backend/.venv`에서 `uvicorn app.main:app --reload` | 8000 |
+| 백엔드 | 저장소 루트 `.venv`를 켜고 `backend` 폴더에서 `uvicorn app.main:app --reload` | 8000 |
 | 프론트 | `frontend`에서 `npm run dev` | 5173 |
 
 - 브라우저는 항상 5173 하나만 본다. `/api`로 시작하는 요청만 Vite가 8000으로 넘기므로 개발 중에는 CORS 문제가 생기지 않는다(API-SPEC §1.1).
@@ -57,6 +57,7 @@ Doing_It/
 ├─ docker-compose.yml        MariaDB만
 ├─ docker/mariadb/init.sql   doing_it, doing_it_test 스키마 생성 (utf8mb4)
 ├─ requirements.txt          백엔드 패키지 — 실행용·개발용 한 파일 (§2)
+├─ .venv/                    Python 가상환경 — 저장소 루트에 하나 (Git 제외, SETUP 3번)
 ├─ .env.example              §6
 ├─ backend/
 │  ├─ core/                  ★ 스타터킷 — 이 프로젝트 도메인을 모르는 코드만
@@ -83,7 +84,7 @@ backend/
 │  ├─ config.py        .env 읽기 (python-dotenv). 설정 객체 1개
 │  ├─ db.py            engine, SessionLocal, get_db(), 연결 시 SET time_zone='+00:00'
 │  ├─ security.py      bcrypt 해시·확인, JWT 발급·검증
-│  ├─ auth.py          get_current_user 의존성 (Bearer 토큰 → 사용자)
+│  ├─ auth.py          get_token_user_id 의존성 (Bearer 토큰 → 사용자 id, 틀리면 401). 사용자 조회는 app/ 쪽
 │  ├─ exceptions.py    AppError, 예외 처리기(AppError·422 변환·404·500)
 │  ├─ clock.py         get_today() — 한국 날짜 (테스트에서 교체 가능한 의존성)
 │  └─ pagination.py    Page 쿼리 파라미터, { items, total, page, size } 응답
@@ -91,7 +92,7 @@ backend/
 │  ├─ main.py          create_app(): 라우터를 prefix="/api"로 등록, CORS, 예외 처리기
 │  ├─ routers/         auth.py · users.py · projects.py · members.py · tasks.py
 │  │                   (P1: activities.py · comments.py · stats.py)
-│  ├─ services/        auth_service · project_service · member_service · task_service
+│  ├─ services/        auth_service(get_current_user) · project_service · member_service · task_service
 │  │                   activity_service(이력 기록) · permissions.py(require_project_role)
 │  ├─ models/          base.py(naming convention) · enums.py · user · project · project_member · task · task_activity
 │  └─ schemas/         요청·응답 Pydantic 모델 (common.py에 UTC 시각 직렬화)
@@ -120,10 +121,14 @@ backend/
 ### 4.4 인증과 권한
 
 ```python
-# core/auth.py
-bearer = HTTPBearer(auto_error=False)   # 기본값(True)은 헤더가 없을 때 403을 낸다 → 직접 401로 처리
-def get_current_user(cred = Depends(bearer), db = Depends(get_db)) -> User: ...
-#  토큰 없음·오류·만료·사용자 없음·탈퇴 → 401 UNAUTHORIZED / is_active=0 → 403 ACCOUNT_DISABLED
+# core/auth.py — 스타터킷: 토큰만 검사한다 (User 모델을 모름)
+bearer_scheme = HTTPBearer(auto_error=False)   # 기본값(True)은 헤더가 없을 때 403을 낸다 → 직접 401로 처리
+def get_token_user_id(credentials = Depends(bearer_scheme)) -> int: ...
+#  토큰 없음·형식 오류·서명 오류·만료 → 401 UNAUTHORIZED
+
+# app/services/auth_service.py — 도메인: 사용자 조회 (core/는 app/를 import하지 않으므로 여기에 둔다)
+def get_current_user(user_id = Depends(get_token_user_id), db = Depends(get_db)) -> User: ...
+#  사용자 없음·탈퇴 → 401 UNAUTHORIZED / is_active=0 → 403 ACCOUNT_DISABLED
 
 # app/services/permissions.py — 역할 비교는 이 파일에서만 한다 (CLAUDE.md §5)
 def require_project_role(db, project_id, user, allowed: set[ProjectRole]) -> ProjectMember:

@@ -150,7 +150,7 @@ postman/                 Postman 컬렉션
 | [UI-DESIGN](docs/UI-DESIGN.md) | 화면 설계 |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | 폴더·계층·버전·실행 환경 |
 | [PRD](docs/PRD.md) | 기능·스토리 연결표 |
-| [tasks](docs/tasks.md) | 태스크 분해·담당·일정 |
+| [TASKS](docs/TASKS.md) | 태스크 분해·담당·일정 |
 | [SPEC-CHANGELOG](docs/SPEC-CHANGELOG.md) | 스펙 v1.0 동결 후 변경 이력 |
 
 문서끼리 다르면 위쪽(기획서 → 헌법 → 요구사항) 문서를 따릅니다.
@@ -165,7 +165,7 @@ postman/                 Postman 컬렉션
 | plan.md | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | data-model.md | [docs/DATABASE-DESIGN.md](docs/DATABASE-DESIGN.md) |
 | api-contract.md | [docs/API-SPEC.md](docs/API-SPEC.md) |
-| tasks.md | [docs/tasks.md](docs/tasks.md) |
+| tasks.md | [docs/TASKS.md](docs/TASKS.md) |
 
 ## 협업 규칙
 

@@ -103,7 +103,7 @@ pip install -r requirements.txt   # 실행용 + 개발용(pytest·httpx·ruff·b
 
 - 터미널을 **새로 열 때마다** `.venv\Scripts\Activate.ps1`을 다시 실행한다.
 - VS Code: `Ctrl+Shift+P` → "Python: Select Interpreter" → `.venv`를 고르면 새 터미널에서 자동으로 켜진다.
-- 패키지를 새로 추가하지 않는다. 목록에 없는 라이브러리는 팀 합의가 필요하다(CONSTITUTION §5). `requirements.txt`는 서승범만 수정한다(tasks.md §3).
+- 패키지를 새로 추가하지 않는다. 목록에 없는 라이브러리는 팀 합의가 필요하다(CONSTITUTION §5). `requirements.txt`는 서승범만 수정한다(TASKS.md §3).
 - `.venv` 폴더는 Git에 올라가지 않는다.
 
 ## 4. DB 접속 확인

@@ -272,7 +272,7 @@ export default function ComponentPreviewPage() {
         <ConfirmDialog
           open={confirm === "project"}
           title="프로젝트를 삭제하시겠습니까?"
-          message="업무 12개가 함께 삭제되고 되돌릴 수 없습니다. 확인을 위해 '백엔드 MVP'를 입력해 주세요"
+          message="업무 12개가 함께 삭제되고 되돌릴 수 없습니다. 확인을 위해 프로젝트 이름(백엔드 MVP)을 입력해 주세요"
           confirmLabel="삭제"
           danger
           confirmDisabled={typedName !== "백엔드 MVP"}

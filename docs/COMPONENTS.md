@@ -60,17 +60,17 @@
 | `success` / `success-soft` | `text-success`, `bg-success-soft` | 완료 / 완료 칩 배경 | `#3E9C8F` / `#E5F3F1` |
 | `warning` / `warning-soft` | `text-warning`, `bg-warning-soft` | 높음·임박 / 임박 배지 배경 | `#B07A2A` / `#F7F0E3` |
 | `danger` / `danger-soft` | `bg-danger`, `bg-danger-soft` | 긴급·지연·삭제 / 지연 배지·폼 오류 상자 | `#B94A63` / `#FAEDF0` |
-| `danger-strong` | `bg-danger-strong` | 오류 토스트 배경 | `#6E2C3E` (시안 화면에서 읽은 값) |
+| `danger-strong` | `bg-danger-strong` | 오류 토스트 배경 | `#6B2E3D` (v0.3 시안 원본, 김서현 11/16 확인) |
 | `neutral-50` | `bg-neutral-50` | 배경 | `#F5F7FA` |
 | `neutral-100` | `bg-neutral-100` | 칸반 컬럼 | `#EEF1F5` |
-| `neutral-200` | `border-neutral-200` | 테두리 | `#E2E7EE` |
+| `neutral-200` | `border-neutral-200` | 테두리, 스켈레톤 막대 | `#E2E7EE` |
 | `neutral-300` | `border-neutral-300` | 입력 테두리 | `#CDD5DF` |
 | `neutral-400` | `text-neutral-400` | 흐린 글자 | `#9AA5B4` |
 | `neutral-500` | `text-neutral-500` | 보조 글자 | `#6B7889` |
 | `neutral-600` | `text-neutral-600` | 본문 보조 | `#4D596A` |
 | `neutral-700` | `text-neutral-700` | 버튼 글자 | `#364152` |
 | `neutral-900` | `text-neutral-900` | 제목·본문 | `#1C2433` |
-| `avatar-1~4` | `bg-avatar-1` | 아바타 | `#4F8FAC` · `#7084C9` · `#4A9D90` · `#8C7CC4` |
+| `avatar-1~4` | `bg-avatar-1` | 아바타 | `#7084C9` · `#4F8FAC` · `#4A9D90` · `#8C7CC4` (2는 화면에서 읽은 값, 확인 필요) |
 | `--font-sans` | 기본 | 글꼴 | 시스템 글꼴 (미정) |
 
 - 카드는 `bg-white`(n0). 기본 글자 14px(`body`).
@@ -207,13 +207,13 @@
 | --- | --- | --- | --- |
 | 업무 삭제 (S6) | 이 업무를 삭제하시겠습니까? (SPEC TASK-06-c) | '{업무 제목}' 업무가 삭제됩니다. 변경 이력은 남습니다 | 삭제 |
 | 멤버 제거 (S7) | {이름}님을 멤버에서 제거하시겠습니까? | {이름}님이 담당하던 업무는 **담당자 없음**이 됩니다 | 제거 |
-| 프로젝트 삭제 (S7) | 프로젝트를 삭제하시겠습니까? | 업무 n개가 함께 삭제되고 되돌릴 수 없습니다. 확인을 위해 '{프로젝트 이름}'을 입력해 주세요 | 삭제 (이름이 같을 때만 활성) |
+| 프로젝트 삭제 (S7) | 프로젝트를 삭제하시겠습니까? | 업무 n개가 함께 삭제되고 되돌릴 수 없습니다. 확인을 위해 프로젝트 이름({프로젝트 이름})을 입력해 주세요 | 삭제 (이름이 같을 때만 활성) |
 
 ```jsx
 <ConfirmDialog
   open={deleting}
   title="프로젝트를 삭제하시겠습니까?"
-  message={`업무 ${taskCount}개가 함께 삭제되고 되돌릴 수 없습니다. 확인을 위해 '${project.name}'을 입력해 주세요`}
+  message={`업무 ${taskCount}개가 함께 삭제되고 되돌릴 수 없습니다. 확인을 위해 프로젝트 이름(${project.name})을 입력해 주세요`}
   confirmLabel="삭제"
   danger
   confirmDisabled={typedName !== project.name}
@@ -290,7 +290,7 @@ toast.error("상태를 바꿀 권한이 없습니다"); // SPEC TASK-06
 
 | 내보내기 | 설명 |
 | --- | --- |
-| `Skeleton` (기본) | 회색 막대 하나. 크기는 `className`으로 (`h-4 w-24`) |
+| `Skeleton` (기본) | 회색 막대 하나(`neutral-200` — `neutral-100`은 흰 카드 위에서 거의 안 보여 한 단계 진하게, 김서현 11/16 합의). 크기는 `className`으로 (`h-4 w-24`) |
 | `SkeletonCard` | 시안의 카드 모양 (짧은 줄 · 긴 줄 · 짧은 줄 + 오른쪽 아래 알약) |
 | `SkeletonList` | 카드 `count`장(기본 2) + 화면 읽기 프로그램에 "불러오는 중입니다" 알림. 그리드는 `className`으로 |
 
@@ -305,7 +305,7 @@ if (loading) return <SkeletonList count={3} className="sm:grid-cols-2 lg:grid-co
 | 항목 | 담당 | 언제 |
 | --- | --- | --- |
 | UI-DESIGN §7 토큰 표를 v0.3 값으로 수정 (문서 → Figma 순서) | 양준석 승인 | 11/17 아침 회의 |
-| `danger-strong`·`avatar-1`·`avatar-4` 확정 값 확인 | 최진영 | Figma 변수 확인 후 |
+| `avatar-2` 확정 값 확인 (`danger-strong`·`avatar-1`·`avatar-4`는 11/16 김서현 확인 완료) | 김서현 → 최진영 반영 | 11/17 |
 | ProjectHeader·MemberSelect 담당 결정 | 최진영·김서현 | 11/17 아침 회의 |
 | 세션 만료 토스트 연결 | 최진영 | 11/17 (T-F1-05) |
 | 공통 컴포넌트를 실제 브라우저에서 시안과 눈으로 비교 (`/dev/components`) | 최진영 | 11/16 (5일차 공통 컴포넌트 구현) |

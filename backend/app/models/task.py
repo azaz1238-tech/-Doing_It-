@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin
+from app.models.base import CASE_SENSITIVE, Base, TimestampMixin
 from app.models.enums import TaskPriority, TaskStatus
 
 
@@ -49,10 +49,12 @@ class Task(TimestampMixin, Base):
     description: Mapped[str | None] = mapped_column(Text)
     # 생성은 항상 TODO (API는 status를 받지 않는다)
     status: Mapped[str] = mapped_column(
-        String(20), default=TaskStatus.TODO, server_default=TaskStatus.TODO.value
+        String(20, collation=CASE_SENSITIVE),
+        default=TaskStatus.TODO,
+        server_default=TaskStatus.TODO.value,
     )
     priority: Mapped[str] = mapped_column(
-        String(10),
+        String(10, collation=CASE_SENSITIVE),
         default=TaskPriority.MEDIUM,
         server_default=TaskPriority.MEDIUM.value,
     )

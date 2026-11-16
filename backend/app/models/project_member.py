@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
+from app.models.base import CASE_SENSITIVE, Base
 
 
 class ProjectMember(Base):
@@ -42,7 +42,7 @@ class ProjectMember(Base):
         BigInteger, ForeignKey("users.id", ondelete="RESTRICT")
     )
     # ProjectRole 값. 역할 비교는 services/permissions.py에서만 한다.
-    role: Mapped[str] = mapped_column(String(10))
+    role: Mapped[str] = mapped_column(String(10, collation=CASE_SENSITIVE))
     joined_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.current_timestamp()
     )

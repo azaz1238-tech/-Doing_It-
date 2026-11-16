@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
+from app.models.base import CASE_SENSITIVE, Base
 
 
 class TaskActivity(Base):
@@ -54,9 +54,9 @@ class TaskActivity(Base):
         BigInteger, ForeignKey("users.id", ondelete="RESTRICT")
     )
     # ActivityAction 값
-    action: Mapped[str] = mapped_column(String(10))
+    action: Mapped[str] = mapped_column(String(10, collation=CASE_SENSITIVE))
     # ActivityField 값. UPDATED일 때만 있다.
-    field: Mapped[str | None] = mapped_column(String(20))
+    field: Mapped[str | None] = mapped_column(String(20, collation=CASE_SENSITIVE))
     # 값은 문자열로 저장한다. 담당자는 사용자 id 문자열("3"), 삭제는 old_value에 삭제 전 제목.
     old_value: Mapped[str | None] = mapped_column(String(255))
     new_value: Mapped[str | None] = mapped_column(String(255))

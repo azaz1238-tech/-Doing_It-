@@ -1,6 +1,6 @@
 """DB 규칙 테스트 — API 없이 DB에 직접 넣어 제약이 동작하는지 확인한다.
 
-근거: DATABASE-DESIGN v1.1 §4·§7·§9. API를 통한 테스트(409·422 등)는 각 기능 테스트에서 한다.
+근거: DATABASE-DESIGN v1.2 §4·§7·§9. API를 통한 테스트(409·422 등)는 각 기능 테스트에서 한다.
 """
 
 from datetime import date
@@ -9,9 +9,62 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import DBAPIError
 
-from app.models import Task, TaskActivity, User
+from app.models import ProjectMember, Task, TaskActivity, User
 from app.models.enums import ActivityAction, TaskPriority, TaskStatus, priority_order
 from tests.factories import DEFAULT_PASSWORD_HASH, make_project, make_task, make_user
+
+
+@pytest.mark.parametrize(
+    ("kind", "value", "constraint"),
+    [
+        ("task_status", "todo", "ck_tasks_status"),
+        ("task_priority", "high", "ck_tasks_priority"),
+        ("member_role", "owner", "ck_project_members_role"),
+        ("system_role", "user", "ck_users_system_role"),
+        # 'created'는 action CHECK와 field CHECK를 둘 다 위반 → MariaDB가 어느 쪽을 먼저 보고할지 정하지 않는다
+        ("activity_action", "created", "ck_task_activities_(action|field)"),
+        ("activity_field", "Status", "ck_task_activities_field"),
+    ],
+)
+def test_enum_columns_are_case_sensitive(db, kind, value, constraint):
+    """상태·역할 값은 대문자 enum 값만 저장된다 (utf8mb4_bin, CONSTITUTION 8-4).
+
+    기본 _ci 콜레이션이면 'todo'가 'TODO'와 같다고 보고 CHECK를 통과한다.
+    """
+    owner = make_user(db)
+    project = make_project(db, owner)
+    task = make_task(db, project, owner)
+    other = make_user(db)
+    rows = {
+        "task_status": Task(
+            project_id=project.id, created_by=owner.id, title="t", status=value
+        ),
+        "task_priority": Task(
+            project_id=project.id, created_by=owner.id, title="t", priority=value
+        ),
+        "member_role": ProjectMember(
+            project_id=project.id, user_id=other.id, role=value
+        ),
+        "system_role": User(
+            login_id="lower1",
+            password_hash=DEFAULT_PASSWORD_HASH,
+            name="n",
+            system_role=value,
+        ),
+        "activity_action": TaskActivity(
+            task_id=task.id, project_id=project.id, user_id=owner.id, action=value
+        ),
+        "activity_field": TaskActivity(
+            task_id=task.id,
+            project_id=project.id,
+            user_id=owner.id,
+            action=ActivityAction.UPDATED,
+            field=value,
+        ),
+    }
+    db.add(rows[kind])
+    with pytest.raises(DBAPIError, match=constraint):
+        db.flush()
 
 
 def test_uppercase_login_id_rejected_by_db(db):

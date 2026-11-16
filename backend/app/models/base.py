@@ -20,6 +20,11 @@ NAMING_CONVENTION = {
 }
 
 
+# 대소문자를 구분하는 콜레이션. 기본 utf8mb4_unicode_ci는 'todo' = 'TODO'로 보아 CHECK를 통과시킨다.
+# login_id와 상태·역할 컬럼(enum 값)에 쓴다 (DATABASE-DESIGN §1-7, CONSTITUTION 8-4).
+CASE_SENSITIVE = "utf8mb4_bin"
+
+
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 

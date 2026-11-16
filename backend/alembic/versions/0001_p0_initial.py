@@ -1,8 +1,8 @@
 """p0_initial — P0 테이블 5개 (DB 스키마 스크립트)
 
-근거: DATABASE-DESIGN v1.1 §2·§4·§5·§8.1.
+근거: DATABASE-DESIGN v1.2 §2·§4·§5·§8.1.
 users, projects, project_members, tasks, task_activities.
-CHECK 12개와 login_id 콜레이션(utf8mb4_bin)은 리뷰 때 DATABASE-DESIGN §4와 대조한다.
+CHECK 12개와 콜레이션(login_id·상태·역할 컬럼 7개 utf8mb4_bin)은 리뷰 때 DATABASE-DESIGN §4와 대조한다.
 
 Revision ID: 0001
 Revises:
@@ -33,7 +33,10 @@ def upgrade() -> None:
         sa.Column("password_hash", sa.String(length=255), nullable=False),
         sa.Column("name", sa.String(length=50), nullable=False),
         sa.Column(
-            "system_role", sa.String(length=10), server_default="USER", nullable=False
+            "system_role",
+            sa.String(length=10, collation="utf8mb4_bin"),
+            server_default="USER",
+            nullable=False,
         ),
         sa.Column(
             "is_active", sa.Boolean(), server_default=sa.text("1"), nullable=False
@@ -102,7 +105,9 @@ def upgrade() -> None:
         sa.Column("id", sa.BigInteger(), nullable=False),
         sa.Column("project_id", sa.BigInteger(), nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
-        sa.Column("role", sa.String(length=10), nullable=False),
+        sa.Column(
+            "role", sa.String(length=10, collation="utf8mb4_bin"), nullable=False
+        ),
         sa.Column(
             "joined_at",
             sa.DateTime(),
@@ -139,10 +144,16 @@ def upgrade() -> None:
         sa.Column("title", sa.String(length=30), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column(
-            "status", sa.String(length=20), server_default="TODO", nullable=False
+            "status",
+            sa.String(length=20, collation="utf8mb4_bin"),
+            server_default="TODO",
+            nullable=False,
         ),
         sa.Column(
-            "priority", sa.String(length=10), server_default="MEDIUM", nullable=False
+            "priority",
+            sa.String(length=10, collation="utf8mb4_bin"),
+            server_default="MEDIUM",
+            nullable=False,
         ),
         sa.Column("assignee_id", sa.BigInteger(), nullable=True),
         sa.Column("created_by", sa.BigInteger(), nullable=False),
@@ -206,8 +217,12 @@ def upgrade() -> None:
         sa.Column("task_id", sa.BigInteger(), nullable=True),
         sa.Column("project_id", sa.BigInteger(), nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
-        sa.Column("action", sa.String(length=10), nullable=False),
-        sa.Column("field", sa.String(length=20), nullable=True),
+        sa.Column(
+            "action", sa.String(length=10, collation="utf8mb4_bin"), nullable=False
+        ),
+        sa.Column(
+            "field", sa.String(length=20, collation="utf8mb4_bin"), nullable=True
+        ),
         sa.Column("old_value", sa.String(length=255), nullable=True),
         sa.Column("new_value", sa.String(length=255), nullable=True),
         sa.Column(

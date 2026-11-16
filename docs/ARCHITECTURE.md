@@ -1,6 +1,6 @@
 # 아키텍처 설계 (ARCHITECTURE.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.3 (2026-11-16 §4.1·§4.4 get_current_user를 app/services/auth_service로, core/auth는 토큰 검사만) · v1.2 (2026-11-16 §1·§3 가상환경 위치를 저장소 루트 `.venv`로) · v1.1 (2026-11-16 §3 저장소 구조에 루트 파일·문서 산출물 위치 추가, §8 완료 표시) · v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.4 (2026-11-16 §5.1 core/ui에 Input, core/layout 추가 — UI-DESIGN §5와 맞춤) · v1.3 (2026-11-16 §4.1·§4.4 get_current_user를 app/services/auth_service로, core/auth는 토큰 검사만) · v1.2 (2026-11-16 §1·§3 가상환경 위치를 저장소 루트 `.venv`로) · v1.1 (2026-11-16 §3 저장소 구조에 루트 파일·문서 산출물 위치 추가, §8 완료 표시) · v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
 > 근거: PROPOSAL §5·§6 → CONSTITUTION §4~§9 → REQUIREMENTS v1.0 → API-SPEC v1.0 · DATABASE-DESIGN v1.0 · UI-DESIGN v1.0
 > 이 문서는 **코드를 어디에, 어떤 규칙으로 둘지**를 정한다. 기능·API·테이블 정의는 위 문서를 따르고 여기서 다시 적지 않는다.
 
@@ -196,8 +196,9 @@ frontend/src/
 │  ├─ api/client.js            Axios 인스턴스 (baseURL "/api", 인터셉터)
 │  ├─ auth/AuthContext.jsx     user, login(), logout(), 시작 시 /users/me로 복원
 │  ├─ auth/ProtectedRoute.jsx  비로그인 → /login
-│  ├─ ui/                      Button · Modal · ConfirmDialog · Toast(Context) · Avatar · EmptyState · Skeleton · ErrorPage
+│  ├─ ui/                      Button · Input · Modal · ConfirmDialog · Toast(Context) · Avatar · EmptyState · Skeleton · ErrorPage
 │  ├─ ui/icons/                lucide SVG 복사본 (UI-DESIGN §5)
+│  ├─ layout/                  TopBar · 로그인 후 화면 공통 틀 (UI-DESIGN §3.1)
 │  └─ utils/date.js            todayKst(), 날짜 표시 함수
 └─ features/                   동잇 기능
    ├─ auth/                    LoginPage · SignupPage · api.js

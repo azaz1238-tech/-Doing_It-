@@ -30,7 +30,7 @@ def signup(db: Session, data: SignupRequest) -> User:
         # 미리 SELECT로 확인하지 않고 UNIQUE에 맡긴다 → 동시에 가입해도 한 명만 성공
         if exc.orig.args[0] == _ER_DUP_ENTRY:
             raise Conflict(
-                "LOGIN_ID_ALREADY_EXISTS", "이미 사용 중인 아이디입니다."
+                "LOGIN_ID_ALREADY_EXISTS", "이미 사용 중인 아이디입니다"
             ) from exc
         raise
     return user

@@ -71,11 +71,11 @@ def _make_app() -> FastAPI:
     def errors(kind: str) -> None:
         raise {
             "400": BusinessRuleError(
-                "ASSIGNEE_NOT_MEMBER", "담당자는 프로젝트 멤버여야 합니다."
+                "ASSIGNEE_NOT_MEMBER", "담당자는 프로젝트 멤버여야 합니다"
             ),
-            "403": Forbidden("NOT_PROJECT_MEMBER", "프로젝트 멤버가 아닙니다."),
-            "404": NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다."),
-            "409": Conflict("LOGIN_ID_ALREADY_EXISTS", "이미 사용 중인 아이디입니다."),
+            "403": Forbidden("NOT_PROJECT_MEMBER", "프로젝트 멤버가 아닙니다"),
+            "404": NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다"),
+            "409": Conflict("LOGIN_ID_ALREADY_EXISTS", "이미 사용 중인 아이디입니다"),
             "500": RuntimeError("비밀 정보가 담긴 내부 오류"),
         }[kind]
 
@@ -112,7 +112,7 @@ def test_valid_token_returns_user_id(client):
 def test_missing_or_malformed_token_401(client, headers):
     res = client.get("/me", headers=headers)
     assert res.status_code == 401
-    assert res.json() == {"code": "UNAUTHORIZED", "message": "로그인이 필요합니다."}
+    assert res.json() == {"code": "UNAUTHORIZED", "message": "로그인이 필요합니다"}
     assert res.headers["www-authenticate"] == "Bearer"
 
 
@@ -178,17 +178,17 @@ def test_validation_error_format(client):
     assert res.status_code == 422
     body = res.json()
     assert body["code"] == "VALIDATION_ERROR"
-    assert body["message"] == "입력값을 확인해 주세요."
+    assert body["message"] == "입력값을 확인해 주세요"
     assert "detail" not in body
     fields = {e["field"]: e["message"] for e in body["errors"]}
-    assert fields["title"] == "1자 이상 입력해 주세요."
-    assert fields["project_id"] == "정의되지 않은 필드입니다."
+    assert fields["title"] == "1자 이상 입력해 주세요"
+    assert fields["project_id"] == "정의되지 않은 필드입니다"
 
 
 def test_validation_missing_field(client):
     res = client.post("/items", json={}, headers=_auth(create_access_token(1)))
     assert res.status_code == 422
-    assert res.json()["errors"] == [{"field": "title", "message": "필수 항목입니다."}]
+    assert res.json()["errors"] == [{"field": "title", "message": "필수 항목입니다"}]
 
 
 # ── 그 외 오류 형식 ──
@@ -213,7 +213,7 @@ def test_app_error_format(client, kind, status, code):
 def test_unknown_path_404(client):
     res = client.get("/no-such-path")
     assert res.status_code == 404
-    assert res.json() == {"code": "NOT_FOUND", "message": "요청한 경로가 없습니다."}
+    assert res.json() == {"code": "NOT_FOUND", "message": "요청한 경로가 없습니다"}
 
 
 def test_unhandled_error_500_hides_detail(client):
@@ -221,7 +221,7 @@ def test_unhandled_error_500_hides_detail(client):
     assert res.status_code == 500
     assert res.json() == {
         "code": "INTERNAL_ERROR",
-        "message": "서버 오류가 발생했습니다.",
+        "message": "서버 오류가 발생했습니다",
     }
     assert "비밀" not in res.text
 
@@ -242,10 +242,10 @@ def test_pagination_default_and_offset(client):
 @pytest.mark.parametrize(
     ("query", "field", "message"),
     [
-        ("page=0", "page", "1 이상이어야 합니다."),
-        ("size=0", "size", "1 이상이어야 합니다."),
-        ("size=101", "size", "100 이하여야 합니다."),
-        ("size=abc", "size", "정수를 입력해 주세요."),
+        ("page=0", "page", "1 이상이어야 합니다"),
+        ("size=0", "size", "1 이상이어야 합니다"),
+        ("size=101", "size", "100 이하여야 합니다"),
+        ("size=abc", "size", "정수를 입력해 주세요"),
     ],
 )
 def test_pagination_out_of_range_422(client, query, field, message):

@@ -21,7 +21,7 @@ class AppError(Exception):
 
     status_code = 500
     code = "INTERNAL_ERROR"
-    message = "서버 오류가 발생했습니다."
+    message = "서버 오류가 발생했습니다"
 
     def __init__(
         self,
@@ -38,13 +38,13 @@ class AppError(Exception):
 class BusinessRuleError(AppError):
     status_code = 400
     code = "BAD_REQUEST"
-    message = "요청을 처리할 수 없습니다."
+    message = "요청을 처리할 수 없습니다"
 
 
 class Unauthorized(AppError):
     status_code = 401
     code = "UNAUTHORIZED"
-    message = "로그인이 필요합니다."
+    message = "로그인이 필요합니다"
 
     def __init__(self, code: str | None = None, message: str | None = None) -> None:
         # OAuth2 Bearer 규격(RFC 6750): 401에는 WWW-Authenticate 헤더를 붙인다
@@ -54,48 +54,48 @@ class Unauthorized(AppError):
 class Forbidden(AppError):
     status_code = 403
     code = "FORBIDDEN"
-    message = "권한이 없습니다."
+    message = "권한이 없습니다"
 
 
 class NotFound(AppError):
     status_code = 404
     code = "NOT_FOUND"
-    message = "요청한 대상을 찾을 수 없습니다."
+    message = "요청한 대상을 찾을 수 없습니다"
 
 
 class Conflict(AppError):
     status_code = 409
     code = "CONFLICT"
-    message = "이미 존재합니다."
+    message = "이미 존재합니다"
 
 
 # pydantic 오류 종류 → 한국어 메시지. 필드별 문구가 필요하면 스키마 검증 함수에서 ValueError로 직접 쓴다.
 _VALIDATION_MESSAGES = {
-    "missing": "필수 항목입니다.",
-    "extra_forbidden": "정의되지 않은 필드입니다.",
-    "string_too_short": "{min_length}자 이상 입력해 주세요.",
-    "string_too_long": "{max_length}자 이하로 입력해 주세요.",
-    "string_pattern_mismatch": "형식이 올바르지 않습니다.",
-    "string_type": "문자열을 입력해 주세요.",
-    "int_type": "정수를 입력해 주세요.",
-    "int_parsing": "정수를 입력해 주세요.",
-    "bool_type": "true 또는 false를 입력해 주세요.",
-    "bool_parsing": "true 또는 false를 입력해 주세요.",
-    "greater_than": "{gt}보다 커야 합니다.",
-    "greater_than_equal": "{ge} 이상이어야 합니다.",
-    "less_than": "{lt}보다 작아야 합니다.",
-    "less_than_equal": "{le} 이하여야 합니다.",
-    "date_type": "날짜 형식(YYYY-MM-DD)으로 입력해 주세요.",
-    "date_parsing": "날짜 형식(YYYY-MM-DD)으로 입력해 주세요.",
-    "date_from_datetime_parsing": "날짜 형식(YYYY-MM-DD)으로 입력해 주세요.",
-    "enum": "허용된 값 중 하나를 입력해 주세요.",
-    "literal_error": "허용된 값 중 하나를 입력해 주세요.",
-    "json_invalid": "JSON 형식이 올바르지 않습니다.",
-    "model_attributes_type": "객체 형식이어야 합니다.",
-    "dict_type": "객체 형식이어야 합니다.",
-    "list_type": "목록 형식이어야 합니다.",
+    "missing": "필수 항목입니다",
+    "extra_forbidden": "정의되지 않은 필드입니다",
+    "string_too_short": "{min_length}자 이상 입력해 주세요",
+    "string_too_long": "{max_length}자 이하로 입력해 주세요",
+    "string_pattern_mismatch": "형식이 올바르지 않습니다",
+    "string_type": "문자열을 입력해 주세요",
+    "int_type": "정수를 입력해 주세요",
+    "int_parsing": "정수를 입력해 주세요",
+    "bool_type": "true 또는 false를 입력해 주세요",
+    "bool_parsing": "true 또는 false를 입력해 주세요",
+    "greater_than": "{gt}보다 커야 합니다",
+    "greater_than_equal": "{ge} 이상이어야 합니다",
+    "less_than": "{lt}보다 작아야 합니다",
+    "less_than_equal": "{le} 이하여야 합니다",
+    "date_type": "날짜 형식(YYYY-MM-DD)으로 입력해 주세요",
+    "date_parsing": "날짜 형식(YYYY-MM-DD)으로 입력해 주세요",
+    "date_from_datetime_parsing": "날짜 형식(YYYY-MM-DD)으로 입력해 주세요",
+    "enum": "허용된 값 중 하나를 입력해 주세요",
+    "literal_error": "허용된 값 중 하나를 입력해 주세요",
+    "json_invalid": "JSON 형식이 올바르지 않습니다",
+    "model_attributes_type": "객체 형식이어야 합니다",
+    "dict_type": "객체 형식이어야 합니다",
+    "list_type": "목록 형식이어야 합니다",
 }
-_DEFAULT_VALIDATION_MESSAGE = "입력값이 올바르지 않습니다."
+_DEFAULT_VALIDATION_MESSAGE = "입력값이 올바르지 않습니다"
 
 
 def _validation_message(error: dict) -> str:
@@ -134,7 +134,7 @@ async def _validation_error_handler(
         # field = 오류 위치의 마지막 이름 (본문 필드명 또는 쿼리 이름)
         field = str(loc[-1]) if loc else ""
         errors.append({"field": field, "message": _validation_message(error)})
-    body = _error_body("VALIDATION_ERROR", "입력값을 확인해 주세요.")
+    body = _error_body("VALIDATION_ERROR", "입력값을 확인해 주세요")
     body["errors"] = errors
     return JSONResponse(status_code=422, content=body)
 
@@ -144,7 +144,7 @@ async def _http_error_handler(
 ) -> JSONResponse:
     if exc.status_code == 404:
         return JSONResponse(
-            status_code=404, content=_error_body("NOT_FOUND", "요청한 경로가 없습니다.")
+            status_code=404, content=_error_body("NOT_FOUND", "요청한 경로가 없습니다")
         )
     # 404 외(405 등)는 명세에 코드가 없어 FastAPI 기본 처리를 따른다
     return await http_exception_handler(request, exc)
@@ -155,7 +155,7 @@ async def _unhandled_error_handler(request: Request, exc: Exception) -> JSONResp
     logger.exception("처리되지 않은 오류: %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500,
-        content=_error_body("INTERNAL_ERROR", "서버 오류가 발생했습니다."),
+        content=_error_body("INTERNAL_ERROR", "서버 오류가 발생했습니다"),
     )
 
 

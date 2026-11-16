@@ -22,18 +22,18 @@
 | EmptyState | `core/ui/EmptyState.jsx` | 최진영 | 완료 | S3, S4 |
 | Skeleton | `core/ui/Skeleton.jsx` | 최진영 | 완료 | S3, S4, S6 |
 | ErrorPage (403·404) | `core/ui/ErrorPage.jsx` | 김서현 | 미착수 (T-F0-14) | S8 |
-| PriorityBadge | `core/ui` | 김서현 | 미착수 (T-F0-13) | 카드, 상세 |
-| StatusSelect | `core/ui` | 김서현 | 미착수 (T-F0-13) | 카드, 상세 |
-| DueLabel | `core/ui` | 김서현 | 미착수 (T-F0-13) | 카드, 상세 |
+| PriorityBadge | `features/tasks` | 김서현 | 미착수 (T-F0-13) | 카드, 상세 |
+| StatusSelect | `features/tasks` | 김서현 | 미착수 (T-F0-13) | 카드, 상세 |
+| DueLabel | `features/tasks` | 김서현 | 미착수 (T-F0-13) | 카드, 상세 |
 | ProjectHeader | `features/projects` | 미정 | 미착수 | S4, S7 |
 | MemberSelect | `features/projects` | 미정 | 미착수 | S5, S6 |
 | TaskCard | `features/tasks` | 김서현 | 미착수 (T-F2-10) | S4 |
-| TaskForm | `features/tasks` | 김서현 | 미착수 (T-F2-12) | S5 |
+| TaskFormModal | `features/tasks` | 김서현 | 미착수 (T-F2-12) | S5 |
 
 - **상태 뜻:** 완료 = 코드가 있고 린트·빌드 통과 / 미착수 = 코드 없음.
 - **ErrorPage 담당:** TASKS.md(11/16 조 편성)대로 김서현이 맡는다(11/16 확인).
 - **ProjectHeader·MemberSelect** 담당은 FE 두 명이 정한 뒤 적는다.
-- UI-DESIGN §5는 `features/project`·`features/task`로 적었지만, 실제 폴더는 ARCHITECTURE §5.1의 `features/projects`·`features/tasks`다.
+- 폴더는 ARCHITECTURE §5.1의 `features/projects`·`features/tasks`(복수형). 업무용 배지는 동잇 고유 값을 다루므로 `features/tasks`에 둔다(UI-DESIGN v1.1 §5, SPEC-CHANGELOG #9).
 
 ## 2. 사용 규칙
 

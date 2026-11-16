@@ -9,8 +9,8 @@ from tests.factories import make_user
 
 URL = "/api/auth/signup"
 VALID = {"login_id": "jisoo01", "password": "password123", "name": "지수"}
-LOGIN_ID_MESSAGE = "영문 소문자·숫자 4~20자로 입력해 주세요."
-PASSWORD_BYTES_MESSAGE = "72바이트 이하로 입력해 주세요 (한글은 24자까지)."
+LOGIN_ID_MESSAGE = "영문 소문자·숫자 4~20자로 입력해 주세요"
+PASSWORD_BYTES_MESSAGE = "72바이트 이하로 입력해 주세요 (한글은 24자까지)"
 
 
 def _signup(client, **overrides):
@@ -53,7 +53,7 @@ def test_duplicate_login_id_409(client, db, login_id):
     assert res.status_code == 409
     assert res.json() == {
         "code": "LOGIN_ID_ALREADY_EXISTS",
-        "message": "이미 사용 중인 아이디입니다.",
+        "message": "이미 사용 중인 아이디입니다",
     }
 
 
@@ -64,14 +64,14 @@ def test_duplicate_login_id_409(client, db, login_id):
         ("login_id", "a" * 21, LOGIN_ID_MESSAGE),
         ("login_id", "ji_soo", LOGIN_ID_MESSAGE),
         ("login_id", "지수아이디", LOGIN_ID_MESSAGE),
-        ("password", "a" * 7, "8자 이상 입력해 주세요."),
-        ("password", "a" * 65, "64자 이하로 입력해 주세요."),
+        ("password", "a" * 7, "8자 이상 입력해 주세요"),
+        ("password", "a" * 65, "64자 이하로 입력해 주세요"),
         # 완료 기준: 73바이트 한글 → 422 (72바이트 경계 바로 위)
         ("password", "가" * 24 + "a", PASSWORD_BYTES_MESSAGE),
         # 25자(64자 이하)지만 75바이트 → 글자 수가 아니라 바이트로 막힌다
         ("password", "가" * 25, PASSWORD_BYTES_MESSAGE),
-        ("name", "   ", "1자 이상 입력해 주세요."),
-        ("name", "가" * 51, "50자 이하로 입력해 주세요."),
+        ("name", "   ", "1자 이상 입력해 주세요"),
+        ("name", "가" * 51, "50자 이하로 입력해 주세요"),
     ],
 )
 def test_signup_validation_422(client, field, value, message):
@@ -107,6 +107,6 @@ def test_password_whitespace_kept(client, db):
 def test_extra_or_missing_field_422(client):
     res = client.post(URL, json={**VALID, "system_role": "ADMIN"})
     assert res.status_code == 422
-    assert _field_errors(res) == {"system_role": "정의되지 않은 필드입니다."}
+    assert _field_errors(res) == {"system_role": "정의되지 않은 필드입니다"}
     res = client.post(URL, json={"login_id": "jisoo01"})
     assert set(_field_errors(res)) == {"password", "name"}

@@ -1,6 +1,6 @@
 # API 명세서 (API-SPEC.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-12
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-12
 > 근거: [CONSTITUTION.md](./CONSTITUTION.md) §6·§7·§8 · [REQUIREMENTS.md](./REQUIREMENTS.md) v1.0 · [USER-STORIES.md](./USER-STORIES.md) v1.0 · [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) v1.0
 > 상위 문서와 다르면 상위 문서를 따르고 이 문서를 고친다. API를 바꿀 때는 **이 문서를 먼저 수정**한다(CONSTITUTION 7-5).
 > 각 API에 근거 기능 ID와 우선순위를 표시한다. **P0 API부터 구현하고, P1·P2 API는 P0 게이트 통과 후에 만든다.**
@@ -46,7 +46,7 @@
 ### 1.4 오류 응답 (NFR-04)
 
 ```json
-{ "code": "ASSIGNEE_NOT_MEMBER", "message": "담당자는 프로젝트 멤버여야 합니다." }
+{ "code": "ASSIGNEE_NOT_MEMBER", "message": "담당자는 프로젝트 멤버여야 합니다" }
 ```
 
 입력 검증 실패(422)만 필드별 오류를 덧붙인다 (NFR-03). FastAPI 기본 형식(`detail`)은 쓰지 않고, 공통 예외 처리(`backend/core/`)에서 `RequestValidationError`를 아래 형식으로 바꾼다. `field`는 오류 위치의 마지막 이름(본문 필드명 또는 쿼리 이름), `message`는 한국어로 쓴다.
@@ -54,9 +54,9 @@
 ```json
 {
   "code": "VALIDATION_ERROR",
-  "message": "입력값을 확인해 주세요.",
+  "message": "입력값을 확인해 주세요",
   "errors": [
-    { "field": "title", "message": "업무 제목은 1~30자로 입력해 주세요." }
+    { "field": "title", "message": "업무 제목은 1~30자로 입력해 주세요" }
   ]
 }
 ```
@@ -224,6 +224,14 @@ P1(DASH-01)에서 `"progress": { "total": 10, "done": 4, "percent": 40 }`을 추
 #### POST `/auth/login` — 로그인 · AUTH-02 · US-02
 
 요청 `{ "login_id": "jisoo01", "password": "password123" }` — JSON 본문(form 형식 아님). `login_id`는 소문자로 바꿔 조회한다.
+
+| 필드 | 규칙 |
+| --- | --- |
+| `login_id` | 필수 문자열. **앞뒤 공백 제거 + 소문자 변환만** 한다. 형식(`^[a-z0-9]{4,20}$`)은 검사하지 않는다 → 형식이 틀린 아이디는 없는 아이디와 같게 401 `INVALID_CREDENTIALS` |
+| `password` | 필수 문자열. 길이·바이트를 검사하지 않고, **공백도 지우지 않고** 입력 그대로 해시와 비교한다. 72바이트를 넘으면 맞을 수 없으므로 401 `INVALID_CREDENTIALS` |
+
+- 로그인 실패 응답으로 "형식 틀림·없는 아이디·틀린 비밀번호"를 구분할 수 없게 한다(계정 존재 노출 방지).
+- 필드가 없거나 문자열이 아니면(본문 자체가 틀림) 다른 API처럼 422 `VALIDATION_ERROR`.
 
 검사 순서 (앞에서 걸리면 뒤는 보지 않는다):
 1. 아이디가 없으면 → 401 `INVALID_CREDENTIALS`

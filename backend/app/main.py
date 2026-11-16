@@ -7,6 +7,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import get_settings
+from core.exceptions import register_exception_handlers
 
 # 모든 API 경로 앞에 붙는 접두어 (API-SPEC §1.1)
 API_PREFIX = "/api"
@@ -34,6 +35,9 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
     )
+
+    # 오류 응답을 { code, message } 공통 형식으로 (422는 errors 추가)
+    register_exception_handlers(app)
 
     # 기능 라우터는 여기에 prefix=API_PREFIX로 추가한다 (auth·users·projects·members·tasks)
     app.include_router(health_router, prefix=API_PREFIX)

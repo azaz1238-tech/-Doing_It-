@@ -10,6 +10,7 @@
 
 | # | 날짜 | 문서 (버전) | 바꾼 내용 | 이유 | 바꾼 사람 | 승인 |
 | :-: | --- | --- | --- | --- | --- | --- |
+| 4 | 2026-11-16 | ARCHITECTURE §4.1·§4.4 (v1.3), TASKS T-F0-08·T-F1-03 | `core/auth.py`는 토큰 검사(`get_token_user_id`, 401)만 두고, 사용자 조회·비활성 403을 하는 `get_current_user`는 `app/services/auth_service.py`로 옮김. `get_current_user` 구현은 T-F1-03(내 정보 조회)에서 함 | `get_current_user`가 `app/models`의 `User`를 돌려줘야 해서 스타터킷 규칙(`core/`는 `app/`를 import하지 않음, 성공 기준 8)과 충돌 (T-F0-08 작업 중 발견) | 양준석 | 양준석 |
 | 3 | 2026-11-16 | ARCHITECTURE §1·§3 (v1.2) | 가상환경 위치를 `backend/.venv` → 저장소 루트 `.venv`로 바꾸고 §3 구조에 추가. 백엔드 실행은 루트 `.venv`를 켜고 `backend` 폴더에서 `uvicorn app.main:app --reload` | SETUP.md·README·실제 환경(루트 `requirements.txt`·`.venv`)과 맞춤 (T-F0-04 작업 중 발견) | 양준석 | 양준석 |
 | 2 | 2026-11-16 | TASKS (v1.1), README, CONSTITUTION·ARCHITECTURE·PROPOSAL·UI-DESIGN·SETUP·CONSISTENCY-CHECK 참조 | `tasks.md` → `TASKS.md` 파일명 통일. 다른 문서 참조 수정, 내용 변경 없음 | 다른 docs 문서와 대문자 파일명 통일 | 양준석 | 팀장 확인 필요 |
 | 2 | 2026-11-16 | CONSTITUTION 10-2 (v1.1), TASKS D5-01·§8-7, CLAUDE.md | 개발 로그 파일명을 `docs/devlog/<영문이름>.md` → `docs/devlog/<한국이름>.md`로 바꾸고 파일명 영어 규칙에 예외 추가 | 팀원이 자기 파일을 바로 찾도록 | 양준석 | 팀장 확인 필요 |

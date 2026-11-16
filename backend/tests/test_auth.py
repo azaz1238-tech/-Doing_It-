@@ -10,6 +10,7 @@ from tests.factories import make_user
 URL = "/api/auth/signup"
 VALID = {"login_id": "jisoo01", "password": "password123", "name": "지수"}
 LOGIN_ID_MESSAGE = "영문 소문자·숫자 4~20자로 입력해 주세요."
+PASSWORD_BYTES_MESSAGE = "72바이트 이하로 입력해 주세요 (한글은 24자까지)."
 
 
 def _signup(client, **overrides):
@@ -65,8 +66,10 @@ def test_duplicate_login_id_409(client, db, login_id):
         ("login_id", "지수아이디", LOGIN_ID_MESSAGE),
         ("password", "a" * 7, "8자 이상 입력해 주세요."),
         ("password", "a" * 65, "64자 이하로 입력해 주세요."),
-        # 완료 기준: 25자(64자 이하)지만 75바이트 → 422
-        ("password", "가" * 25, "72바이트 이하로 입력해 주세요 (한글은 24자까지)."),
+        # 완료 기준: 73바이트 한글 → 422 (72바이트 경계 바로 위)
+        ("password", "가" * 24 + "a", PASSWORD_BYTES_MESSAGE),
+        # 25자(64자 이하)지만 75바이트 → 글자 수가 아니라 바이트로 막힌다
+        ("password", "가" * 25, PASSWORD_BYTES_MESSAGE),
         ("name", "   ", "1자 이상 입력해 주세요."),
         ("name", "가" * 51, "50자 이하로 입력해 주세요."),
     ],
@@ -78,8 +81,27 @@ def test_signup_validation_422(client, field, value, message):
     assert _field_errors(res) == {field: message}
 
 
-def test_password_exactly_72_bytes_ok(client):
-    assert _signup(client, password="가" * 24).status_code == 201
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("login_id", "abcd"),  # 4자
+        ("login_id", "a" * 20),  # 20자
+        ("password", "a" * 8),  # 8자
+        ("password", "a" * 64),  # 64자 (64바이트)
+        ("password", "가" * 24),  # 72바이트 정확히
+        ("name", "가" * 50),  # 50자
+    ],
+)
+def test_signup_boundary_values_201(client, field, value):
+    assert _signup(client, **{field: value}).status_code == 201
+
+
+def test_password_whitespace_kept(client, db):
+    # 비밀번호는 공백을 지우지 않는다 → 로그인(T-F1-02)도 입력 그대로 비교해야 한다
+    _signup(client, password=" pass word1 ")
+    user = db.scalars(select(User).where(User.login_id == "jisoo01")).one()
+    assert verify_password(" pass word1 ", user.password_hash)
+    assert not verify_password("pass word1", user.password_hash)
 
 
 def test_extra_or_missing_field_422(client):

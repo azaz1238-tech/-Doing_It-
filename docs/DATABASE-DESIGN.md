@@ -2,8 +2,8 @@
 
 > 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템
 > DB: MariaDB 10.11 LTS(Docker) | ORM: SQLAlchemy 2.x · Alembic · PyMySQL | 담당: 백엔드 B
-> 버전: v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
-> 근거: PROPOSAL → CONSTITUTION §4·§6·§8 → REQUIREMENTS v0.8 → API-SPEC v0.4. 문서끼리 다르면 앞쪽 문서를 따른다.
+> 버전: v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
+> 근거: PROPOSAL → CONSTITUTION §4·§6·§8 → REQUIREMENTS v1.0 → API-SPEC v1.0. 문서끼리 다르면 앞쪽 문서를 따른다.
 
 ## 1. 설계 원칙
 
@@ -504,7 +504,7 @@ API-SPEC §10 필수 대상 중 DB와 직접 관련된 것.
 
 ## 10. 구현 메모
 
-- 접속 URL: `mysql+pymysql://USER:PASSWORD@localhost:3306/doing_it?charset=utf8mb4`. 값은 `.env`에 두고 저장소에는 `.env.example`만 올린다.
+- 접속 URL: `mysql+pymysql://USER:PASSWORD@localhost:3307/doing_it?charset=utf8mb4`. 값은 `.env`에 두고 저장소에는 `.env.example`만 올린다.
 - 연결할 때마다 `SET time_zone = '+00:00'`을 실행한다(SQLAlchemy `connect` 이벤트). `DATETIME`은 시간대를 저장하지 않으므로 앱이 항상 UTC로 넣고, 응답에서 `Z`를 붙인다.
 - MariaDB 10.2 이상부터 CHECK가 실제로 동작한다. 팀 전원이 10.11 LTS를 Docker로 쓴다.
 - 조건부 개수는 `SUM(조건식)`으로 센다(참이면 1). PostgreSQL의 `FILTER`는 쓰지 않는다.

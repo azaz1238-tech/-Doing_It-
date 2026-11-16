@@ -33,11 +33,51 @@ Copy-Item .env.example .env
 ```
 
 - `.env`는 **Git에 올리지 않는다**(`.gitignore`에 있음).
-- `change-me`를 각자 비밀번호로 바꿔도 된다. 바꾸면 `DATABASE_URL`·`TEST_DATABASE_URL` 안의 비밀번호도 **같이** 바꾼다.
-- `JWT_SECRET_KEY`는 아래 명령 결과를 붙여 넣는다. DB 확인만 할 때는 비워 둬도 된다.
-  ```powershell
-  py -3.12 -c "import secrets; print(secrets.token_urlsafe(48))"
-  ```
+- 각자 자기 PC의 DB를 쓰므로 비밀번호·JWT 키는 **팀원끼리 맞출 필요 없다.**
+
+### 각자 정하는 값 (3개)
+
+| 변수 | 설명 |
+| --- | --- |
+| `MARIADB_ROOT_PASSWORD` | 아무 값이나 |
+| `MARIADB_PASSWORD` | 아무 값이나. 단 `DATABASE_URL`·`TEST_DATABASE_URL` 안의 비밀번호 자리에도 **똑같이** 넣는다 (총 3곳) |
+| `JWT_SECRET_KEY` | 아래 명령 결과를 붙여 넣는다. 32자 미만이면 백엔드가 시작하지 않는다. DB 확인만 할 때는 비워 둬도 된다 |
+
+```powershell
+py -3.12 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+- 비밀번호는 **영문·숫자만** 쓴다. `@ : / # ?`가 들어가면 `DATABASE_URL`이 깨진다.
+
+### 바꾸면 안 되는 값
+
+| 값 | 이유 |
+| --- | --- |
+| `MARIADB_USER=doingit` | `docker/mariadb/init.sql`이 이 계정에만 권한을 준다 |
+| DB 이름 `doing_it` · `doing_it_test` | init.sql이 이 이름으로 DB를 만든다 |
+| 포트 `3307` | `docker-compose.yml`에 고정 |
+| `ACCESS_TOKEN_EXPIRE_MINUTES=120` | 스펙 결정값 (2시간) |
+| `FRONTEND_ORIGIN=http://localhost:5173` | Vite 기본 포트. 다르면 CORS 오류 |
+
+### 작성 예시
+
+```env
+MARIADB_ROOT_PASSWORD=rootpass1234          # ← 각자
+MARIADB_USER=doingit
+MARIADB_PASSWORD=mypass5678                 # ← 각자
+
+# mypass5678 자리 = 위 MARIADB_PASSWORD와 같게
+DATABASE_URL=mysql+pymysql://doingit:mypass5678@localhost:3307/doing_it?charset=utf8mb4
+TEST_DATABASE_URL=mysql+pymysql://doingit:mypass5678@localhost:3307/doing_it_test?charset=utf8mb4
+
+JWT_SECRET_KEY=Xq3vN8kR2pL9mT5wY7zB1cD4fG6hJ0sA-uE_iO2rK8nM5bV3xC7qW9eZ1tY4pL6   # ← 각자 생성
+ACCESS_TOKEN_EXPIRE_MINUTES=120
+
+FRONTEND_ORIGIN=http://localhost:5173
+```
+
+> 예시 값을 그대로 쓰지 말고 각자 바꾼다. 특히 `JWT_SECRET_KEY`는 반드시 직접 생성한다.
+> DB를 한 번 띄운 뒤(2번) 비밀번호를 바꾸면 반영되지 않는다 → 아래 "막히면"의 `Access denied` 줄 참고.
 
 ## 2. DB 띄우기 (MariaDB, Docker)
 

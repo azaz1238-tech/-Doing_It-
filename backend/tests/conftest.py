@@ -49,9 +49,13 @@ def _truncate_tables(engine: Engine) -> None:
     """모든 테스트 시작 전에 테이블을 비운다(앞 테스트가 중간에 죽어도 깨끗하게 시작)."""
     with engine.begin() as conn:
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
-        for table in Base.metadata.sorted_tables:
-            conn.execute(text(f"TRUNCATE TABLE `{table.name}`"))
-        conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+        try:
+            for table in Base.metadata.sorted_tables:
+                conn.execute(text(f"TRUNCATE TABLE `{table.name}`"))
+        finally:
+            # 중간에 실패해도 반드시 켠다. 꺼진 채 연결 풀로 돌아가면
+            # 다음 테스트에서 FK 위반이 조용히 통과한다.
+            conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
 
 
 @pytest.fixture

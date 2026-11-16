@@ -3,6 +3,8 @@
 > 이 파일은 Claude가 이 저장소에서 작업할 때 따르는 지침이다.
 > 근거 문서: docs/PROPOSAL.md(기획서) → docs/CONSTITUTION.md(헌법) → docs/REQUIREMENTS.md · docs/SPEC.md(기능 스펙 F1~F5, Given-When-Then — 기능 ID·우선순위는 REQUIREMENTS 우선) · docs/USER-STORIES.md · docs/DATABASE-DESIGN.md · docs/API-SPEC.md · docs/UI-DESIGN.md · docs/ARCHITECTURE.md(폴더·계층·버전) → 코드.
 > 빠른 요약: docs/PROJECT-OVERVIEW.md(처음 보는 사람용 1페이지 소개 — 기획서와 다르면 기획서를 따른다), docs/PRD.md(목표·사용자·MoSCoW 기능·스토리 연결 안내 — 원본 문서가 우선, 새 ID를 만들지 않는다).
+> 운영: docs/TASKS.md(태스크·담당·일정) · docs/SETUP.md(개발 환경 세팅) · docs/SPEC-CHANGELOG.md(스펙 v1.0 동결 후 변경 이력) · docs/CONSISTENCY-CHECK.md(11/16 회의 결정). 명세가 아니며, 명세와 다르면 명세를 따른다.
+> 기록: docs/devlog/<한국이름>.md(사람별 일일 개발 로그 — 날짜별 작업·결정·문제·시간. 명세가 아니며, 명세와 다르면 명세를 따른다).
 > 문서끼리 충돌하면 앞쪽 문서를 따른다. 이 파일과 docs가 다르면 docs가 우선이며, 이 파일을 docs에 맞게 고친다.
 
 ## 1. Overview
@@ -36,7 +38,12 @@
 ## 4. Directory Structure (확정 — 상세는 docs/ARCHITECTURE.md §3~§5)
 ```
 docs/            명세 문서 (PROPOSAL, CONSTITUTION, REQUIREMENTS, SPEC, USER-STORIES, DATABASE-DESIGN, API-SPEC, UI-DESIGN, ARCHITECTURE, PRD, PROJECT-OVERVIEW)
-docker-compose.yml  MariaDB만
+                 · 운영 문서 (TASKS, SETUP, SPEC-CHANGELOG, CONSISTENCY-CHECK)
+                 · devlog/<한국이름>.md(일일 개발 로그) · verify.md(기능 검증표) · reports/(보고서) · USER-MANUAL.md
+docker-compose.yml  MariaDB만 · docker/mariadb/init.sql(doing_it·doing_it_test 생성)
+requirements.txt    백엔드 패키지(실행용+개발용 한 파일, 저장소 루트) · .env.example
+.github/         PR 템플릿
+postman/         Postman 컬렉션
 backend/app/     routers/ · services/ · models/ · schemas/ · main.py
 backend/core/    ★ 스타터킷: config, DB 세션, 보안(bcrypt·JWT), 인증 의존성, 공통 예외 처리, clock(한국 날짜), 페이지네이션
 backend/alembic/ · backend/scripts/seed.py · backend/tests/
@@ -77,13 +84,16 @@ frontend/src/core/ ★ 스타터킷: API 클라이언트(Axios), 인증 Context,
 - 비로그인 사용자는 로그인 화면으로 보내고, 403·404는 안내 화면을 보여준다.
 
 ### 이름·언어
-- 문서·커밋·PR 설명·코드 주석은 **한국어**, 식별자·파일·API 경로·DB 이름은 **영어**.
+- 문서·커밋·PR 설명·코드 주석은 **한국어**, 식별자·파일·API 경로·DB 이름은 **영어**. 예외: 개발 로그 파일 `docs/devlog/<한국이름>.md`.
 - Python: `snake_case` / 클래스 `PascalCase`. JavaScript: `camelCase` / 컴포넌트 `PascalCase`. DB 테이블: 복수형 `snake_case`.
 - 같은 코드가 세 번 반복될 때 공통화한다. 지금 필요 없는 추상화는 만들지 않는다.
 
 ## 6. Workflow
+- 개발 로그: 작업한 날마다 docs/devlog/<한국이름>.md 맨 아래에 하루치를 추가한다(사람별 파일 — 충돌 방지, TASKS D5-01. 로그만 바꾸면 커밋 `docs: Day N 개발 로그`).
 - 커밋: `종류(기능 ID): 한국어 설명` — 종류는 feat|fix|refactor|test|docs|chore. 예: `feat(TASK-02): 업무 상태 변경 API 추가`
 - 브랜치: `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup`. `main`에 직접 push 금지, PR 리뷰 1명 승인 후 병합.
+- 리뷰: 조 안에서 영역을 바꿔 고정(양준석 ↔ 최진영, 서승범 ↔ 김서현). `core/`·마이그레이션 PR은 같은 영역 리뷰어(양준석 ↔ 서승범, 최진영 ↔ 김서현)를 한 명 더 넣는다(CONSTITUTION 3-2).
+- 스펙 v1.0 동결(11/16) 후 명세를 바꾸면 바꾼 사람이 docs/SPEC-CHANGELOG.md에 적고 팀장 승인을 받는다(CONSTITUTION 1-4).
 - PR 전에 ruff·black·ESLint·Prettier(백엔드는 pytest도)를 로컬에서 통과시키고, **PR 설명에 결과를 한 줄 적는다.** CI는 두지 않으므로 리뷰어는 이 줄이 없으면 승인하지 않는다.
 - P0 핵심 API(인증·권한·업무 CRUD)는 pytest가 통과해야 완료로 본다. 권한 테스트에는 **실패 케이스(403)를 반드시 포함**한다.
 

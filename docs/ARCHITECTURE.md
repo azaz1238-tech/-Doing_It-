@@ -1,6 +1,6 @@
 # 아키텍처 설계 (ARCHITECTURE.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.1 (2026-11-16 §3 저장소 구조에 루트 파일·문서 산출물 위치 추가, §8 완료 표시) · v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
 > 근거: PROPOSAL §5·§6 → CONSTITUTION §4~§9 → REQUIREMENTS v1.0 → API-SPEC v1.0 · DATABASE-DESIGN v1.0 · UI-DESIGN v1.0
 > 이 문서는 **코드를 어디에, 어떤 규칙으로 둘지**를 정한다. 기능·API·테이블 정의는 위 문서를 따르고 여기서 다시 적지 않는다.
 
@@ -48,9 +48,15 @@ flowchart LR
 
 ```
 Doing_It/
-├─ docs/                     명세 문서
+├─ docs/                     명세 문서 · 운영 문서(TASKS·SETUP·SPEC-CHANGELOG·CONSISTENCY-CHECK)
+│  ├─ devlog/<한국이름>.md    사람별 일일 개발 로그 (TASKS D5-01)
+│  ├─ verify.md              기능 검증표 (D6-02·D8-01·D9-02)
+│  ├─ reports/               보고서 (중간 점검·갭 분석·쿼리 최적화·수용 테스트·보안 점검·회고)
+│  └─ USER-MANUAL.md         사용자 매뉴얼 (D11-04)
+├─ .github/                  PR 템플릿 (D4-03)
 ├─ docker-compose.yml        MariaDB만
 ├─ docker/mariadb/init.sql   doing_it, doing_it_test 스키마 생성 (utf8mb4)
+├─ requirements.txt          백엔드 패키지 — 실행용·개발용 한 파일 (§2)
 ├─ .env.example              §6
 ├─ backend/
 │  ├─ core/                  ★ 스타터킷 — 이 프로젝트 도메인을 모르는 코드만
@@ -266,7 +272,7 @@ flowchart LR
 
 | 순서 | 담당 | 결과물 | 막히는 사람 |
 | :-: | --- | --- | --- |
-| 1 | BE-B | `docker compose up` → `core/db.py` → `alembic upgrade head` → pytest 기반까지 동작 (`seed.py`는 11/18) | 백엔드 전원 |
+| 1 | BE-B | `docker compose up`(compose·init.sql은 11/13 완료) → `core/db.py` → `alembic upgrade head` → pytest 기반까지 동작 (`seed.py`는 11/18) | 백엔드 전원 |
 | 1 | BE-A | `backend/core/` 전체 + `/api/health` | 백엔드 전원 |
 | 1 | FE-A | Vite 프로젝트 + 프록시 + `core/` 뼈대 + Tailwind 토큰 | 프론트 전원 |
 | 2 | BE-A | AUTH-01~04 + pytest | FE-A 로그인 연결 |

@@ -172,6 +172,7 @@ postman/                 Postman 컬렉션
 - **브랜치:** `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup` — `main`에 직접 push 금지
 - **커밋:** `종류(기능 ID): 한국어 설명` — 예: `feat(TASK-02): 업무 상태 변경 API 추가`
 - **PR:** 리뷰 1명 승인 + ruff·black·ESLint·Prettier 통과 후 병합. CI가 없으므로 로컬 실행 결과(백엔드는 pytest 포함)를 PR 설명에 한 줄 적는다
+- **리뷰어:** 조 안에서 영역을 바꿔 고정(양준석 ↔ 최진영, 서승범 ↔ 김서현). `core/`·마이그레이션 PR은 같은 영역 리뷰어(양준석 ↔ 서승범, 최진영 ↔ 김서현)를 한 명 더 넣는다(CONSTITUTION 3-2)
 - **완료 기준:** P0 핵심 API는 pytest 통과(권한 실패 403 케이스 포함)
 
 ## 팀

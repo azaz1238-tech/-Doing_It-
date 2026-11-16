@@ -10,6 +10,11 @@
 
 | # | 날짜 | 문서 (버전) | 바꾼 내용 | 이유 | 바꾼 사람 | 승인 |
 | :-: | --- | --- | --- | --- | --- | --- |
+| 2 | 2026-11-16 | TASKS (v1.1), README, CONSTITUTION·ARCHITECTURE·PROPOSAL·UI-DESIGN·SETUP·CONSISTENCY-CHECK 참조 | `tasks.md` → `TASKS.md` 파일명 통일. 다른 문서 참조 수정, 내용 변경 없음 | 다른 docs 문서와 대문자 파일명 통일 | 양준석 | 팀장 확인 필요 |
+| 2 | 2026-11-16 | CONSTITUTION 10-2 (v1.1), TASKS D5-01·§8-7, CLAUDE.md | 개발 로그 파일명을 `docs/devlog/<영문이름>.md` → `docs/devlog/<한국이름>.md`로 바꾸고 파일명 영어 규칙에 예외 추가 | 팀원이 자기 파일을 바로 찾도록 | 양준석 | 팀장 확인 필요 |
+| 2 | 2026-11-16 | ARCHITECTURE §3·§8 (v1.1), CLAUDE.md §4 | 저장소 구조에 `requirements.txt`·`.github/`·`docs/devlog/`·`verify.md`·`reports/`·`USER-MANUAL.md` 위치 추가. §8에 compose·init.sql 11/13 완료 표시 | TASKS §5 산출물 위치와 실제 파일에 맞춤 | 양준석 | 팀장 확인 필요 |
+| 2 | 2026-11-16 | TASKS §4·§5 (v1.1) | D4-01(서승범 대신 작성)·D4-02 완료일 11/16 반영, T-F0-04·05 "마감 지남" 표시 | 실제 진행과 맞춤 | 양준석 | 팀장 확인 필요 |
+| 2 | 2026-11-16 | CLAUDE.md §6, README | 리뷰어 규칙(조 안 고정 + `core/`·마이그레이션 같은 영역 리뷰어 추가)과 동결 후 변경 절차 한 줄 추가 | CONSTITUTION 3-2·1-4와 맞춤 (헌법 내용 변경 없음) | 양준석 | 팀장 확인 필요 |
 | 1 | 2026-11-16 | 전 문서 → v1.0 | 스펙 v1.0 동결. 머리말 버전 칸 맨 앞에 `v1.0 (2026-11-16 스펙 동결…)`을 붙이고, 서로 참조하는 버전을 v1.0으로 맞춤. PROPOSAL·PROJECT-OVERVIEW에 버전 표시 추가. CONSTITUTION 1-4에 동결 후 변경 절차 추가 | 회의 안건 14 (M1) | 11/16 회의 | 전원 합의 |
 | 1 | 2026-11-16 | CONSTITUTION, PROPOSAL §8, UI-DESIGN §2, ARCHITECTURE §8, PROJECT-OVERVIEW, README, CLAUDE.md | 역할을 TASKS.md 조 편성(A조 양준석·최진영 / B조 서승범·김서현)에 맞춤. 대시보드 API(DASH-01·03·04)는 BE-A로, 진행률·통계·내 대시보드 화면은 FE-A로, 403·404 화면은 FE-B로 옮김. TASKS.md v1.0 채택 | 안건 1 | 11/16 회의 | 전원 합의 |
 | 1 | 2026-11-16 | CONSTITUTION 3-2, PROPOSAL §8 | 리뷰 방식을 "돌아가며"에서 "조 안 영역 교차 고정 리뷰 + `core/`·마이그레이션은 같은 영역 리뷰어 추가"로 바꿈 | 안건 2 | 11/16 회의 | 전원 합의 |

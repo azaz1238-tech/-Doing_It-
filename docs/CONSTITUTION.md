@@ -1,6 +1,6 @@
 # 프로젝트 헌법 (CONSTITUTION.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 방식: SDD | 버전: v1.0 (2026-11-16 스펙 동결) · v0.7 (11/16 회의 결정 반영) · v0.6
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 방식: SDD | 버전: v1.1 (2026-11-16 개발 로그 파일명 예외, 10-2) · v1.0 (2026-11-16 스펙 동결) · v0.7 (11/16 회의 결정 반영) · v0.6
 > 상위 문서: 팀 협업 관리 시스템 기획서 (정식 문서)
 > 하위 문서: [REQUIREMENTS.md](./REQUIREMENTS.md), [SPEC.md](./SPEC.md), [USER-STORIES.md](./USER-STORIES.md), [DATABASE-DESIGN.md](./DATABASE-DESIGN.md), [API-SPEC.md](./API-SPEC.md), [UI-DESIGN.md](./UI-DESIGN.md), [ARCHITECTURE.md](./ARCHITECTURE.md)
 
@@ -138,6 +138,7 @@
    - Python: 변수·함수 `snake_case`, 클래스 `PascalCase`
    - JavaScript: 변수·함수 `camelCase`, 컴포넌트 `PascalCase`
    - DB: 테이블은 복수형 `snake_case` (예: `task_comments`)
+   - 예외: 사람별 개발 로그 파일은 한국 이름으로 씁니다(`docs/devlog/<한국이름>.md`, `TASKS.md` D5-01).
 3. 커밋 메시지는 `종류(기능 ID): 한국어 설명` 형식입니다. 종류는 `feat`, `fix`, `refactor`, `test`, `docs`, `chore` 중 하나입니다.
    - 예: `feat(TASK-02): 업무 상태 변경 API 추가`
 4. 브랜치 이름은 `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup`처럼 종류, 기능 ID, 영어 요약을 붙입니다.
@@ -161,3 +162,4 @@
 | 2026-11-12 | v0.6 | 설계 확정 반영: 기술 스택 버전 고정(React 19·Tailwind 4·Node 22 / Python 3.12·Pydantic 2), CI 없이 로컬 검사 결과를 PR 설명에 기록, 하위 문서에 UI-DESIGN·ARCHITECTURE 추가, DATABASE.md → DATABASE-DESIGN.md | 양준석, 서승범, 최진영, 김서현 |
 | 2026-11-16 | v0.7 | 11/16 회의 결정 반영(CONSISTENCY-CHECK 안건 1·2·3·8·13): 역할표를 TASKS.md 조 편성(A조·B조)에 맞춤(대시보드 API → 백엔드 A, 대시보드·통계 화면 → 프론트엔드 A), 리뷰를 조 안 고정 교차 + 같은 영역 리뷰어 추가로 변경(3-2), 예비 팀장 대행 추가(3-5), `GET /api/health` 인증 예외와 OAuth2 Bearer 규격 명시(6-1) | 양준석, 서승범, 최진영, 김서현 |
 | 2026-11-16 | v1.0 | 스펙 v1.0 동결(안건 14): 동결 후 변경 절차 추가(1-4). "v1.0" 구분(안건 12): 스펙 v1.0은 문서 버전, 저장소 v1.0(11/26)은 git 태그 | 양준석, 서승범, 최진영, 김서현 |
+| 2026-11-16 | v1.1 | 10-2에 개발 로그 파일명 예외 추가: `docs/devlog/<한국이름>.md` (SPEC-CHANGELOG #2) | 팀장 확인 필요 |

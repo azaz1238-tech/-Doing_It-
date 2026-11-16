@@ -1,0 +1,10 @@
+# ruff 설정 — 저장소 루트에서 실행하든 backend/에서 실행하든 같은 결과가 나오게 한다.
+# 규칙 목록(select)은 바꾸지 않는다(ruff 기본값). black과 같은 줄 길이 88.
+line-length = 88
+target-version = "py312"
+# backend/ 아래 app·core·tests를 우리 코드(first-party)로 본다.
+src = ["backend"]
+
+[lint.isort]
+# backend/alembic/ 폴더 이름 때문에 alembic 패키지를 우리 코드로 착각하지 않게 한다.
+known-third-party = ["alembic"]

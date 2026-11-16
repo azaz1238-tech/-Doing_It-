@@ -11,6 +11,7 @@ import os
 from logging.config import fileConfig
 
 from alembic import context
+
 from app.models import Base
 from core.db import create_db_engine  # import하면 load_dotenv()가 실행된다
 

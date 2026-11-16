@@ -13,11 +13,11 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from alembic import command
 from alembic.config import Config
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from alembic import command
 from app.models import Base
 from core.db import create_db_engine  # import하면 load_dotenv()가 실행된다
 

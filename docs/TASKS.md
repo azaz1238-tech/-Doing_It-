@@ -139,7 +139,7 @@
 | --- | --- | --- | --- | :-: | :-: | --- | --- | --- |
 | T-F0-02 | — | `docker-compose.yml`(MariaDB 10.11, utf8mb4) + `init.sql`(doing_it·doing_it_test) | 서승범 | 2 | 11/13 | — | `docker compose up -d` 후 두 스키마 확인 | 완료 |
 | T-F0-03 | — | `.env.example`(ARCHITECTURE §6), `requirements.txt`(실행용+개발용 한 파일) | 서승범 | 1 | 11/13 | — | `pip install -r requirements.txt` 성공 | 완료 |
-| T-F0-04 | — | 백엔드 뼈대: `main.py`(`/api`, CORS), `core/config.py`, `/api/health` | 양준석 | 1.5 | 11/13 | F0-03 | `/api/health` 200 | 예정 (마감 지남) |
+| T-F0-04 | — | 백엔드 뼈대: `main.py`(`/api`, CORS), `core/config.py`, `/api/health` | 양준석 | 1.5 | 11/13 | F0-03 | `/api/health` 200 | 완료 (11/16) |
 | T-F0-05 | — | Vite + React 19 + Tailwind 4 + 프록시, ESLint·Prettier, `.nvmrc` | 최진영 | 3 | 11/13 | — | `npm run dev`에서 `/api/health` 호출 | 예정 (마감 지남) |
 | T-F0-06 | — | `core/db.py`: engine·`get_db()`·`time_zone='+00:00'` | 서승범 | 1 | 11/16 | F0-02 | `SELECT 1` 성공 | 예정 |
 | T-F0-07 | — | 모델 5개 + `enums.py` + Alembic `0001_p0_initial` (= DB 스키마 스크립트) | 서승범 | 4 | 11/16 | F0-06 | 테이블 5개·CHECK·FK 확인 | 예정 |

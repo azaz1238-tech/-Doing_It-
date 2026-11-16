@@ -10,6 +10,8 @@
 
 | # | 날짜 | 문서 (버전) | 바꾼 내용 | 이유 | 바꾼 사람 | 승인 |
 | :-: | --- | --- | --- | --- | --- | --- |
+| 6 | 2026-11-16 | DATABASE-DESIGN §1-7·§4 (v1.2) | 상태·역할 컬럼 6개(`users.system_role`, `project_members.role`, `tasks.status`·`priority`, `task_activities.action`·`field`)를 `COLLATE utf8mb4_bin`으로 바꿈. §4 공통 규칙에 이유 추가 | 기본 `_ci` 콜레이션에서는 `'todo'`·`'owner'` 같은 소문자 값이 CHECK를 통과함. CONSTITUTION 8-4(DB로 막을 수 있으면 DB에서). 0001 병합 전이라 지금 고치는 비용이 가장 낮음 (T-F0-07 코드 리뷰 지적) | 서승범 | 팀장 확인 필요 |
+| 5 | 2026-11-16 | DATABASE-DESIGN §4.5 (v1.1) | `ck_task_activities_field`의 UPDATED 조건에 `field IS NOT NULL` 추가. 설계 의도(UPDATED면 field가 4개 중 하나)는 그대로 | 기존 식은 `NULL IN (...)`이 "알 수 없음"이 되어 `UPDATED` + `field = NULL` 행이 CHECK를 통과함 (T-F0-07 구현 중 실제 MariaDB에서 확인) | 서승범 | 팀장 확인 필요 |
 | 4 | 2026-11-16 | ARCHITECTURE §4.1·§4.4 (v1.3), TASKS T-F0-08·T-F1-03 | `core/auth.py`는 토큰 검사(`get_token_user_id`, 401)만 두고, 사용자 조회·비활성 403을 하는 `get_current_user`는 `app/services/auth_service.py`로 옮김. `get_current_user` 구현은 T-F1-03(내 정보 조회)에서 함 | `get_current_user`가 `app/models`의 `User`를 돌려줘야 해서 스타터킷 규칙(`core/`는 `app/`를 import하지 않음, 성공 기준 8)과 충돌 (T-F0-08 작업 중 발견) | 양준석 | 양준석 |
 | 3 | 2026-11-16 | ARCHITECTURE §1·§3 (v1.2) | 가상환경 위치를 `backend/.venv` → 저장소 루트 `.venv`로 바꾸고 §3 구조에 추가. 백엔드 실행은 루트 `.venv`를 켜고 `backend` 폴더에서 `uvicorn app.main:app --reload` | SETUP.md·README·실제 환경(루트 `requirements.txt`·`.venv`)과 맞춤 (T-F0-04 작업 중 발견) | 양준석 | 양준석 |
 | 2 | 2026-11-16 | TASKS (v1.1), README, CONSTITUTION·ARCHITECTURE·PROPOSAL·UI-DESIGN·SETUP·CONSISTENCY-CHECK 참조 | `tasks.md` → `TASKS.md` 파일명 통일. 다른 문서 참조 수정, 내용 변경 없음 | 다른 docs 문서와 대문자 파일명 통일 | 양준석 | 양준석 |

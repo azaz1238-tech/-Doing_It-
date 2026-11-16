@@ -148,6 +148,7 @@ postman/                 Postman 컬렉션
 | [DATABASE-DESIGN](docs/DATABASE-DESIGN.md) | DB 설계 |
 | [API-SPEC](docs/API-SPEC.md) | API 명세 |
 | [UI-DESIGN](docs/UI-DESIGN.md) | 화면 설계 |
+| [COMPONENTS](docs/COMPONENTS.md) | 프론트 공통 컴포넌트 목록·사용법 (UI-DESIGN과 다르면 UI-DESIGN을 따름) |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | 폴더·계층·버전·실행 환경 |
 | [PRD](docs/PRD.md) | 기능·스토리 연결표 |
 | [TASKS](docs/TASKS.md) | 태스크 분해·담당·일정 |

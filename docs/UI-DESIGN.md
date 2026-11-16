@@ -1,6 +1,6 @@
 # 동잇 — UI 설계서 (MVP)
 
-> 버전: v1.0 (2026-11-16 스펙 동결: 화면 담당을 조 편성에 맞춤, S8 → FE-B) · v0.2 (결정 확정: 아이콘 SVG 직접 포함, 업무 번호 숨김, 설정 탭 전원 공개, 통계 탭 범위, 댓글 "수정됨") · v0.1 (초안) | 작성일: 2026-11-12 | 범위: **P0 화면만**
+> 버전: v1.1 (2026-11-16 §5 Input 추가, 폴더명 복수형·업무용 배지 위치를 ARCHITECTURE §5.1에 맞춤 / §6.5 말투 `~합니다`체·끝 마침표 없음, 화면 문구를 SPEC 따옴표 문구에 맞춤 / §7 색 토큰을 시안 v0.3 쿨톤(코드 `index.css`)으로) · v1.0 (2026-11-16 스펙 동결: 화면 담당을 조 편성에 맞춤, S8 → FE-B) · v0.2 (결정 확정: 아이콘 SVG 직접 포함, 업무 번호 숨김, 설정 탭 전원 공개, 통계 탭 범위, 댓글 "수정됨") · v0.1 (초안) | 작성일: 2026-11-12 | 범위: **P0 화면만**
 > 근거: REQUIREMENTS.md v1.0 §6·§7.2 → API-SPEC.md v1.0 → Figma `동잇` (컴포넌트 v0.2, 화면 6장)
 > API 경로는 API-SPEC 표기대로 `/api` 접두어를 생략해 적는다(예: `GET /projects` = `GET /api/projects`).
 > 문서끼리 다르면 REQUIREMENTS → API-SPEC → 이 문서 → Figma 순서로 따른다. Figma를 고칠 때는 이 문서를 먼저 고친다.
@@ -73,9 +73,9 @@ flowchart LR
 - 가운데 카드 1장. TopBar 없음.
 - S1 필드: 아이디, 비밀번호. S2 필드: 아이디, 비밀번호, 이름.
 - 입력 검증(프론트, 제출 시): 아이디 `^[a-z0-9]{4,20}$`(대문자는 입력 즉시 소문자로 바꿔 보여 줌), 비밀번호 8~64자, 이름 1~50자.
-- 가입 성공 → 토스트 `가입했어요. 로그인해 주세요` → `/login`(자동 로그인 안 함).
+- 가입 성공 → 토스트 `가입되었습니다. 로그인해 주세요` → `/login`(자동 로그인 안 함).
 - 로그인 성공 → 토큰을 localStorage에 저장 → `/projects`.
-- 오류: 401 `INVALID_CREDENTIALS` → 폼 아래 `아이디 또는 비밀번호가 올바르지 않아요`, 409 `LOGIN_ID_ALREADY_EXISTS` → 아이디 필드 아래 `이미 사용 중인 아이디예요`.
+- 오류: 401 `INVALID_CREDENTIALS` → 폼 아래 `아이디 또는 비밀번호가 올바르지 않습니다`, 409 `LOGIN_ID_ALREADY_EXISTS` → 아이디 필드 아래 `이미 사용 중인 아이디입니다`.
 - Axios 401 인터셉터(토큰 삭제 → `/login` 이동)는 `/auth/login` 요청에는 적용하지 않는다. 적용하면 로그인 실패 문구 대신 화면이 새로고침된다.
 - API: `POST /auth/signup`, `POST /auth/login`, 앱 시작 시 `GET /users/me`.
 
@@ -153,8 +153,8 @@ ProjectHeader
 | 멤버 (이름·아이디·역할) | 아이디 입력 + 역할 선택 + `추가`, 행마다 `제거` | **목록만** (PRJ-07) |
 | 프로젝트 삭제 | 확인 창에서 프로젝트 이름을 입력해야 `삭제` 활성 | 구역 숨김 |
 
-- 멤버 제거 확인 창: `○○님이 담당하던 업무는 담당자 없음이 돼요`(PRJ-05).
-- 오류: 400 `LAST_OWNER` → 토스트 `OWNER는 최소 1명 있어야 해요`, 404 `USER_NOT_FOUND` → 입력 필드 아래 `가입하지 않은 아이디예요`, 409 `ALREADY_MEMBER` → 입력 필드 아래 `이미 멤버예요`.
+- 멤버 제거 확인 창: `○○님이 담당하던 업무는 담당자 없음이 됩니다`(PRJ-05).
+- 오류: 400 `LAST_OWNER` → 토스트 `OWNER는 최소 1명 있어야 합니다`, 404 `USER_NOT_FOUND` → 입력 필드 아래 `해당 아이디의 회원이 없습니다`, 409 `ALREADY_MEMBER` → 입력 필드 아래 `이미 멤버입니다`.
 - API: `GET·PATCH·DELETE /projects/{id}`, `GET·POST /projects/{id}/members`, `DELETE /projects/{id}/members/{user_id}`.
 
 ### S8 403 · 404 안내
@@ -164,23 +164,26 @@ ProjectHeader
 
 ## 5. 공통 컴포넌트 (Figma 컴포넌트 v0.2 기준)
 
+> 위치는 ARCHITECTURE §5.1을 따른다. `core/`는 동잇 고유 값(업무 상태·우선순위)을 모르는 스타터킷이므로, 업무용 배지는 `features/tasks`에 둔다.
+
 | 컴포넌트 | 위치 | P0 사용처 | 비고 |
 | --- | --- | --- | --- |
 | Icon (16px) | `core/ui/icons` | 전체 | lucide SVG(ISC 라이선스)를 쓰는 것만 복사해 컴포넌트로 감싼다. 아이콘 라이브러리는 추가하지 않는다 |
 | Avatar | `core/ui` | TopBar, 카드, 멤버 | 이름 첫 글자 + 사용자별 고정 색. 담당자 없음은 `?` 회색 |
-| PriorityBadge | `core/ui` | 카드, 상세 | §6.1 |
-| StatusSelect | `core/ui` | 카드, 상세 | 권한 없으면 🔒 + 읽기 전용 |
-| DueLabel | `core/ui` | 카드, 상세 | §6.3 |
+| PriorityBadge | `features/tasks` | 카드, 상세 | §6.1 |
+| StatusSelect | `features/tasks` | 카드, 상세 | 권한 없으면 🔒 + 읽기 전용 |
+| DueLabel | `features/tasks` | 카드, 상세 | §6.3 |
 | Button | `core/ui` | 전체 | Primary · Secondary · Ghost · Danger |
+| Input | `core/ui` | S1, S2, S3, S5, S6, S7 | 라벨 + 입력칸 + 오류 문구. 422 응답의 `errors[{field, message}]`를 해당 칸 아래에 표시 |
 | Modal / ConfirmDialog | `core/ui` | S3, S5, S6, S7 | ESC·바깥 클릭으로 닫기 (입력 중이면 확인) |
 | Toast | `core/ui` | 전체 | 성공 · 오류 · 세션 만료. 화면 아래 가운데, 3초 후 사라짐 |
 | EmptyState | `core/ui` | S3, S4 | 아이콘 + 제목 + 설명 + 버튼(선택) |
 | Skeleton | `core/ui` | S3, S4, S6 | 불러오는 중 |
 | TopBar | `core/layout` | S3~S8 | §3.1 |
-| ProjectHeader | `features/project` | S4, S7 | §3.2 |
-| TaskCard | `features/task` | S4 | 우선순위 · DueLabel · 제목 · 담당자 · StatusSelect |
-| TaskForm | `features/task` | S5 | |
-| MemberSelect | `features/project` | S5, S6 | `담당자 없음` + 멤버(이름·아이디) |
+| ProjectHeader | `features/projects` | S4, S7 | §3.2 |
+| TaskCard | `features/tasks` | S4 | 우선순위 · DueLabel · 제목 · 담당자 · StatusSelect |
+| TaskFormModal | `features/tasks` | S5 | |
+| MemberSelect | `features/projects` | S5, S6 | `담당자 없음` + 멤버(이름·아이디) |
 | ProtectedRoute | `core/auth` | 라우터 | 토큰 없으면 `/login` |
 
 ## 6. 표시 규칙
@@ -224,22 +227,29 @@ ProjectHeader
 
 ### 6.5 문구
 
-- 말투는 `~해요`체로 통일한다(Figma 기준).
+- 말투는 `~합니다`체로 통일한다(11/16 회의). 요청은 `~해 주세요`, 질문은 `~하시겠습니까?`를 쓴다.
+- SPEC에 따옴표로 적힌 문구는 글자 그대로 쓴다.
+- 문장 끝에는 마침표를 붙이지 않는다. 두 문장이면 앞 문장에만 붙인다(예: `가입되었습니다. 로그인해 주세요`). 서버 오류 `message`도 같은 규칙을 따른다.
 - API 오류는 `code`로 문구를 고른다. 모르는 `code`는 서버 `message`를 그대로 보여 준다.
-- 401 → 토큰 삭제 → 토스트 `로그인이 만료됐어요. 다시 로그인해 주세요` → `/login`.
+- 401 → 토큰 삭제 → 토스트 `로그인이 만료되었습니다. 다시 로그인해 주세요` → `/login`.
 
 ## 7. 디자인 토큰
 
-Figma `동잇 Colors` 변수를 Tailwind 4의 CSS `@theme`(예: `src/index.css`의 `--color-primary`)로 옮긴다(ARCHITECTURE §2). 아래 값은 화면에서 읽은 추정값이고, **확정 값은 Figma 변수에서 가져온다.**
+시안 **v0.3 쿨톤**(김서현, 11/13)을 채택한다. 값은 `frontend/src/index.css`의 `@theme`(Tailwind 4, 예: `--color-primary`)이 기준이고, 바꿀 때는 이 표와 코드를 함께 고친다(ARCHITECTURE §2).
 
-| 토큰 | 용도 | 추정값 |
+| 토큰 | 용도 | 값 |
 | --- | --- | --- |
-| `primary` | 주 버튼, 선택 탭, 진행 중 | `#2F5BEA` |
-| `danger` | 긴급, 지연, 삭제 | `#E5484D` |
-| `warning` | 높음, 임박 | `#F76808` |
-| `info` | 보통 | `#3E7BFA` |
-| `success` | 완료 | `#12B886` |
-| `neutral-50~900` | 배경, 컬럼, 테두리, 글자 | Figma 값 |
+| `primary` / `primary-hover` / `primary-soft` | 주 버튼·선택·진행 중 / 누를 때 / 진행 중 칩 배경 | `#4467A8` / `#375792` / `#EBF0F8` |
+| `info` | 보통 | `#5E86C1` |
+| `success` / `success-soft` | 완료 / 완료 칩 배경 | `#3E9C8F` / `#E5F3F1` |
+| `warning` / `warning-soft` | 높음·임박 / 임박 배지 배경 | `#B07A2A` / `#F7F0E3` |
+| `danger` / `danger-soft` / `danger-strong` | 긴급·지연·삭제 / 지연 배지·폼 오류 상자 / 오류 토스트 배경 | `#B94A63` / `#FAEDF0` / `#6B2E3D` |
+| `neutral-50·100·200·300` | 배경 · 컬럼 · 테두리 · 입력 테두리 | `#F5F7FA` · `#EEF1F5` · `#E2E7EE` · `#CDD5DF` |
+| `neutral-400·500·600·700·900` | 흐린 글자 · 보조 글자 · 본문 보조 · 버튼 글자 · 제목·본문 | `#9AA5B4` · `#6B7889` · `#4D596A` · `#364152` · `#1C2433` |
+| 카드 배경 | 카드 | `#FFFFFF` (Tailwind `white`) |
+| `avatar-1~4` | 아바타 (사용자별 고정) | `#7084C9` · `#4F8FAC` · `#4A9D90` · `#8C7CC4` |
+
+- 확인 필요: `avatar-2`는 시안 화면에서 읽은 값(김서현 확인), `neutral-800`은 시안에 없어 쓰지 않는다.
 
 - 모서리: 카드·입력 8px, 모달 12px, 배지 4px. 간격은 4px 배수.
 - 글꼴: Figma 지정 글꼴(확인 필요). 기본 14px, 카드 제목 15px 굵게, 페이지 제목 24px.

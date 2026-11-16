@@ -1,6 +1,6 @@
 # 태스크 분해 (TASKS.md)
 
-> 프로젝트: 동잇(Doing_It) | 버전: v1.2 (2026-11-16 완료 태스크 ✅ 표시, T-F1-01 완료, T-F1-06 완료 기준 51자로 수정) · v1.1 (2026-11-16 실제 진행 반영: D4-01·02 완료, 개발 로그 파일명 한국 이름) · v1.0 (**2026-11-16 회의 채택**) · v0.3 (제안) | 작성일: 2026-11-13 · 수정일: 2026-11-16
+> 프로젝트: 동잇(Doing_It) | 버전: v1.3 (2026-11-16 §3 업무용 배지 위치 `features/tasks`, SPEC-CHANGELOG #9) · v1.2 (2026-11-16 완료 태스크 ✅ 표시, T-F1-01 완료, T-F1-06 완료 기준 51자로 수정) · v1.1 (2026-11-16 실제 진행 반영: D4-01·02 완료, 개발 로그 파일명 한국 이름) · v1.0 (**2026-11-16 회의 채택**) · v0.3 (제안) | 작성일: 2026-11-13 · 수정일: 2026-11-16
 > 근거: 과정 일별 가이드(1~12일차) · REQUIREMENTS v1.0(기능 ID·우선순위) · SPEC v1.0 §3~§7(F1~F5) · ARCHITECTURE · DATABASE-DESIGN · UI-DESIGN · PROPOSAL §7(P1 순서)
 > **분담 방식:** 백엔드 1명 + 프론트 1명을 짝으로 묶어 기능 영역을 통째로 맡는다(A조·B조). 리뷰는 **짝끼리 영역을 교차**해서 하고, 검증은 **상대 조**가 한다. 팀장 부재 시 **예비(서승범)**가 병합·회의·변경 이력 승인을 대신한다.
 > 11/16 채택에 따라 CONSTITUTION §3, PROPOSAL §8, UI-DESIGN §2(담당 칸), ARCHITECTURE §8, PROJECT-OVERVIEW, README의 역할을 이 문서에 맞췄다.
@@ -42,7 +42,7 @@
 | `backend/app/models/`, `backend/alembic/`, `backend/core/db.py`, `backend/tests/conftest.py`·`factories.py` | 서승범 |
 | `backend/core/` 나머지, `backend/app/main.py`, `services/permissions.py` | 양준석 |
 | `frontend/package.json`, `vite.config.js`, `frontend/src/core/` | 최진영 |
-| `frontend/src/core/ui/` 중 StatusSelect·PriorityBadge·DueLabel | 김서현 |
+| `frontend/src/features/tasks/`의 StatusSelect·PriorityBadge·DueLabel (업무용 배지) | 김서현 |
 | `docs/` 명세(REQUIREMENTS·SPEC·API-SPEC 등), `TASKS.md` 틀 | 양준석 (수정은 PR로) |
 | `postman/` | `F1`·`F2-projects`·`F3`·`F5-dash` 양준석 / `F2-tasks`·`F4` 김서현 |
 

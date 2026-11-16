@@ -22,3 +22,6 @@ dist/
 # 로그, 업로드
 *.log
 uploads/
+
+# 개인 확인용 임시 문서 (저장소에 올리지 않음)
+docs/drafts/

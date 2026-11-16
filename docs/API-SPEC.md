@@ -1,7 +1,7 @@
 # API 명세서 (API-SPEC.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-12
-> 근거: [CONSTITUTION.md](./CONSTITUTION.md) §6·§7·§8 · [REQUIREMENTS.md](./REQUIREMENTS.md) v0.8 · [USER-STORIES.md](./USER-STORIES.md) v0.7 · [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) v0.6
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-12
+> 근거: [CONSTITUTION.md](./CONSTITUTION.md) §6·§7·§8 · [REQUIREMENTS.md](./REQUIREMENTS.md) v1.0 · [USER-STORIES.md](./USER-STORIES.md) v1.0 · [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) v1.0
 > 상위 문서와 다르면 상위 문서를 따르고 이 문서를 고친다. API를 바꿀 때는 **이 문서를 먼저 수정**한다(CONSTITUTION 7-5).
 > 각 API에 근거 기능 ID와 우선순위를 표시한다. **P0 API부터 구현하고, P1·P2 API는 P0 게이트 통과 후에 만든다.**
 
@@ -21,7 +21,10 @@
 
 ### 1.2 인증
 
-- 회원가입·로그인을 **제외한 모든 API**는 `Authorization: Bearer <access_token>` 헤더가 필요하다 (CONSTITUTION 6-1).
+- 회원가입·로그인·`GET /health`를 **제외한 모든 API**는 `Authorization: Bearer <access_token>` 헤더가 필요하다 (CONSTITUTION 6-1).
+- 이 헤더 방식은 **OAuth2 Bearer 토큰 규격(RFC 6750)** 이다. 백엔드는 FastAPI `HTTPBearer(auto_error=False)`로 헤더를 읽고, 헤더가 없거나 형식이 틀리면 공통 인증 의존성에서 401 `UNAUTHORIZED`를 낸다(FastAPI 기본 응답을 그대로 쓰지 않는다). Swagger(`/docs`)의 Authorize 버튼에는 로그인으로 받은 토큰을 붙여 넣는다.
+- 로그인은 JSON 본문(§5.1)이다. OAuth2 폼 로그인(`OAuth2PasswordRequestForm`)과 `python-multipart`는 쓰지 않는다 (§9-12).
+- `GET /health`는 서버 동작 확인용이다. 인증 없이 200 `{ "status": "ok" }`만 돌려주고, DB 조회나 사용자 데이터는 없다 (CONSTITUTION 6-1 예외).
 - 토큰: JWT, 알고리즘 `HS256`, 만료 **2시간**(`ACCESS_TOKEN_EXPIRE_MINUTES=120`). 담는 값은 `sub`(사용자 id 문자열), `exp`만 둔다.
 - 요청마다 `sub`로 사용자를 조회한다. 사용자가 없거나 탈퇴했으면(`deleted_at` 있음, P2) 401 `UNAUTHORIZED`, 비활성(`is_active=0`)이면 403 `ACCOUNT_DISABLED`.
 - 로그아웃 API는 없다. 프론트에서 localStorage의 토큰을 지운다 (US-03).
@@ -107,6 +110,7 @@
 
 | 우선순위 | 메서드 | 경로 | 설명 | 권한 | 기능 ID |
 | :-: | --- | --- | --- | --- | --- |
+| P0 | GET | `/health` | 서버 동작 확인 (`{ "status": "ok" }`, 데이터 없음) | 없음 | — (운영, T-F0-04) |
 | P0 | POST | `/auth/signup` | 회원가입 | 없음 | AUTH-01, 03 |
 | P0 | POST | `/auth/login` | 로그인 | 없음 | AUTH-02 |
 | P0 | GET | `/users/me` | 내 정보 조회 | 로그인 | AUTH-04 |
@@ -115,7 +119,7 @@
 | P2 | DELETE | `/users/me` | 회원 탈퇴 | 로그인 | AUTH-08 |
 | P0 | POST | `/projects` | 프로젝트 생성 | 로그인 | PRJ-01 |
 | P0 | GET | `/projects` | 내 프로젝트 목록 | 로그인 | PRJ-02 (진행률은 DASH-01 P1) |
-| P0 | GET | `/projects/{project_id}` | 프로젝트 상세 | 멤버 | PRJ-07 |
+| P0 | GET | `/projects/{project_id}` | 프로젝트 상세 | 멤버 | PRJ-07 (US-07) |
 | P0 | PATCH | `/projects/{project_id}` | 프로젝트 수정 | OWNER | PRJ-03 |
 | P0 | DELETE | `/projects/{project_id}` | 프로젝트 삭제 | OWNER | PRJ-03 |
 | P0 | GET | `/projects/{project_id}/members` | 멤버 목록 | 멤버 | PRJ-07 |
@@ -515,6 +519,8 @@ ChecklistItem: `{ "id", "task_id", "content", "is_done", "position", "created_at
 | 9 | 검사 순서 | 401 → 422 → 404 → 403 → 400 | §1.5 |
 | 10 | Activity 업무 제목 | `task_title` 추가 | §6 |
 | 11 | 로그인 검사 순서 | 탈퇴 여부를 비활성보다 먼저 → 401 | §5.1 |
+| 12 | OAuth2 (2026-11-16) | OAuth2 Bearer 규격만 사용. `HTTPBearer`로 헤더 검사, 로그인은 JSON 유지, 폼 로그인 미사용 | §1.2 |
+| 13 | `/health` (2026-11-16) | 인증 없는 서버 확인 API 추가, 데이터 없음 | §1.2, §3 |
 
 ## 10. pytest 필수 대상 (CONSTITUTION 9-1·9-2)
 

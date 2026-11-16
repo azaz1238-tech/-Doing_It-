@@ -3,7 +3,7 @@
 팀이 프로젝트 단위로 업무를 등록하고 담당자·마감일·우선순위를 정해 칸반 보드로 관리하는 웹 서비스입니다.
 업무 **변경 이력**과 **마감 임박·지연 대시보드**로 "누가 언제 무엇을 바꿨는지", "무엇이 늦어지는지"를 한눈에 봅니다.
 
-> **현재 단계:** 스프린트 0 (명세·설계) 완료 — 11/13 스프린트 1부터 코드 작성. 처음이라면 [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)부터 읽어 주세요.
+> **현재 단계:** 스프린트 0 (명세·설계) 완료, 11/13 개발 환경 세팅, 11/16 스펙 v1.0 동결 — 11/16 스프린트 1부터 코드 작성. 처음이라면 [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)부터 읽어 주세요.
 
 ## 주요 기능
 
@@ -42,19 +42,34 @@
 ## 시작하기
 
 > 🚧 코드 작성 후 채웁니다. 아래는 확정된 부분만 적었습니다.
+> 처음 세팅하는 팀원은 단계별 안내 [docs/SETUP.md](docs/SETUP.md)를 따라 하면 됩니다(Windows PowerShell 기준, 막힐 때 해결법 포함).
+
+### 0. 준비물
+
+| 프로그램 | 버전 | 누가 |
+| --- | --- | --- |
+| Git | 아무 버전 | 전원 |
+| Docker Desktop | 최신 | 전원 (DB를 띄우는 데 필요) |
+| Python | **3.12** | 백엔드. 프론트도 깔아 두면 백엔드를 직접 띄워 볼 수 있다 |
+| Node | 22 LTS | 프론트엔드 |
+
+확인: `docker --version`, `py -3.12 --version`
 
 ### 1. 환경 변수
 
 ```bash
-cp .env.example .env   # .env는 Git에 올리지 않습니다
+cp .env.example .env   # .env는 Git에 올리지 않습니다 (cmd 창이면: copy .env.example .env)
+# MARIADB_PASSWORD의 change-me를 바꾸면 DATABASE_URL·TEST_DATABASE_URL 안의 비밀번호도 같이 바꾼다
+# JWT_SECRET_KEY 만들기:
+python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
 | 변수 | 설명 | 예시 |
 | --- | --- | --- |
 | `MARIADB_ROOT_PASSWORD` | DB 관리자 비밀번호 (docker compose) | 각자 설정 |
 | `MARIADB_USER` / `MARIADB_PASSWORD` | DB 계정 (docker compose·백엔드) | `doingit` / 각자 설정 |
-| `DATABASE_URL` | 개발 DB 접속 주소 | `mysql+pymysql://doingit:비밀번호@localhost:3306/doing_it?charset=utf8mb4` |
-| `TEST_DATABASE_URL` | pytest 전용 DB | `...@localhost:3306/doing_it_test?charset=utf8mb4` |
+| `DATABASE_URL` | 개발 DB 접속 주소 | `mysql+pymysql://doingit:비밀번호@localhost:3307/doing_it?charset=utf8mb4` |
+| `TEST_DATABASE_URL` | pytest 전용 DB | `...@localhost:3307/doing_it_test?charset=utf8mb4` |
 | `JWT_SECRET_KEY` | 토큰 서명 키 (HS256) | 32자 이상 임의 문자열 |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | 토큰 만료(분) | `120` |
 | `FRONTEND_ORIGIN` | CORS 허용 주소 | `http://localhost:5173` |
@@ -63,16 +78,29 @@ cp .env.example .env   # .env는 Git에 올리지 않습니다
 
 ### 2. DB (MariaDB 10.11, Docker)
 
+Docker Desktop을 먼저 켜 둔다. PC 쪽 포트는 **3307**이다(수업 PC의 MariaDB가 3306을 쓰므로. 컨테이너 안은 3306).
+
 ```bash
-docker compose up -d     # MariaDB만 컨테이너로 실행 (doing_it, doing_it_test 스키마 생성)
+docker compose up -d --wait   # MariaDB만 컨테이너로 실행 (doing_it, doing_it_test 스키마 생성)
+docker compose ps             # STATUS에 healthy가 보이면 성공 (처음 한 번은 1~3분)
 ```
+
+끄기: `docker compose stop` (데이터 유지) · 다시 켜기: `docker compose start`
 
 ### 3. 백엔드
 
 ```bash
-python -m venv .venv
+py -3.12 -m venv .venv
 .venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt   # 실행 + 테스트·린트 패키지 전부
+```
+
+DB 접속 확인 — 아래 두 줄이 나오면 성공:
+
+```bash
+python -c "from dotenv import dotenv_values; from sqlalchemy import create_engine, text; v=dotenv_values('.env'); [print(k, create_engine(v[k]).connect().execute(text('SELECT DATABASE()')).scalar()) for k in ('DATABASE_URL','TEST_DATABASE_URL')]"
+# DATABASE_URL doing_it
+# TEST_DATABASE_URL doing_it_test
 ```
 
 _마이그레이션·서버 실행 명령 작성 예정_
@@ -80,6 +108,17 @@ _마이그레이션·서버 실행 명령 작성 예정_
 ### 4. 프론트엔드
 
 _작성 예정_
+
+### 자주 나는 문제
+
+| 증상 | 원인 | 해결 |
+| --- | --- | --- |
+| `.env에 MARIADB_…를 넣어 주세요` | `.env` 파일이 없음 | 1번 `cp .env.example .env` |
+| `port is already allocated` / 3307 사용 중 | 다른 프로그램이 3307을 씀 | 팀(DB 담당 서승범)에 알리기 |
+| `Access denied for user 'doingit'` | `.env` 비밀번호를 바꿨는데 DB는 예전 비밀번호로 이미 만들어짐 | `docker compose down -v` 후 2번 다시 (**DB 데이터가 지워짐**) |
+| `docker: command not found` / 연결 오류 | Docker Desktop이 꺼져 있음 | Docker Desktop 실행 후 1분 기다리기 |
+| `pip install` 실패 | Python 버전이 3.12가 아님 | `.venv` 폴더를 지우고 `py -3.12 -m venv .venv`로 다시 만들기 |
+| PowerShell activate 시 "스크립트를 실행할 수 없으므로…" | Windows 기본 보안 설정 | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` 한 번 실행 후 다시 activate |
 
 ## 폴더 구조 (확정 — 상세는 [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md))
 
@@ -111,8 +150,22 @@ postman/                 Postman 컬렉션
 | [UI-DESIGN](docs/UI-DESIGN.md) | 화면 설계 |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | 폴더·계층·버전·실행 환경 |
 | [PRD](docs/PRD.md) | 기능·스토리 연결표 |
+| [tasks](docs/tasks.md) | 태스크 분해·담당·일정 |
+| [SPEC-CHANGELOG](docs/SPEC-CHANGELOG.md) | 스펙 v1.0 동결 후 변경 이력 |
 
 문서끼리 다르면 위쪽(기획서 → 헌법 → 요구사항) 문서를 따릅니다.
+
+### 과정 가이드 산출물 이름과의 대응
+
+이름은 바꾸지 않고 아래처럼 대응합니다(11/16 회의 결정).
+
+| 가이드 산출물 | 이 저장소 문서 |
+| --- | --- |
+| spec.md | [docs/SPEC.md](docs/SPEC.md) (기능 ID·우선순위는 [REQUIREMENTS](docs/REQUIREMENTS.md)) |
+| plan.md | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| data-model.md | [docs/DATABASE-DESIGN.md](docs/DATABASE-DESIGN.md) |
+| api-contract.md | [docs/API-SPEC.md](docs/API-SPEC.md) |
+| tasks.md | [docs/tasks.md](docs/tasks.md) |
 
 ## 협업 규칙
 
@@ -125,9 +178,9 @@ postman/                 Postman 컬렉션
 
 | 이름 | 역할 |
 | --- | --- |
-| 양준석 | Backend |
-| 서승범 | Backend (DB·테스트) |
-| 최진영 | Frontend |
-| 김서현 | Frontend |
+| 양준석 | Backend · 팀장 (A조) |
+| 최진영 | Frontend (A조) |
+| 서승범 | Backend (DB·테스트) · 예비 팀장 (B조) |
+| 김서현 | Frontend (B조) |
 
 일정: 2026-11-10 ~ 11-26 · **11/19 P0 완료 게이트** · 11/26 최종 발표

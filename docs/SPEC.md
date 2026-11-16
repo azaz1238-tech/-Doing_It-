@@ -1,8 +1,8 @@
 # 기능 스펙 (SPEC.md)
 
-> 프로젝트: **동잇(Doing_It)** — 팀 협업 프로젝트 관리 시스템 | 버전: v0.5 (§11 수용 기준 목록 추가, 시나리오 84개로 보완) · v0.4 (모든 기능 설명을 '사용자는 [기능]을 통해 [목적]을 수행할 수 있다' 형식으로 통일) · v0.3 (Q2~Q7·Q9·Q10 결정 반영) · v0.2 (Q1·Q8·Q12 결정 반영) | 작성일: 2026-11-11(수)
+> 프로젝트: **동잇(Doing_It)** — 팀 협업 프로젝트 관리 시스템 | 버전: v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.5 (§11 수용 기준 목록 추가, 시나리오 84개로 보완) · v0.4 (모든 기능 설명을 '사용자는 [기능]을 통해 [목적]을 수행할 수 있다' 형식으로 통일) · v0.3 (Q2~Q7·Q9·Q10 결정 반영) · v0.2 (Q1·Q8·Q12 결정 반영) | 작성일: 2026-11-11(수)
 > 단계: **Specify** — 무엇을·왜 만드는지 확정한다. **기술 결정(API 경로, 상태 코드, DB 구조, 라이브러리)은 이 문서에서 다루지 않는다.**
-> 근거: [PROPOSAL.md](./PROPOSAL.md) · [CONSTITUTION.md](./CONSTITUTION.md) · [REQUIREMENTS.md](./REQUIREMENTS.md) v0.8 · [USER-STORIES.md](./USER-STORIES.md) v0.7
+> 근거: [PROPOSAL.md](./PROPOSAL.md) · [CONSTITUTION.md](./CONSTITUTION.md) · [REQUIREMENTS.md](./REQUIREMENTS.md) v1.0 · [USER-STORIES.md](./USER-STORIES.md) v1.0
 > 기능 ID(`AUTH-01` 등)·우선순위·스토리 번호(`US-xx`)는 REQUIREMENTS·USER-STORIES와 같다. 새 ID를 만들지 않으며, **기능 ID·우선순위가 다르면 REQUIREMENTS.md를 따른다.**
 > 기술 상세는 [API-SPEC.md](./API-SPEC.md)(Day 3 이후 확정), [DATABASE-DESIGN.md](./DATABASE-DESIGN.md)에 둔다.
 

@@ -1,7 +1,7 @@
 # 아키텍처 설계 (ARCHITECTURE.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
-> 근거: PROPOSAL §5·§6 → CONSTITUTION §4~§9 → REQUIREMENTS v0.8 → API-SPEC v0.4 · DATABASE-DESIGN v0.6 · UI-DESIGN v0.2
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 tasks.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
+> 근거: PROPOSAL §5·§6 → CONSTITUTION §4~§9 → REQUIREMENTS v1.0 → API-SPEC v1.0 · DATABASE-DESIGN v1.0 · UI-DESIGN v1.0
 > 이 문서는 **코드를 어디에, 어떤 규칙으로 둘지**를 정한다. 기능·API·테이블 정의는 위 문서를 따르고 여기서 다시 적지 않는다.
 
 ## 1. 전체 구조
@@ -11,12 +11,12 @@ flowchart LR
   B["브라우저<br/>localhost:5173"] -->|"화면 /projects ..."| V["Vite 개발 서버<br/>React"]
   B -->|"/api/* 요청"| V
   V -->|"프록시 /api → :8000"| F["FastAPI (Uvicorn)<br/>localhost:8000"]
-  F -->|"PyMySQL · UTC 세션"| D[("MariaDB 10.11<br/>Docker :3306<br/>doing_it / doing_it_test")]
+  F -->|"PyMySQL · UTC 세션"| D[("MariaDB 10.11<br/>Docker :3307<br/>doing_it / doing_it_test")]
 ```
 
 | 구성 | 실행 방법 | 포트 |
 | --- | --- | --- |
-| MariaDB | `docker compose up -d` (DB만 컨테이너) | 3306 |
+| MariaDB | `docker compose up -d` (DB만 컨테이너) | 3307 (PC) → 3306 (컨테이너) |
 | 백엔드 | `backend/.venv`에서 `uvicorn app.main:app --reload` | 8000 |
 | 프론트 | `frontend`에서 `npm run dev` | 5173 |
 
@@ -30,7 +30,7 @@ flowchart LR
 | Python | **3.12** | 4명 모두 같은 버전. `backend/.python-version`에 적는다 |
 | Node | **22 LTS** | `frontend/.nvmrc`에 `22`, `package.json`의 `engines`에도 적는다 |
 | MariaDB | **10.11** | 이미지 `mariadb:10.11` |
-| 백엔드 패키지 | FastAPI, Pydantic 2, Uvicorn, python-dotenv, SQLAlchemy 2.0, Alembic, PyMySQL, PyJWT, bcrypt / 개발: pytest, httpx, ruff, black | `requirements.txt`(실행)와 `requirements-dev.txt`(개발)에 `==`로 고정 |
+| 백엔드 패키지 | FastAPI, Pydantic 2, Uvicorn, python-dotenv, SQLAlchemy 2.0, Alembic, PyMySQL, PyJWT, bcrypt / 개발: pytest, httpx, ruff, black | `requirements.txt` 한 파일에 실행용·개발용을 함께 `==`로 고정 (11/13 변경, 11/16 회의 확정) |
 | 프론트 패키지 | **React 19**, React Router, Axios, **Tailwind CSS 4**(`@tailwindcss/vite`) / 개발: Vite, ESLint, Prettier | `package-lock.json`을 커밋한다 |
 
 - 정확한 패치 버전은 첫 세팅 PR에서 설치한 값을 그대로 고정하고, 스프린트 중에는 올리지 않는다.
@@ -234,8 +234,8 @@ frontend/src/
 | --- | --- | --- |
 | `MARIADB_ROOT_PASSWORD` | `change-me` | docker compose |
 | `MARIADB_USER`, `MARIADB_PASSWORD` | `doingit`, `change-me` | docker compose, 백엔드 |
-| `DATABASE_URL` | `mysql+pymysql://doingit:change-me@localhost:3306/doing_it?charset=utf8mb4` | 백엔드 |
-| `TEST_DATABASE_URL` | `...3306/doing_it_test?charset=utf8mb4` | pytest |
+| `DATABASE_URL` | `mysql+pymysql://doingit:change-me@localhost:3307/doing_it?charset=utf8mb4` | 백엔드 |
+| `TEST_DATABASE_URL` | `...3307/doing_it_test?charset=utf8mb4` | pytest |
 | `JWT_SECRET_KEY` | 32자 이상 무작위 문자열 | 백엔드 |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `120` | 백엔드 |
 | `FRONTEND_ORIGIN` | `http://localhost:5173` | 백엔드 CORS |
@@ -250,21 +250,23 @@ frontend/src/
 - 린트: **CI는 두지 않는다.** PR을 올린 사람이 로컬에서 `ruff check`, `black --check`, `npm run lint`, `prettier --check`, `pytest`를 돌리고, PR 설명에 결과를 한 줄 적는다. 리뷰어는 그 줄이 없으면 승인하지 않는다(성공 기준 5).
 - 비밀번호 검증(AUTH-01): 8~64자 **그리고** UTF-8 72바이트 이하. 72바이트를 넘으면 422 — bcrypt가 72바이트를 넘는 값을 받지 않기 때문이다. 경계값(64자, 73바이트 한글) 테스트를 넣는다.
 
-## 8. 스프린트 1 첫날 작업 순서
+## 8. 스프린트 1 첫날(11/16) 작업 순서
+
+담당과 일별 태스크는 [tasks.md](./tasks.md) §1·§4를 따른다(A조 양준석·최진영, B조 서승범·김서현).
 
 ```mermaid
 flowchart LR
-  B1["BE-B 서승범<br/>compose · init.sql<br/>Alembic 0001 · seed"] --> B2["BE-A 양준석<br/>인증 API<br/>프로젝트·멤버 API"]
-  A1["BE-A 양준석<br/>core: config·db·security<br/>auth·exceptions·clock"] --> B2
+  B1["BE-B 서승범<br/>compose · init.sql · core/db.py<br/>Alembic 0001 · pytest 기반"] --> B2["BE-A 양준석<br/>인증 API<br/>프로젝트·멤버 API"]
+  A1["BE-A 양준석<br/>core: config·security<br/>auth·exceptions·clock"] --> B2
   F1["FE-A 최진영<br/>Vite·Tailwind 세팅<br/>core: api·auth·ui"] --> F2["FE-A<br/>로그인·목록·설정"]
-  F3["FE-B 김서현<br/>보드·카드 퍼블리싱<br/>(목 데이터)"] --> F4["FE-B<br/>API 연결 (스프린트 2)"]
+  F3["FE-B 김서현<br/>보드·카드 퍼블리싱<br/>(목 데이터)"] --> F4["FE-B<br/>API 연결 (11/17)"]
   F1 --> F3
   B2 --> F2
 ```
 
 | 순서 | 담당 | 결과물 | 막히는 사람 |
 | :-: | --- | --- | --- |
-| 1 | BE-B | `docker compose up` → `alembic upgrade head` → `seed.py`까지 동작 | 백엔드 전원 |
+| 1 | BE-B | `docker compose up` → `core/db.py` → `alembic upgrade head` → pytest 기반까지 동작 (`seed.py`는 11/18) | 백엔드 전원 |
 | 1 | BE-A | `backend/core/` 전체 + `/api/health` | 백엔드 전원 |
 | 1 | FE-A | Vite 프로젝트 + 프록시 + `core/` 뼈대 + Tailwind 토큰 | 프론트 전원 |
 | 2 | BE-A | AUTH-01~04 + pytest | FE-A 로그인 연결 |

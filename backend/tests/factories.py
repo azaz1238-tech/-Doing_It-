@@ -11,19 +11,15 @@ import itertools
 from datetime import UTC, datetime
 from typing import Any
 
-import bcrypt
 from sqlalchemy.orm import Session
 
 from app.models import Project, ProjectMember, Task, User
 from app.models.enums import ProjectRole, TaskStatus
+from core.security import hash_password
 
-# 로그인 테스트에서 쓸 공통 비밀번호. 해시는 한 번만 만든다(bcrypt는 느림).
-# rounds=4는 테스트 속도용. 확인(checkpw)은 rounds와 상관없이 동작한다.
-# TODO(T-F0-08): core/security.py가 생기면 그 해시 함수를 쓰도록 바꾼다.
+# 로그인 테스트에서 쓸 공통 비밀번호. 앱과 같은 hash_password()로 한 번만 만든다(bcrypt는 느림).
 DEFAULT_PASSWORD = "password123"
-DEFAULT_PASSWORD_HASH = bcrypt.hashpw(
-    DEFAULT_PASSWORD.encode(), bcrypt.gensalt(rounds=4)
-).decode()
+DEFAULT_PASSWORD_HASH = hash_password(DEFAULT_PASSWORD)
 
 _seq = itertools.count(1)
 

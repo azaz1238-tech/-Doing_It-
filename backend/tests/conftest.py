@@ -5,12 +5,11 @@
 - 세션 시작 시 alembic upgrade head로 테이블을 만든다(마이그레이션 자체도 매번 검증됨).
 - 테스트 함수마다 모든 테이블을 TRUNCATE한다. 트랜잭션 롤백 방식은 쓰지 않는다:
   동시성 테스트(OWNER 동시 제거)가 실제로 커밋해야 하기 때문이다.
-- API 테스트용 client(TestClient) 픽스처는 app/main.py(T-F0-04)가 생긴 뒤 여기에 추가한다.
+- API 테스트용 client(TestClient) 픽스처는 첫 API 테스트(T-F1-01 등)를 쓸 때 여기에 추가한다.
   ⚠ 그때 반드시 app.dependency_overrides[get_db]로 테스트 DB 세션을 넣는다.
   빠뜨리면 API가 core.db.engine(= 개발 DB, DATABASE_URL)에 쓰고, 위 _test 안전장치도 우회된다.
 """
 
-import os
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -21,15 +20,18 @@ from sqlalchemy import Engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models import Base
-from core.db import create_db_engine  # import하면 load_dotenv()가 실행된다
+from core.config import get_settings
+from core.db import create_db_engine
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
+TEST_DATABASE_URL = get_settings().test_database_url
 
 
 @pytest.fixture(scope="session")
 def engine() -> Iterator[Engine]:
     """테스트 DB engine. 처음 한 번 마이그레이션을 최신으로 올린다."""
+    if not TEST_DATABASE_URL:
+        pytest.exit(".env에 TEST_DATABASE_URL 값을 넣어 주세요 (docs/SETUP.md 1번).", 1)
     test_engine = create_db_engine(TEST_DATABASE_URL)
     # 안전장치: 실수로 개발 DB 주소가 들어오면 TRUNCATE 전에 멈춘다.
     db_name = test_engine.url.database or ""

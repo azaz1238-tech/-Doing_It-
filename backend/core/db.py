@@ -1,18 +1,16 @@
 """DB 연결: engine, 세션, get_db() 의존성.
 
 근거: ARCHITECTURE §4.1·§4.3, DATABASE-DESIGN §10.
+DB 주소는 core/config.py의 설정 객체에서 읽는다. 값이 없으면 ConfigError로 안내한다.
+스타터킷 파일이므로 app/를 import하지 않는다.
 """
 
-import os
 from collections.abc import Iterator
 
-from dotenv import load_dotenv
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
-# TODO(T-F0-04): core/config.py(설정 객체)가 생기면 거기서 DATABASE_URL을 읽도록 바꾼다.
-# load_dotenv()는 이 파일 위치에서 위쪽 폴더로 올라가며 .env를 찾는다(저장소 루트의 .env).
-load_dotenv()
+from core.config import get_settings
 
 
 def create_db_engine(url: str) -> Engine:
@@ -32,7 +30,7 @@ def create_db_engine(url: str) -> Engine:
     return engine
 
 
-engine = create_db_engine(os.environ["DATABASE_URL"])
+engine = create_db_engine(get_settings().database_url)
 SessionLocal = sessionmaker(bind=engine)
 
 

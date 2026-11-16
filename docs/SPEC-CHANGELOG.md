@@ -10,6 +10,7 @@
 
 | # | 날짜 | 문서 (버전) | 바꾼 내용 | 이유 | 바꾼 사람 | 승인 |
 | :-: | --- | --- | --- | --- | --- | --- |
+| 3 | 2026-11-16 | DATABASE-DESIGN §4.5 (v1.1) | `ck_task_activities_field`의 UPDATED 조건에 `field IS NOT NULL` 추가. 설계 의도(UPDATED면 field가 4개 중 하나)는 그대로 | 기존 식은 `NULL IN (...)`이 "알 수 없음"이 되어 `UPDATED` + `field = NULL` 행이 CHECK를 통과함 (T-F0-07 구현 중 실제 MariaDB에서 확인) | 서승범 | 팀장 확인 필요 |
 | 2 | 2026-11-16 | TASKS (v1.1), README, CONSTITUTION·ARCHITECTURE·PROPOSAL·UI-DESIGN·SETUP·CONSISTENCY-CHECK 참조 | `tasks.md` → `TASKS.md` 파일명 통일. 다른 문서 참조 수정, 내용 변경 없음 | 다른 docs 문서와 대문자 파일명 통일 | 양준석 | 팀장 확인 필요 |
 | 2 | 2026-11-16 | CONSTITUTION 10-2 (v1.1), TASKS D5-01·§8-7, CLAUDE.md | 개발 로그 파일명을 `docs/devlog/<영문이름>.md` → `docs/devlog/<한국이름>.md`로 바꾸고 파일명 영어 규칙에 예외 추가 | 팀원이 자기 파일을 바로 찾도록 | 양준석 | 팀장 확인 필요 |
 | 2 | 2026-11-16 | ARCHITECTURE §3·§8 (v1.1), CLAUDE.md §4 | 저장소 구조에 `requirements.txt`·`.github/`·`docs/devlog/`·`verify.md`·`reports/`·`USER-MANUAL.md` 위치 추가. §8에 compose·init.sql 11/13 완료 표시 | TASKS §5 산출물 위치와 실제 파일에 맞춤 | 양준석 | 팀장 확인 필요 |

@@ -2,7 +2,7 @@
 
 > 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템
 > DB: MariaDB 10.11 LTS(Docker) | ORM: SQLAlchemy 2.x · Alembic · PyMySQL | 담당: 백엔드 B
-> 버전: v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
+> 버전: v1.1 (2026-11-16 §4.5 `ck_task_activities_field`에 `field IS NOT NULL` 추가 — UPDATED인데 field가 NULL인 행이 통과하던 빈틈 수정) · v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
 > 근거: PROPOSAL → CONSTITUTION §4·§6·§8 → REQUIREMENTS v1.0 → API-SPEC v1.0. 문서끼리 다르면 앞쪽 문서를 따른다.
 
 ## 1. 설계 원칙
@@ -247,10 +247,12 @@ CONSTRAINT ck_tasks_completed_at    CHECK ((status = 'DONE') = (completed_at IS 
 ```sql
 CONSTRAINT ck_task_activities_action CHECK (action IN ('CREATED','UPDATED','DELETED'))
 CONSTRAINT ck_task_activities_field  CHECK (
-  (action = 'UPDATED' AND field IN ('status','assignee_id','due_date','priority'))
+  (action = 'UPDATED' AND field IS NOT NULL AND field IN ('status','assignee_id','due_date','priority'))
   OR (action IN ('CREATED','DELETED') AND field IS NULL)
 )
 ```
+
+> `field IS NOT NULL`을 빼면 안 된다. `NULL IN (...)`은 참·거짓이 아닌 "알 수 없음"이고, CHECK는 거짓일 때만 막으므로 `UPDATED` + `field = NULL` 행이 통과한다(v1.1에서 수정).
 
 행 모양 (LOG-01·02, API-SPEC §5.3·§5.4):
 

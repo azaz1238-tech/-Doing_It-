@@ -19,14 +19,14 @@ _LOGIN_ID_PATTERN = re.compile(r"^[a-z0-9]{4,20}$")
 
 def _check_login_id(value: str) -> str:
     if not _LOGIN_ID_PATTERN.fullmatch(value):
-        raise ValueError("영문 소문자·숫자 4~20자로 입력해 주세요.")
+        raise ValueError("영문 소문자·숫자 4~20자로 입력해 주세요")
     return value
 
 
 def _check_password_bytes(value: str) -> str:
     # bcrypt는 72바이트를 넘는 값을 처리하지 못한다. 한글은 1자 = 3바이트 → 24자까지
     if len(value.encode("utf-8")) > PASSWORD_MAX_BYTES:
-        raise ValueError("72바이트 이하로 입력해 주세요 (한글은 24자까지).")
+        raise ValueError("72바이트 이하로 입력해 주세요 (한글은 24자까지)")
     return value
 
 

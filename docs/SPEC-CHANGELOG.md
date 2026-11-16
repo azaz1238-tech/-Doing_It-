@@ -10,6 +10,7 @@
 
 | # | 날짜 | 문서 (버전) | 바꾼 내용 | 이유 | 바꾼 사람 | 승인 |
 | :-: | --- | --- | --- | --- | --- | --- |
+| 3 | 2026-11-16 | ARCHITECTURE §1·§3 (v1.2) | 가상환경 위치를 `backend/.venv` → 저장소 루트 `.venv`로 바꾸고 §3 구조에 추가. 백엔드 실행은 루트 `.venv`를 켜고 `backend` 폴더에서 `uvicorn app.main:app --reload` | SETUP.md·README·실제 환경(루트 `requirements.txt`·`.venv`)과 맞춤 (T-F0-04 작업 중 발견) | 양준석 | 양준석 |
 | 2 | 2026-11-16 | TASKS (v1.1), README, CONSTITUTION·ARCHITECTURE·PROPOSAL·UI-DESIGN·SETUP·CONSISTENCY-CHECK 참조 | `tasks.md` → `TASKS.md` 파일명 통일. 다른 문서 참조 수정, 내용 변경 없음 | 다른 docs 문서와 대문자 파일명 통일 | 양준석 | 팀장 확인 필요 |
 | 2 | 2026-11-16 | CONSTITUTION 10-2 (v1.1), TASKS D5-01·§8-7, CLAUDE.md | 개발 로그 파일명을 `docs/devlog/<영문이름>.md` → `docs/devlog/<한국이름>.md`로 바꾸고 파일명 영어 규칙에 예외 추가 | 팀원이 자기 파일을 바로 찾도록 | 양준석 | 팀장 확인 필요 |
 | 2 | 2026-11-16 | ARCHITECTURE §3·§8 (v1.1), CLAUDE.md §4 | 저장소 구조에 `requirements.txt`·`.github/`·`docs/devlog/`·`verify.md`·`reports/`·`USER-MANUAL.md` 위치 추가. §8에 compose·init.sql 11/13 완료 표시 | TASKS §5 산출물 위치와 실제 파일에 맞춤 | 양준석 | 팀장 확인 필요 |

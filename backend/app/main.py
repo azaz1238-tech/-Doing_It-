@@ -6,6 +6,7 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers import auth
 from core.config import get_settings
 from core.exceptions import register_exception_handlers
 
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
 
     # 기능 라우터는 여기에 prefix=API_PREFIX로 추가한다 (auth·users·projects·members·tasks)
     app.include_router(health_router, prefix=API_PREFIX)
+    app.include_router(auth.router, prefix=API_PREFIX)
 
     return app
 

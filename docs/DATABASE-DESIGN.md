@@ -2,7 +2,7 @@
 
 > 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템
 > DB: MariaDB 10.11 LTS(Docker) | ORM: SQLAlchemy 2.x · Alembic · PyMySQL | 담당: 백엔드 B
-> 버전: v1.1 (2026-11-16 §4.5 `ck_task_activities_field`에 `field IS NOT NULL` 추가 — UPDATED인데 field가 NULL인 행이 통과하던 빈틈 수정) · v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
+> 버전: v1.2 (2026-11-16 상태·역할 컬럼 6개(`system_role`, `role`, `status`, `priority`, `action`, `field`)를 `utf8mb4_bin`으로 — `_ci`에서는 `'todo'`가 CHECK를 통과함, §1-7·§4) · v1.1 (2026-11-16 §4.5 `ck_task_activities_field`에 `field IS NOT NULL` 추가 — UPDATED인데 field가 NULL인 행이 통과하던 빈틈 수정) · v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
 > 근거: PROPOSAL → CONSTITUTION §4·§6·§8 → REQUIREMENTS v1.0 → API-SPEC v1.0. 문서끼리 다르면 앞쪽 문서를 따른다.
 
 ## 1. 설계 원칙
@@ -15,7 +15,7 @@
 | 4 | 업무 생성·변경·삭제와 이력 기록은 **한 트랜잭션** | CONSTITUTION 8-1·8-2 |
 | 5 | 삭제는 실제 삭제(CASCADE). 업무가 지워져도 이력은 `task_id = NULL`로 남긴다 | CONSTITUTION 8-3 |
 | 6 | 시각은 UTC로 저장하고 응답은 ISO 8601 `Z`. 화면에서 한국 시간으로 바꾼다 | CONSTITUTION 8-5 |
-| 7 | `InnoDB` · `utf8mb4` · `utf8mb4_unicode_ci`(예외: `login_id`, §4.1). PostgreSQL 전용 문법(`FILTER` 등) 금지 | CLAUDE.md §5 |
+| 7 | `InnoDB` · `utf8mb4` · `utf8mb4_unicode_ci`(예외: `login_id`와 상태·역할 컬럼은 대소문자를 구분하는 `utf8mb4_bin`, §4.1·§4 공통 규칙). PostgreSQL 전용 문법(`FILTER` 등) 금지 | CLAUDE.md §5 |
 | 8 | **지금 쓰지 않는 컬럼·테이블은 만들지 않는다.** P1·P2용은 해당 단계 마이그레이션에서 추가한다 | CLAUDE.md §5 |
 
 ## 2. 마이그레이션 단계
@@ -139,6 +139,7 @@ erDiagram
 - PK는 `BIGINT AUTO_INCREMENT`.
 - `created_at`·`updated_at`은 `DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`. `updated_at`은 SQLAlchemy `onupdate=func.now()`로 갱신한다.
 - CHECK 제약 SQL은 Alembic 리비전에 그대로 옮긴다. 제약 이름은 §10 규칙을 따른다.
+- 상태·역할 값(enum)을 담는 컬럼은 `COLLATE utf8mb4_bin`이다. 기본 `utf8mb4_unicode_ci`는 대소문자를 구분하지 않아 `'todo'`도 `status IN ('TODO',…)` CHECK를 통과하기 때문이다(CONSTITUTION 8-4: DB로 막을 수 있으면 DB에서 막는다).
 
 ### 4.1 users (P0)
 
@@ -148,7 +149,7 @@ erDiagram
 | login_id | VARCHAR(20) **COLLATE utf8mb4_bin** | N | | `uq_users_login_id`, `ck_users_login_id_format` | 로그인 아이디. 멤버 추가 시 검색 키 |
 | password_hash | VARCHAR(255) | N | | | bcrypt. 어떤 응답에도 넣지 않음 |
 | name | VARCHAR(50) | N | | `ck_users_name_not_blank` | 표시 이름 1~50자 |
-| system_role | VARCHAR(10) | N | `'USER'` | `ck_users_system_role` | 가입 시 항상 `USER`. `ADMIN`은 P2(ADM-01) |
+| system_role | VARCHAR(10) **COLLATE utf8mb4_bin** | N | `'USER'` | `ck_users_system_role` | 가입 시 항상 `USER`. `ADMIN`은 P2(ADM-01) |
 | is_active | TINYINT(1) | N | `1` | | 0이면 403 `ACCOUNT_DISABLED` |
 | created_at / updated_at | DATETIME | N | now | | |
 
@@ -160,7 +161,7 @@ CONSTRAINT ck_users_name_not_blank  CHECK (CHAR_LENGTH(TRIM(name)) > 0)
 
 **아이디는 소문자만 저장된다.**
 - 앱(Pydantic)이 입력한 대문자를 소문자로 바꾼 뒤 저장한다(AUTH-01).
-- DB는 `utf8mb4_bin` 콜레이션 + REGEXP CHECK로 대문자가 들어오는 것을 막는다. 기본 `_ci` 콜레이션에서는 REGEXP가 대소문자를 구분하지 않아 `'MinHo'`도 통과하므로 이 컬럼만 `_bin`으로 둔다.
+- DB는 `utf8mb4_bin` 콜레이션 + REGEXP CHECK로 대문자가 들어오는 것을 막는다. 기본 `_ci` 콜레이션에서는 REGEXP가 대소문자를 구분하지 않아 `'MinHo'`도 통과하므로 이 컬럼을 `_bin`으로 둔다(상태·역할 컬럼도 같은 이유로 `_bin`, §4 공통 규칙).
 - 로그인·멤버 추가 때도 입력을 소문자로 바꿔 조회한다. 그래서 대소문자만 다른 아이디도 같은 아이디로 보고 409로 막는다.
 
 **P2 추가 컬럼 (AUTH-08 회원 탈퇴)**
@@ -195,7 +196,7 @@ CONSTRAINT ck_projects_period         CHECK (start_date IS NULL OR end_date IS N
 | id | BIGINT | N | AI | PK | |
 | project_id | BIGINT | N | | FK → projects.id `CASCADE` | |
 | user_id | BIGINT | N | | FK → users.id `RESTRICT` | |
-| role | VARCHAR(10) | N | | `ck_project_members_role` | `OWNER` \| `MEMBER`. VIEWER는 보류(CONSTITUTION 6-3) |
+| role | VARCHAR(10) **COLLATE utf8mb4_bin** | N | | `ck_project_members_role` | `OWNER` \| `MEMBER`. VIEWER는 보류(CONSTITUTION 6-3) |
 | joined_at | DATETIME | N | now | | |
 
 ```sql
@@ -213,8 +214,8 @@ CONSTRAINT ck_project_members_role         CHECK (role IN ('OWNER','MEMBER'))
 | project_id | BIGINT | N | | FK → projects.id `CASCADE` | |
 | title | VARCHAR(30) | N | | `ck_tasks_title_not_blank` | 1~30자 (TASK-01) |
 | description | TEXT | Y | | | |
-| status | VARCHAR(20) | N | `'TODO'` | `ck_tasks_status` | 생성은 항상 `TODO`(API는 status를 받지 않음) |
-| priority | VARCHAR(10) | N | `'MEDIUM'` | `ck_tasks_priority` | |
+| status | VARCHAR(20) **COLLATE utf8mb4_bin** | N | `'TODO'` | `ck_tasks_status` | 생성은 항상 `TODO`(API는 status를 받지 않음) |
+| priority | VARCHAR(10) **COLLATE utf8mb4_bin** | N | `'MEDIUM'` | `ck_tasks_priority` | |
 | assignee_id | BIGINT | Y | | FK → users.id `SET NULL` | 프로젝트 멤버인지는 서비스 계층에서 검사 (TASK-03) |
 | created_by | BIGINT | N | | FK → users.id `RESTRICT` | 수정·삭제 권한 판단 (TASK-06) |
 | due_date | DATE | Y | | | 과거 날짜·프로젝트 기간 밖 날짜도 허용 |
@@ -238,8 +239,8 @@ CONSTRAINT ck_tasks_completed_at    CHECK ((status = 'DONE') = (completed_at IS 
 | task_id | BIGINT | Y | | FK → tasks.id `SET NULL` | 업무 삭제 후에도 이력 유지 |
 | project_id | BIGINT | N | | FK → projects.id `CASCADE` | 프로젝트별 최근 이력 조회용. 프로젝트 삭제 시 함께 삭제 |
 | user_id | BIGINT | N | | FK → users.id `RESTRICT` | 변경한 사람 |
-| action | VARCHAR(10) | N | | `ck_task_activities_action` | |
-| field | VARCHAR(20) | Y | | `ck_task_activities_field` | |
+| action | VARCHAR(10) **COLLATE utf8mb4_bin** | N | | `ck_task_activities_action` | |
+| field | VARCHAR(20) **COLLATE utf8mb4_bin** | Y | | `ck_task_activities_field` | |
 | old_value | VARCHAR(255) | Y | | | 문자열. NULL은 "없음" |
 | new_value | VARCHAR(255) | Y | | | |
 | created_at | DATETIME | N | now | | 이력 행은 UPDATE하지 않는다 |

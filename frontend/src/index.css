@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/*
+ * 디자인 토큰 — 동잇 UI 시안 v0.3 · 쿨톤 팔레트
+ * TODO(UI-DESIGN §7 확정 전): UI-DESIGN §7 토큰 표가 아직 v0.2(원색) 추정값이다.
+ * 팀이 v0.3을 채택해 §7을 고친 뒤 이 주석을 지운다(문서 → Figma → 코드 순서).
+ */
+@theme {
+  /* 의미 색 (UI-DESIGN §6과 같은 구분, 채도만 낮춤) */
+  --color-primary: #4467a8; /* 주 버튼, 선택, 진행 중 */
+  --color-primary-hover: #375792; /* 버튼 누를 때 */
+  --color-primary-soft: #ebf0f8; /* 진행 중 칩 배경 */
+  --color-info: #5e86c1; /* 보통 */
+  --color-success: #3e9c8f; /* 완료 */
+  --color-success-soft: #e5f3f1; /* 완료 칩 배경 */
+  --color-warning: #b07a2a; /* 높음, 임박 */
+  --color-warning-soft: #f7f0e3; /* 임박 배지 배경 */
+  --color-danger: #b94a63; /* 긴급, 지연, 삭제 */
+  --color-danger-soft: #faedf0; /* 지연 배지 배경, 폼 오류 상자 */
+  /* 오류 토스트 배경 — v0.3 시안 원본 값(김서현 11/16 확인). 팔레트 표에는 없음 */
+  --color-danger-strong: #6b2e3d;
+
+  /* 뉴트럴 — 푸른 기가 도는 슬레이트 그레이. Tailwind 기본 neutral을 덮어쓴다. */
+  /* TODO(UI-DESIGN §7 확정 전): 시안에 n800이 없다. 확정 전까지 neutral-800은 쓰지 않는다. */
+  --color-neutral-50: #f5f7fa; /* 배경 */
+  --color-neutral-100: #eef1f5; /* 컬럼 */
+  --color-neutral-200: #e2e7ee; /* 테두리 */
+  --color-neutral-300: #cdd5df; /* 입력 테두리 */
+  --color-neutral-400: #9aa5b4; /* 흐린 글자 */
+  --color-neutral-500: #6b7889; /* 보조 글자 */
+  --color-neutral-600: #4d596a; /* 본문 보조 */
+  --color-neutral-700: #364152; /* 버튼 글자 */
+  --color-neutral-900: #1c2433; /* 제목·본문 */
+  /* n0(#FFFFFF, 카드)은 Tailwind의 white를 쓴다. */
+
+  /* 아바타 — avatar-1·3·4는 v0.3 시안 원본 값(김서현 11/16 확인). */
+  /* TODO(UI-DESIGN §7 확정 전): avatar-2는 시안 화면에서 읽은 값. 김서현 확인 필요 */
+  --color-avatar-1: #7084c9;
+  --color-avatar-2: #4f8fac;
+  --color-avatar-3: #4a9d90;
+  --color-avatar-4: #8c7cc4;
+
+  /* TODO(Figma): 글꼴 미정(UI-DESIGN §7 "확인 필요"). 확정 전까지 시스템 글꼴 */
+  --font-sans:
+    system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+@layer base {
+  /* 기본 글자 14px (UI-DESIGN §7) */
+  body {
+    @apply bg-neutral-50 text-sm text-neutral-900 antialiased;
+  }
+}

@@ -6,6 +6,8 @@
 - 테스트 함수마다 모든 테이블을 TRUNCATE한다. 트랜잭션 롤백 방식은 쓰지 않는다:
   동시성 테스트(OWNER 동시 제거)가 실제로 커밋해야 하기 때문이다.
 - API 테스트용 client(TestClient) 픽스처는 app/main.py(T-F0-04)가 생긴 뒤 여기에 추가한다.
+  ⚠ 그때 반드시 app.dependency_overrides[get_db]로 테스트 DB 세션을 넣는다.
+  빠뜨리면 API가 core.db.engine(= 개발 DB, DATABASE_URL)에 쓰고, 위 _test 안전장치도 우회된다.
 """
 
 import os
@@ -15,7 +17,7 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models import Base
@@ -36,8 +38,16 @@ def engine() -> Iterator[Engine]:
             f"TEST_DATABASE_URL이 테스트 DB가 아닙니다: {db_name}", returncode=1
         )
 
+    @event.listens_for(test_engine, "connect")
+    def _short_lock_wait(dbapi_connection, _connection_record):
+        # 앞 테스트가 세션·스레드를 안 닫고 끝나면 TRUNCATE가 잠금을 기다린다.
+        # MariaDB 기본값(86400초 = 하루) 대신 10초 뒤 오류로 끝나게 한다.
+        with dbapi_connection.cursor() as cursor:
+            cursor.execute("SET SESSION lock_wait_timeout = 10")
+
     config = Config(str(BACKEND_DIR / "alembic.ini"))
     config.attributes["sqlalchemy.url"] = TEST_DATABASE_URL  # alembic/env.py가 읽는다
+    config.attributes["configure_logger"] = False  # 테스트 로그 설정을 건드리지 않게
     command.upgrade(config, "head")
 
     yield test_engine

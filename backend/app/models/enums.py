@@ -55,13 +55,15 @@ class ActivityField(StrEnum):
     PRIORITY = "priority"
 
 
-def priority_order(column) -> ColumnElement[int]:
-    """우선순위 정렬 식: URGENT=0, HIGH=1, MEDIUM=2, LOW=3.
+def priority_order(column: ColumnElement[str]) -> ColumnElement[int]:
+    """우선순위 정렬 식: URGENT=0, HIGH=1, MEDIUM=2, LOW=3, 알 수 없는 값=4(맨 뒤).
 
     priority는 문자열이라 그냥 정렬하면 알파벳순(HIGH→LOW→MEDIUM→URGENT)이 된다.
     칸반 정렬(TASK-05)은 반드시 이 식을 쓴다: .order_by(priority_order(Task.priority), ...)
+    else_가 없으면 알 수 없는 값이 NULL이 되어 MariaDB 오름차순에서 맨 앞에 온다.
     """
     return case(
         {p.value: i for i, p in enumerate(TaskPriority)},
         value=column,
+        else_=len(TaskPriority),
     )

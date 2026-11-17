@@ -11,6 +11,7 @@ import itertools
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Project, ProjectMember, Task, User
@@ -62,6 +63,15 @@ def add_member(
     db.add(member)
     db.commit()
     return member
+
+
+def member_of(db: Session, project: Project, user: User) -> ProjectMember:
+    """이미 있는 멤버십 조회. 서비스 테스트에서 require_project_role 반환값 대신 쓴다."""
+    return db.scalars(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project.id, ProjectMember.user_id == user.id
+        )
+    ).one()
 
 
 def make_task(db: Session, project: Project, created_by: User, **fields: Any) -> Task:

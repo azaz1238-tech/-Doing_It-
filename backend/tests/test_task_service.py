@@ -14,8 +14,10 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.models import Project, Task, TaskActivity, User
 from app.models.enums import TaskPriority, TaskStatus
 from app.schemas.task import TaskCreate, TaskUpdate
+from app.services import activity_service
 from app.services.task_service import (
     create_task,
+    delete_task,
     get_task_or_404,
     list_tasks,
     update_task,
@@ -328,3 +330,83 @@ def test_other_member_forbidden(db: Session, cast: Cast) -> None:
     db.rollback()
     assert _snapshot_row(db, cast.task.id) == before
     assert _activities(db) == []
+
+
+# ---------- 삭제 (TASK-06, LOG-01) ----------
+
+
+def test_delete_keeps_activity_with_null_task_id(db: Session) -> None:
+    owner = make_user(db)
+    project = make_project(db, owner)
+    member = member_of(db, project, owner)
+    task = create_task(db, member, TaskCreate(title="지울 업무"))  # CREATED 이력 1행
+    task_id = task.id
+
+    delete_task(db, member, task)
+
+    db.expire_all()
+    assert db.get(Task, task_id) is None
+    rows = _activities(db)
+    assert [(r.action, r.task_id) for r in rows] == [
+        ("CREATED", None),
+        ("DELETED", None),
+    ]
+    assert rows[1].old_value == "지울 업무"
+    assert rows[1].field is None
+    assert rows[1].user_id == owner.id
+    assert rows[1].project_id == project.id
+
+
+@pytest.mark.parametrize("who", ["owner", "author"])
+def test_delete_by_owner_and_author_ok(db: Session, cast: Cast, who: str) -> None:
+    task_id = cast.task.id
+
+    delete_task(db, member_of(db, cast.project, getattr(cast, who)), cast.task)
+
+    db.expire_all()
+    assert db.get(Task, task_id) is None
+
+
+@pytest.mark.parametrize("who", ["assignee", "other"])
+def test_delete_by_other_member_forbidden(db: Session, cast: Cast, who: str) -> None:
+    with pytest.raises(Forbidden):
+        delete_task(db, member_of(db, cast.project, getattr(cast, who)), cast.task)
+
+    db.rollback()
+    assert _snapshot_row(db, cast.task.id)[0] == "원래 제목"
+    assert _activities(db) == []
+
+
+# ---------- 한 트랜잭션 (API-SPEC §5.4 처리 4) ----------
+
+
+def test_update_rolls_back_when_activity_fails(
+    db: Session, cast: Cast, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    before = _snapshot_row(db, cast.task.id)
+
+    def broken_record(*args, **kwargs):
+        raise RuntimeError("이력 기록 실패")
+
+    monkeypatch.setattr(activity_service, "record", broken_record)
+
+    with pytest.raises(RuntimeError):
+        _update(db, cast, cast.author, {"status": "DONE", "priority": "HIGH"})
+
+    db.rollback()  # 실제로는 get_db가 한다
+    assert _snapshot_row(db, cast.task.id) == before
+
+
+def test_delete_rolls_back_when_activity_fails(
+    db: Session, cast: Cast, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken_record(*args, **kwargs):
+        raise RuntimeError("이력 기록 실패")
+
+    monkeypatch.setattr(activity_service, "record", broken_record)
+
+    with pytest.raises(RuntimeError):
+        delete_task(db, member_of(db, cast.project, cast.owner), cast.task)
+
+    db.rollback()
+    assert _snapshot_row(db, cast.task.id)[0] == "원래 제목"

@@ -70,3 +70,9 @@ def require_task_edit(member: ProjectMember, task: Task, fields: set[str]) -> No
     if task.assignee_id == member.user_id and fields <= _ASSIGNEE_EDITABLE:
         return
     raise Forbidden("FORBIDDEN", "권한이 없습니다")
+
+
+def require_task_delete(member: ProjectMember, task: Task) -> None:
+    """업무 삭제 권한: OWNER 또는 작성자만. 담당자·그 외 MEMBER는 403 FORBIDDEN."""
+    if not _is_owner_or_author(member, task):
+        raise Forbidden("FORBIDDEN", "권한이 없습니다")

@@ -15,7 +15,7 @@ from app.models import ProjectMember, Task
 from app.models.enums import ActivityAction, TaskStatus, priority_order
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services import activity_service
-from app.services.permissions import require_task_edit
+from app.services.permissions import require_task_delete, require_task_edit
 from core.exceptions import NotFound
 from core.pagination import PageParams
 
@@ -99,3 +99,18 @@ def update_task(
     activity_service.record_changes(db, task, member.user_id, before)
     db.commit()
     return task
+
+
+def delete_task(db: Session, member: ProjectMember, task: Task) -> None:
+    """업무 삭제 (TASK-06, LOG-01). 실제 삭제하고 이력은 남긴다.
+
+    DELETED 이력(old_value=삭제 전 제목)을 먼저 add한 뒤 삭제한다. 커밋되면 FK
+    ON DELETE SET NULL로 이 업무의 이력(CREATED·UPDATED·DELETED) task_id가 모두 NULL이 된다.
+    """
+    require_task_delete(member, task)
+    activity_service.record(
+        db, task, member.user_id, ActivityAction.DELETED, old_value=task.title
+    )
+    db.flush()  # 이력 INSERT를 업무 DELETE보다 먼저 보낸다(FK가 아직 있는 업무를 가리키도록)
+    db.delete(task)
+    db.commit()

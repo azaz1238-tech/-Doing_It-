@@ -135,14 +135,18 @@
 | 그 외 | `value`, `onChange`, `ref` … `<input>`에 그대로 전달 |
 
 ```jsx
+// S2 회원가입
 <Input
   label="아이디"
   labelHint="영문 소문자·숫자 4~20자"
   error={errors.login_id}
-  value={form.login_id}
-  onChange={(e) => setForm({ ...form, login_id: e.target.value.toLowerCase() })}
+  value={form.loginId}
+  onChange={(e) => setForm({ ...form, loginId: e.target.value.toLowerCase() })}
 />
-<Input label="비밀번호" labelHint="8~64자" type="password" success={pwOk && "사용할 수 있습니다"} … />
+<Input label="비밀번호" labelHint="8~64자" type="password" … />
+<Input label="이름" … />  {/* 사용자 이름 1~50자 — 글자 수 표시 없음 */}
+
+// S3 새 프로젝트 · S7 설정 — 프로젝트 이름 1~30자
 <Input label="이름" required maxCount={30} value={name} onChange={…} />
 ```
 

@@ -4,19 +4,31 @@
 테스트에서는 factories.member_of()로 같은 객체를 만든다.
 """
 
-from datetime import date
+from dataclasses import dataclass
+from datetime import date, datetime
 
 import pytest
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.models import Task, TaskActivity
+from app.models import Project, Task, TaskActivity, User
 from app.models.enums import TaskPriority, TaskStatus
-from app.schemas.task import TaskCreate
-from app.services.task_service import create_task, get_task_or_404, list_tasks
-from core.exceptions import NotFound
+from app.schemas.task import TaskCreate, TaskUpdate
+from app.services.task_service import (
+    create_task,
+    get_task_or_404,
+    list_tasks,
+    update_task,
+)
+from core.exceptions import Forbidden, NotFound
 from core.pagination import PageParams
-from tests.factories import make_project, make_task, make_user, member_of
+from tests.factories import (
+    add_member,
+    make_project,
+    make_task,
+    make_user,
+    member_of,
+)
 
 
 def _activities(db: Session) -> list[TaskActivity]:
@@ -155,3 +167,164 @@ def test_get_task_or_404(db: Session) -> None:
         get_task_or_404(db, 999_999)
     assert exc.value.code == "TASK_NOT_FOUND"
     assert exc.value.message == "업무를 찾을 수 없습니다"
+
+
+# ---------- 수정 (TASK-02·06, LOG-01·02) ----------
+
+
+@dataclass
+class Cast:
+    """권한 테스트 등장인물. 업무는 author가 만들고 assignee가 담당한다."""
+
+    project: Project
+    owner: User  # OWNER
+    author: User  # MEMBER + 작성자
+    assignee: User  # MEMBER + 담당자(작성자 아님)
+    other: User  # 그 외 MEMBER
+    task: Task
+
+
+@pytest.fixture
+def cast(db: Session) -> Cast:
+    owner = make_user(db)
+    project = make_project(db, owner)
+    author, assignee, other = make_user(db), make_user(db), make_user(db)
+    for user in (author, assignee, other):
+        add_member(db, project, user)
+    task = make_task(db, project, author, title="원래 제목", assignee_id=assignee.id)
+    return Cast(project, owner, author, assignee, other, task)
+
+
+def _update(db: Session, cast: Cast, user: User, body: dict) -> Task:
+    member = member_of(db, cast.project, user)
+    return update_task(db, member, cast.task, TaskUpdate.model_validate(body))
+
+
+def _snapshot_row(db: Session, task_id: int) -> tuple:
+    """다른 세션에서 읽은 업무 값(커밋된 값)."""
+    other = sessionmaker(bind=db.get_bind())()
+    try:
+        t = other.get(Task, task_id)
+        return (t.title, t.status, t.priority, t.assignee_id, t.due_date)
+    finally:
+        other.close()
+
+
+def test_update_status_and_assignee_two_rows(db: Session, cast: Cast) -> None:
+    _update(
+        db,
+        cast,
+        cast.owner,
+        {"status": "IN_PROGRESS", "assignee_id": cast.other.id},
+    )
+
+    got = [(r.field, r.old_value, r.new_value) for r in _activities(db)]
+    assert got == [
+        ("status", "TODO", "IN_PROGRESS"),
+        ("assignee_id", str(cast.assignee.id), str(cast.other.id)),
+    ]
+    assert all(r.action == "UPDATED" for r in _activities(db))
+    assert all(r.user_id == cast.owner.id for r in _activities(db))
+
+
+def test_update_title_description_no_row(db: Session, cast: Cast) -> None:
+    task = _update(db, cast, cast.author, {"title": "새 제목", "description": "설명"})
+
+    assert (task.title, task.description) == ("새 제목", "설명")
+    assert _activities(db) == []
+
+
+def test_update_empty_body_no_change(db: Session, cast: Cast) -> None:
+    before = _snapshot_row(db, cast.task.id)
+
+    _update(db, cast, cast.author, {})
+
+    assert _snapshot_row(db, cast.task.id) == before
+    assert _activities(db) == []
+
+
+def test_update_done_sets_and_clears_completed_at(db: Session, cast: Cast) -> None:
+    task = _update(db, cast, cast.author, {"status": "DONE"})
+    assert task.completed_at is not None
+
+    task = _update(db, cast, cast.author, {"status": "TODO"})
+    assert task.completed_at is None
+
+
+def test_update_done_to_done_keeps_completed_at(db: Session, cast: Cast) -> None:
+    done_at = datetime(2026, 11, 15, 3, 0, 0)
+    cast.task.status = TaskStatus.DONE
+    cast.task.completed_at = done_at
+    db.commit()
+
+    task = _update(db, cast, cast.author, {"status": "DONE"})
+
+    assert task.completed_at == done_at
+    assert _activities(db) == []
+
+
+def test_update_is_committed(db: Session, cast: Cast) -> None:
+    _update(db, cast, cast.author, {"priority": "URGENT"})
+
+    assert _snapshot_row(db, cast.task.id)[2] == "URGENT"
+
+
+# ---------- 수정 권한 (TASK-06 권한 매트릭스) ----------
+
+
+def test_owner_can_edit_any(db: Session, cast: Cast) -> None:
+    task = _update(db, cast, cast.owner, {"title": "OWNER 수정", "priority": "LOW"})
+    assert (task.title, task.priority) == ("OWNER 수정", "LOW")
+
+
+def test_author_can_edit_all_fields(db: Session, cast: Cast) -> None:
+    body = {
+        "title": "작성자 수정",
+        "description": "d",
+        "status": "IN_PROGRESS",
+        "assignee_id": None,
+        "due_date": "2026-11-20",
+        "priority": "HIGH",
+    }
+    task = _update(db, cast, cast.author, body)
+
+    assert task.title == "작성자 수정"
+    assert task.assignee_id is None
+    assert task.due_date == date(2026, 11, 20)
+
+
+def test_assignee_can_change_status(db: Session, cast: Cast) -> None:
+    task = _update(db, cast, cast.assignee, {"status": "DONE"})
+    assert task.status == TaskStatus.DONE
+
+
+def test_assignee_other_field_forbidden(db: Session, cast: Cast) -> None:
+    before = _snapshot_row(db, cast.task.id)
+
+    with pytest.raises(Forbidden) as exc:
+        _update(db, cast, cast.assignee, {"status": "DONE", "priority": "HIGH"})
+
+    assert exc.value.code == "FORBIDDEN"
+    db.rollback()
+    assert _snapshot_row(db, cast.task.id) == before  # status도 안 바뀜(요청 전체 거절)
+    assert _activities(db) == []
+
+
+def test_author_who_is_assignee_can_edit_all(db: Session, cast: Cast) -> None:
+    cast.task.assignee_id = cast.author.id
+    db.commit()
+
+    task = _update(db, cast, cast.author, {"title": "둘 다", "priority": "LOW"})
+
+    assert (task.title, task.priority) == ("둘 다", "LOW")
+
+
+def test_other_member_forbidden(db: Session, cast: Cast) -> None:
+    before = _snapshot_row(db, cast.task.id)
+
+    with pytest.raises(Forbidden):
+        _update(db, cast, cast.other, {"status": "DONE"})
+
+    db.rollback()
+    assert _snapshot_row(db, cast.task.id) == before
+    assert _activities(db) == []

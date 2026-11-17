@@ -8,7 +8,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Project, ProjectMember, User
+from app.models import Project, ProjectMember, Task, User
 from app.models.enums import ProjectRole
 from core.exceptions import Forbidden, NotFound
 
@@ -45,3 +45,28 @@ def require_project_role(
         raise Forbidden("FORBIDDEN", "권한이 없습니다")
 
     return member
+
+
+# ---------- 업무 권한 (TASK-06 권한 매트릭스, API-SPEC §5.4) — 서승범 추가 ----------
+# require_project_role로 멤버 확인을 마친 뒤 부른다. 업무 작성자 판정도 여기서 한다.
+
+# 담당자(작성자 아님)가 바꿀 수 있는 필드
+_ASSIGNEE_EDITABLE: frozenset[str] = frozenset({"status"})
+
+
+def _is_owner_or_author(member: ProjectMember, task: Task) -> bool:
+    return ProjectRole(member.role) in OWNER_ONLY or task.created_by == member.user_id
+
+
+def require_task_edit(member: ProjectMember, task: Task, fields: set[str]) -> None:
+    """업무 수정 권한. fields는 요청에 보낸 필드 이름들.
+
+    - OWNER 또는 작성자 → 전부
+    - 담당자(작성자 아님) → status만. 다른 필드가 하나라도 있으면 요청 전체 403
+    - 그 외 MEMBER → 403 FORBIDDEN
+    """
+    if _is_owner_or_author(member, task):
+        return
+    if task.assignee_id == member.user_id and fields <= _ASSIGNEE_EDITABLE:
+        return
+    raise Forbidden("FORBIDDEN", "권한이 없습니다")

@@ -6,13 +6,16 @@
   add한 뒤 마지막에 한 번 커밋한다. 중간에 실패하면 get_db가 롤백한다.
 """
 
+from datetime import UTC, datetime
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import ProjectMember, Task
 from app.models.enums import ActivityAction, TaskStatus, priority_order
-from app.schemas.task import TaskCreate
+from app.schemas.task import TaskCreate, TaskUpdate
 from app.services import activity_service
+from app.services.permissions import require_task_edit
 from core.exceptions import NotFound
 from core.pagination import PageParams
 
@@ -67,4 +70,32 @@ def get_task_or_404(db: Session, task_id: int) -> Task:
     task = db.get(Task, task_id)
     if task is None:
         raise NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다")
+    return task
+
+
+def update_task(
+    db: Session, member: ProjectMember, task: Task, data: TaskUpdate
+) -> Task:
+    """업무 수정·상태 변경 (TASK-02·06, LOG-01·02). 보낸 필드만 바꾼다.
+
+    한 트랜잭션: 권한 → 값 반영 → completed_at → 바뀐 항목마다 이력 → 커밋 1번.
+    """
+    fields = data.model_fields_set
+    require_task_edit(member, task, fields)  # 403이면 아무것도 바꾸지 않는다
+    # TODO(T-F3-04): assignee_id를 보냈고 값이 있으면 멤버인지 검사(400 ASSIGNEE_NOT_MEMBER)
+
+    before = activity_service.snapshot(task)
+    for field in fields:
+        setattr(task, field, getattr(data, field))
+
+    # DONE이 "되면" 지금, DONE에서 "벗어나면" NULL. DONE→DONE은 그대로 둔다.
+    was_done = before["status"] == TaskStatus.DONE
+    is_done = task.status == TaskStatus.DONE
+    if is_done and not was_done:
+        task.completed_at = datetime.now(UTC).replace(tzinfo=None)
+    elif was_done and not is_done:
+        task.completed_at = None
+
+    activity_service.record_changes(db, task, member.user_id, before)
+    db.commit()
     return task

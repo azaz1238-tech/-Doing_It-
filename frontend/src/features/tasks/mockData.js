@@ -120,3 +120,67 @@ export async function updateMockTaskStatus(taskId, status) {
   target.completed_at = status === "DONE" ? new Date().toISOString() : null;
   return { ...target };
 }
+
+// 멤버 목록 — GET /projects/{id}/members 흉내 (API-SPEC §4 Member). 최현우는 멤버가 아니다.
+const members = [
+  { user_id: 1, login_id: "jisoo01", name: "이지수", role: "OWNER" },
+  { user_id: 2, login_id: "minho", name: "김민호", role: "MEMBER" },
+  { user_id: 3, login_id: "seoyeon", name: "박서연", role: "MEMBER" },
+];
+
+/** GET /projects/{id}/members 흉내 */
+export async function fetchMockMembers() {
+  await delay(200);
+  return { items: members.map((m) => ({ ...m })), total: members.length };
+}
+
+// Axios 오류 모양을 흉내 낸다: error.response.status, error.response.data.code
+function apiError(status, data) {
+  const error = new Error(data.message);
+  error.response = { status, data };
+  return error;
+}
+
+/** POST /projects/{id}/tasks 흉내 — API-SPEC §5.4 검증 규칙 */
+export async function createMockTask(body) {
+  await delay(300);
+  const title = (body.title ?? "").trim();
+  if (title.length < 1 || title.length > 30) {
+    throw apiError(422, {
+      code: "VALIDATION_ERROR",
+      message: "입력값을 확인해 주세요",
+      errors: [
+        { field: "title", message: "업무 제목은 1~30자로 입력해 주세요" },
+      ],
+    });
+  }
+  const assignee =
+    body.assignee_id == null
+      ? null
+      : members.find((m) => m.user_id === body.assignee_id);
+  if (body.assignee_id != null && !assignee) {
+    throw apiError(400, {
+      code: "ASSIGNEE_NOT_MEMBER",
+      message: "담당자는 프로젝트 멤버여야 합니다",
+    });
+  }
+  const created = {
+    ...task(
+      title,
+      "TODO", // status는 받지 않고 항상 TODO
+      body.priority ?? "MEDIUM",
+      assignee && {
+        id: assignee.user_id,
+        login_id: assignee.login_id,
+        name: assignee.name,
+      },
+      body.due_date ?? null,
+      MOCK_ME,
+    ),
+    description: body.description ?? null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  tasks.push(created);
+  return { ...created };
+}

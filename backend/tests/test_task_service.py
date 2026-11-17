@@ -1,7 +1,7 @@
 """업무 서비스 테스트 (T-F2-07~09, TASK-01~06, LOG-01·02).
 
-서비스는 라우터가 require_project_role()로 얻은 ProjectMember를 받는다.
-테스트에서는 factories.member_of()로 같은 객체를 만든다.
+서비스는 로그인 사용자(User)와 id를 받아, 안에서 조회(404)와 권한(403)을 검사한다
+(ARCHITECTURE §4.2, 팀장 project_service와 같은 모양).
 """
 
 from dataclasses import dataclass
@@ -18,19 +18,13 @@ from app.services import activity_service
 from app.services.task_service import (
     create_task,
     delete_task,
-    get_task_or_404,
+    get_task,
     list_tasks,
     update_task,
 )
 from core.exceptions import Forbidden, NotFound
 from core.pagination import PageParams
-from tests.factories import (
-    add_member,
-    make_project,
-    make_task,
-    make_user,
-    member_of,
-)
+from tests.factories import add_member, make_project, make_task, make_user
 
 
 def _activities(db: Session) -> list[TaskActivity]:
@@ -43,10 +37,12 @@ def _activities(db: Session) -> list[TaskActivity]:
 def test_create_task_records_created(db: Session) -> None:
     owner = make_user(db)
     project = make_project(db, owner)
-    member = member_of(db, project, owner)
 
     task = create_task(
-        db, member, TaskCreate(title="로그인 API", priority=TaskPriority.HIGH)
+        db,
+        owner,
+        project.id,
+        TaskCreate(title="로그인 API", priority=TaskPriority.HIGH),
     )
 
     assert task.id is not None
@@ -64,7 +60,7 @@ def test_create_task_commits(db: Session, engine: Engine) -> None:
     owner = make_user(db)
     project = make_project(db, owner)
 
-    task = create_task(db, member_of(db, project, owner), TaskCreate(title="t"))
+    task = create_task(db, owner, project.id, TaskCreate(title="t"))
 
     # 다른 세션에서도 보이면 커밋된 것
     other = sessionmaker(bind=engine)()
@@ -73,6 +69,23 @@ def test_create_task_commits(db: Session, engine: Engine) -> None:
         assert len(list(other.scalars(select(TaskActivity)))) == 1
     finally:
         other.close()
+
+
+def test_create_task_project_not_found(db: Session) -> None:
+    with pytest.raises(NotFound) as exc:
+        create_task(db, make_user(db), 999_999, TaskCreate(title="t"))
+    assert exc.value.code == "PROJECT_NOT_FOUND"
+
+
+def test_create_task_non_member_forbidden(db: Session) -> None:
+    project = make_project(db, make_user(db))
+
+    with pytest.raises(Forbidden) as exc:
+        create_task(db, make_user(db), project.id, TaskCreate(title="t"))
+
+    assert exc.value.code == "NOT_PROJECT_MEMBER"
+    db.rollback()
+    assert _activities(db) == []
 
 
 # ---------- 칸반 목록 (TASK-05) ----------
@@ -92,7 +105,7 @@ def test_list_tasks_kanban_order(db: Session) -> None:
     for title, priority, due in specs:
         make_task(db, project, owner, title=title, priority=priority, due_date=due)
 
-    items, total = list_tasks(db, project.id, None, PageParams())
+    items, total = list_tasks(db, owner, project.id, None, PageParams())
 
     assert total == 6
     assert [t.title for t in items] == [
@@ -113,10 +126,10 @@ def test_list_tasks_filters_status_and_project(db: Session) -> None:
     make_task(db, project, owner, title="done", status=TaskStatus.DONE)
     make_task(db, other_project, owner, title="other")
 
-    items, total = list_tasks(db, project.id, TaskStatus.TODO, PageParams())
+    items, total = list_tasks(db, owner, project.id, TaskStatus.TODO, PageParams())
     assert ([t.title for t in items], total) == (["todo"], 1)
 
-    items, total = list_tasks(db, project.id, None, PageParams())
+    items, total = list_tasks(db, owner, project.id, None, PageParams())
     assert (sorted(t.title for t in items), total) == (["done", "todo"], 2)
 
 
@@ -126,7 +139,7 @@ def test_list_tasks_pagination(db: Session) -> None:
     for i in range(5):
         make_task(db, project, owner, title=f"t{i}")
 
-    items, total = list_tasks(db, project.id, None, PageParams(page=2, size=2))
+    items, total = list_tasks(db, owner, project.id, None, PageParams(page=2, size=2))
 
     # 같은 우선순위·마감일 없음 → id 순 → 2페이지는 t2, t3
     assert [t.title for t in items] == ["t2", "t3"]
@@ -139,7 +152,7 @@ def test_list_tasks_page_beyond_total(db: Session) -> None:
     for i in range(5):
         make_task(db, project, owner, title=f"t{i}")
 
-    items, total = list_tasks(db, project.id, None, PageParams(page=10, size=20))
+    items, total = list_tasks(db, owner, project.id, None, PageParams(page=10, size=20))
 
     assert items == []
     assert total == 5
@@ -150,7 +163,7 @@ def test_list_tasks_loads_users(db: Session) -> None:
     project = make_project(db, owner)
     make_task(db, project, owner, assignee_id=owner.id)
 
-    [task], _ = list_tasks(db, project.id, None, PageParams())
+    [task], _ = list_tasks(db, owner, project.id, None, PageParams())
 
     assert task.creator.name == "지수"
     assert task.assignee is not None and task.assignee.id == owner.id
@@ -159,16 +172,36 @@ def test_list_tasks_loads_users(db: Session) -> None:
 # ---------- 조회 ----------
 
 
-def test_get_task_or_404(db: Session) -> None:
+def test_get_task_for_member(db: Session) -> None:
     owner = make_user(db)
     project = make_project(db, owner)
     task = make_task(db, project, owner)
 
-    assert get_task_or_404(db, task.id).id == task.id
+    assert get_task(db, owner, task.id).id == task.id
+
+
+def test_get_task_not_found(db: Session) -> None:
     with pytest.raises(NotFound) as exc:
-        get_task_or_404(db, 999_999)
+        get_task(db, make_user(db), 999_999)
     assert exc.value.code == "TASK_NOT_FOUND"
     assert exc.value.message == "업무를 찾을 수 없습니다"
+
+
+def test_get_task_non_member_forbidden(db: Session) -> None:
+    owner = make_user(db)
+    task = make_task(db, make_project(db, owner), owner)
+
+    with pytest.raises(Forbidden) as exc:
+        get_task(db, make_user(db), task.id)
+    assert exc.value.code == "NOT_PROJECT_MEMBER"
+
+
+def test_list_tasks_non_member_forbidden(db: Session) -> None:
+    project = make_project(db, make_user(db))
+
+    with pytest.raises(Forbidden) as exc:
+        list_tasks(db, make_user(db), project.id, None, PageParams())
+    assert exc.value.code == "NOT_PROJECT_MEMBER"
 
 
 # ---------- 수정 (TASK-02·06, LOG-01·02) ----------
@@ -198,8 +231,7 @@ def cast(db: Session) -> Cast:
 
 
 def _update(db: Session, cast: Cast, user: User, body: dict) -> Task:
-    member = member_of(db, cast.project, user)
-    return update_task(db, member, cast.task, TaskUpdate.model_validate(body))
+    return update_task(db, user, cast.task.id, TaskUpdate.model_validate(body))
 
 
 def _snapshot_row(db: Session, task_id: int) -> tuple:
@@ -338,11 +370,12 @@ def test_other_member_forbidden(db: Session, cast: Cast) -> None:
 def test_delete_keeps_activity_with_null_task_id(db: Session) -> None:
     owner = make_user(db)
     project = make_project(db, owner)
-    member = member_of(db, project, owner)
-    task = create_task(db, member, TaskCreate(title="지울 업무"))  # CREATED 이력 1행
+    task = create_task(
+        db, owner, project.id, TaskCreate(title="지울 업무")
+    )  # CREATED 1행
     task_id = task.id
 
-    delete_task(db, member, task)
+    delete_task(db, owner, task_id)
 
     db.expire_all()
     assert db.get(Task, task_id) is None
@@ -361,7 +394,7 @@ def test_delete_keeps_activity_with_null_task_id(db: Session) -> None:
 def test_delete_by_owner_and_author_ok(db: Session, cast: Cast, who: str) -> None:
     task_id = cast.task.id
 
-    delete_task(db, member_of(db, cast.project, getattr(cast, who)), cast.task)
+    delete_task(db, getattr(cast, who), task_id)
 
     db.expire_all()
     assert db.get(Task, task_id) is None
@@ -370,7 +403,7 @@ def test_delete_by_owner_and_author_ok(db: Session, cast: Cast, who: str) -> Non
 @pytest.mark.parametrize("who", ["assignee", "other"])
 def test_delete_by_other_member_forbidden(db: Session, cast: Cast, who: str) -> None:
     with pytest.raises(Forbidden):
-        delete_task(db, member_of(db, cast.project, getattr(cast, who)), cast.task)
+        delete_task(db, getattr(cast, who), cast.task.id)
 
     db.rollback()
     assert _snapshot_row(db, cast.task.id)[0] == "원래 제목"
@@ -406,7 +439,7 @@ def test_delete_rolls_back_when_activity_fails(
     monkeypatch.setattr(activity_service, "record", broken_record)
 
     with pytest.raises(RuntimeError):
-        delete_task(db, member_of(db, cast.project, cast.owner), cast.task)
+        delete_task(db, cast.owner, cast.task.id)
 
     db.rollback()
     assert _snapshot_row(db, cast.task.id)[0] == "원래 제목"

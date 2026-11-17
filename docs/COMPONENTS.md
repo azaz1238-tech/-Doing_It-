@@ -28,7 +28,7 @@
 | DueLabel | `features/tasks/DueLabel.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | ProjectHeader | `features/projects` | 미정 | 미착수 | S4, S7 |
 | MemberSelect | `features/projects` | 미정 | 미착수 | S5, S6 |
-| TaskCard | `features/tasks` | 김서현 | 미착수 (T-F2-10) | S4 |
+| TaskCard | `features/tasks/TaskCard.jsx` | 김서현 | 완료 (T-F2-10, 목 데이터) | S4 |
 | TaskFormModal | `features/tasks` | 김서현 | 미착수 (T-F2-12) | S5 |
 
 - **상태 뜻:** 완료 = 코드가 있고 린트·빌드 통과 / 미착수 = 코드 없음.

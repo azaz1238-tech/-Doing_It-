@@ -4,7 +4,7 @@
 > 근거 문서: docs/PROPOSAL.md(기획서) → docs/CONSTITUTION.md(헌법) → docs/REQUIREMENTS.md · docs/SPEC.md(기능 스펙 F1~F5, Given-When-Then — 기능 ID·우선순위는 REQUIREMENTS 우선) · docs/USER-STORIES.md · docs/DATABASE-DESIGN.md · docs/API-SPEC.md · docs/UI-DESIGN.md · docs/ARCHITECTURE.md(폴더·계층·버전) → 코드.
 > 빠른 요약: docs/PROJECT-OVERVIEW.md(처음 보는 사람용 1페이지 소개 — 기획서와 다르면 기획서를 따른다), docs/PRD.md(목표·사용자·MoSCoW 기능·스토리 연결 안내 — 원본 문서가 우선, 새 ID를 만들지 않는다).
 > 운영: docs/TASKS.md(태스크·담당·일정) · docs/SETUP.md(개발 환경 세팅) · docs/SPEC-CHANGELOG.md(스펙 v1.0 동결 후 변경 이력) · docs/CONSISTENCY-CHECK.md(11/16 회의 결정) · docs/COMPONENTS.md(프론트 공통 컴포넌트 목록·사용법). 명세가 아니며, 명세와 다르면 명세를 따른다.
-> 기록: docs/devlog/<한국이름>.md(사람별 일일 개발 로그 — 날짜별 작업·결정·문제·시간. 명세가 아니며, 명세와 다르면 명세를 따른다).
+> 기록: docs/devlog/<한국이름>.md(사람별 일일 개발 로그 — 날짜별 작업·결정·문제·시간), docs/daily/YYYY-MM-DD.md(팀 일일 보고 — 한 일·내일 할 일·이슈/리스크 요약). 명세가 아니며, 명세와 다르면 명세를 따른다.
 > 문서끼리 충돌하면 앞쪽 문서를 따른다. 이 파일과 docs가 다르면 docs가 우선이며, 이 파일을 docs에 맞게 고친다.
 
 ## 1. Overview
@@ -39,7 +39,7 @@
 ```
 docs/            명세 문서 (PROPOSAL, CONSTITUTION, REQUIREMENTS, SPEC, USER-STORIES, DATABASE-DESIGN, API-SPEC, UI-DESIGN, ARCHITECTURE, PRD, PROJECT-OVERVIEW)
                  · 운영 문서 (TASKS, SETUP, SPEC-CHANGELOG, CONSISTENCY-CHECK, COMPONENTS)
-                 · devlog/<한국이름>.md(일일 개발 로그) · verify.md(기능 검증표) · reports/(보고서) · USER-MANUAL.md
+                 · devlog/<한국이름>.md(일일 개발 로그) · daily/YYYY-MM-DD.md(팀 일일 보고) · verify.md(기능 검증표) · reports/(보고서) · USER-MANUAL.md
 docker-compose.yml  MariaDB만 · docker/mariadb/init.sql(doing_it·doing_it_test 생성)
 requirements.txt    백엔드 패키지(실행용+개발용 한 파일, 저장소 루트) · .env.example
 .github/         PR 템플릿

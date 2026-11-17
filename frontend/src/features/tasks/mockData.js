@@ -104,7 +104,8 @@ export async function fetchMockTasks({ status, page = 1, size = 20 }) {
   const filtered = tasks.filter((t) => t.status === status).sort(compare);
   const start = (page - 1) * size;
   return {
-    items: filtered.slice(start, start + size),
+    // 실제 API처럼 복사본을 돌려준다. 원본을 넘기면 화면 상태와 목 저장소가 섞인다.
+    items: filtered.slice(start, start + size).map((t) => ({ ...t })),
     total: filtered.length,
     page,
     size,

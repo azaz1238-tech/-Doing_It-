@@ -92,10 +92,12 @@ export default function BoardPage() {
 
   // 상태 변경 성공 → 바뀐 두 컬럼만 다시 조회 → 성공 토스트 (UI-DESIGN S4)
   const changeStatus = async (task, nextStatus) => {
+    // 요청 전 상태를 따로 잡아 둔다(응답 뒤 task 값에 기대지 않는다).
+    const prevStatus = task.status;
     setUpdatingId(task.id);
     try {
       await updateMockTaskStatus(task.id, nextStatus);
-      await Promise.all([loadColumn(task.status), loadColumn(nextStatus)]);
+      await Promise.all([loadColumn(prevStatus), loadColumn(nextStatus)]);
       toast.success(
         `상태를 '${STATUSES[nextStatus].label}'${TO_PARTICLE[nextStatus]} 변경했습니다`,
       );

@@ -53,6 +53,25 @@ class SignupRequest(BaseModel):
     name: UserName
 
 
+# 로그인 아이디는 정리만 하고 형식은 검사하지 않는다 → 형식이 틀려도 없는 아이디와 같은 401 (API-SPEC §5.1)
+LoginIdInput = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True)]
+
+
+class LoginRequest(BaseModel):
+    """로그인 요청. 비밀번호는 길이·바이트 검사도, 공백 제거도 하지 않는다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    login_id: LoginIdInput
+    password: str
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # 초
+
+
 class UserOut(BaseModel):
     """User 객체 (API-SPEC §4). password_hash·is_active는 필드 자체를 두지 않는다."""
 

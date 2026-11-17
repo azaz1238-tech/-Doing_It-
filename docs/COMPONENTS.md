@@ -21,10 +21,11 @@
 | ProtectedRoute | `core/auth/ProtectedRoute.jsx` | 최진영 | 완료 (T-F0-11, 로그인 화면 연결은 T-F1-05 · 11/17) | 라우터 |
 | EmptyState | `core/ui/EmptyState.jsx` | 최진영 | 완료 | S3, S4 |
 | Skeleton | `core/ui/Skeleton.jsx` | 최진영 | 완료 | S3, S4, S6 |
+| 날짜 유틸 | `core/utils/date.js` | 김서현 | 완료 (T-F0-13, DueLabel용) | 카드, 상세 |
 | ErrorPage (403·404) | `core/ui/ErrorPage.jsx` | 김서현 | 미착수 (T-F0-14) | S8 |
-| PriorityBadge | `features/tasks` | 김서현 | 미착수 (T-F0-13) | 카드, 상세 |
-| StatusSelect | `features/tasks` | 김서현 | 미착수 (T-F0-13) | 카드, 상세 |
-| DueLabel | `features/tasks` | 김서현 | 미착수 (T-F0-13) | 카드, 상세 |
+| PriorityBadge | `features/tasks/PriorityBadge.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
+| StatusSelect | `features/tasks/StatusSelect.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
+| DueLabel | `features/tasks/DueLabel.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | ProjectHeader | `features/projects` | 미정 | 미착수 | S4, S7 |
 | MemberSelect | `features/projects` | 미정 | 미착수 | S5, S6 |
 | TaskCard | `features/tasks` | 김서현 | 미착수 (T-F2-10) | S4 |
@@ -301,6 +302,24 @@ if (loading) return <SkeletonList count={3} className="sm:grid-cols-2 lg:grid-co
 
 - S3 목록, S4 보드, S6 상세에서 쓴다.
 
+### 3.13 업무용 배지 — `features/tasks/` (T-F0-13)
+
+표기·색 규칙은 `features/tasks/taskDisplay.js` 한 곳에 둔다(`PRIORITIES`·`STATUSES`·`getDueInfo`). 등록·상세 모달의 선택 목록도 이 상수를 쓴다.
+
+| 컴포넌트 | props | 설명 |
+| --- | --- | --- |
+| `PriorityBadge` | `priority` | UI-DESIGN §6.1. 긴급 `danger` · 높음 `warning` · 보통 `info` · 낮음 `neutral` |
+| `StatusSelect` | `value`, `onChange(status)`, `readOnly`, `disabled` | §6.2. 기본 `<select>` + 상태 점. 값이 바뀔 때만 `onChange`. `readOnly`는 🔒 + 글자만(권한 판단은 백엔드). 카드 클릭으로 번지지 않게 막는다 |
+| `DueLabel` | `dueDate`, `status`, `today`(선택) | §6.3. `status === "DONE"`이면 표시 안 함. `today`는 미리보기·테스트에서만 넘긴다 |
+
+```jsx
+<PriorityBadge priority={task.priority} />
+<DueLabel dueDate={task.due_date} status={task.status} />
+<StatusSelect value={task.status} readOnly={!canChangeStatus} onChange={changeStatus} />
+```
+
+- "오늘"은 `core/utils/date.js`의 `todayKst()`(한국 날짜, API-SPEC §1.6). 브라우저 시간대를 쓰지 않는다.
+
 ## 4. 남은 일
 
 | 항목 | 담당 | 언제 |
@@ -312,4 +331,3 @@ if (loading) return <SkeletonList count={3} className="sm:grid-cols-2 lg:grid-co
 | 공통 컴포넌트를 실제 브라우저에서 시안과 눈으로 비교 (`/dev/components`) | 최진영 | 11/16 (5일차 공통 컴포넌트 구현) |
 | S3 카드의 멤버 아바타·멤버 수 — `GET /projects` 응답에 멤버 정보가 없음 (API-SPEC §4) | 양준석과 협의 | 11/17 아침 회의 |
 | Modal 입력 중 확인을 브라우저 기본 확인창 대신 디자인에 맞출지, Tab 포커스 가두기 | 최진영 | P0 화면 연결 시 |
-| PriorityBadge·StatusSelect·DueLabel | 김서현 | T-F0-13 |

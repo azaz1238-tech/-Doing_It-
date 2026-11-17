@@ -8,6 +8,9 @@ import Input from "../../core/ui/Input";
 import Modal from "../../core/ui/Modal";
 import { SkeletonList } from "../../core/ui/Skeleton";
 import { useToast } from "../../core/ui/useToast";
+import DueLabel from "../tasks/DueLabel";
+import PriorityBadge from "../tasks/PriorityBadge";
+import StatusSelect from "../tasks/StatusSelect";
 
 /**
  * 공통 컴포넌트 미리보기 — 개발 서버에서만 열린다(/dev/components, App.jsx).
@@ -41,6 +44,17 @@ const COLORS = [
   ["avatar-4", "bg-avatar-4"],
 ];
 
+// DueLabel 예시는 오늘을 11/17로 고정한다(시안과 같은 날짜로 비교).
+const DUE_TODAY = "2026-11-17";
+const DUE_EXAMPLES = [
+  ["2026-11-14", "지연"],
+  ["2026-11-17", "오늘"],
+  ["2026-11-18", "내일"],
+  ["2026-11-20", "D-3"],
+  ["2026-11-25", "그 이후"],
+  [null, "없음"],
+];
+
 const USERS = [
   { id: 1, name: "이지수" },
   { id: 2, name: "김민호" },
@@ -68,6 +82,7 @@ export default function ComponentPreviewPage() {
   const [modalName, setModalName] = useState("");
   const [confirm, setConfirm] = useState(null);
   const [typedName, setTypedName] = useState("");
+  const [status, setStatus] = useState("TODO");
 
   const closeModal = () => {
     setModalOpen(false);
@@ -182,6 +197,35 @@ export default function ComponentPreviewPage() {
                 className="ring-2 ring-white"
               />
             ))}
+          </div>
+        </div>
+      </Section>
+
+      <Section title="업무용 배지 (features/tasks · T-F0-13)">
+        <div className="grid gap-5">
+          <div className="flex flex-wrap items-center gap-2">
+            {["URGENT", "HIGH", "MEDIUM", "LOW"].map((p) => (
+              <PriorityBadge key={p} priority={p} />
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusSelect value={status} onChange={setStatus} />
+            <StatusSelect value="IN_PROGRESS" disabled />
+            <StatusSelect value="DONE" readOnly />
+            <span className="text-neutral-500">
+              ← 변경 가능 · 요청 중 · 권한 없음(🔒)
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            {DUE_EXAMPLES.map(([due, desc]) => (
+              <div key={desc} className="flex flex-col items-start gap-1">
+                <DueLabel dueDate={due} status="TODO" today={DUE_TODAY} />
+                <span className="text-xs text-neutral-400">{desc}</span>
+              </div>
+            ))}
+            <span className="text-neutral-500">
+              (오늘 = 11/17 고정 · 완료 업무는 표시 안 함)
+            </span>
           </div>
         </div>
       </Section>

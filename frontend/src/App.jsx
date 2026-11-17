@@ -34,13 +34,6 @@ export default function App() {
               </Suspense>
             }
           />
-          {/* TODO(T-F2-11): 로그인 화면(T-F1-05) 전까지 목 데이터 칸반을 보는 주소. API 연결 후 지운다 */}
-          <Route path="/dev/projects/:id" element={<BoardPage />}>
-            <Route
-              path="tasks/:taskId"
-              element={<Placeholder title="업무 상세" />}
-            />
-          </Route>
         </Route>
       )}
       {/* 로그인 후 화면은 TopBar가 있는 AppLayout 안에 그린다(UI-DESIGN §3.1). */}

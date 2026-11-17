@@ -4,6 +4,7 @@ import ProtectedRoute from "./core/auth/ProtectedRoute";
 import AppLayout from "./core/layout/AppLayout";
 import LoginPage from "./features/auth/LoginPage";
 import SignupPage from "./features/auth/SignupPage";
+import ProjectListPage from "./features/projects/ProjectListPage";
 import BoardPage from "./features/tasks/BoardPage";
 
 // 개발 서버에서만 쓰는 공통 컴포넌트 미리보기. 배포 빌드에서는 경로와 코드가 모두 빠진다.
@@ -51,10 +52,7 @@ export default function App() {
         }
       >
         <Route path="/" element={<Navigate to="/projects" replace />} />
-        <Route
-          path="/projects"
-          element={<Placeholder title="프로젝트 목록" />}
-        />
+        <Route path="/projects" element={<ProjectListPage />} />
         <Route path="/projects/:id" element={<BoardPage />}>
           <Route
             path="tasks/:taskId"

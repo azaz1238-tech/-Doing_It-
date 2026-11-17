@@ -15,10 +15,11 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import CASE_SENSITIVE, Base, TimestampMixin
 from app.models.enums import TaskPriority, TaskStatus
+from app.models.user import User
 
 
 class Task(TimestampMixin, Base):
@@ -71,3 +72,8 @@ class Task(TimestampMixin, Base):
     due_date: Mapped[date | None] = mapped_column(Date)
     # DONE이 될 때 기록, 다른 상태로 바뀌면 NULL (서비스가 처리, CHECK가 보장)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    # 응답(Task 객체)의 assignee·created_by를 UserBrief로 만들 때 쓴다. 컬럼은 바뀌지 않는다.
+    # users를 가리키는 FK가 둘이라 foreign_keys로 어느 쪽인지 정한다.
+    assignee: Mapped[User | None] = relationship(foreign_keys=[assignee_id])
+    creator: Mapped[User] = relationship(foreign_keys=[created_by])

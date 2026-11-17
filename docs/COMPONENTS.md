@@ -21,7 +21,7 @@
 | ProtectedRoute | `core/auth/ProtectedRoute.jsx` | 최진영 | 완료 (T-F0-11, 로그인 화면 연결은 T-F1-05 · 11/17) | 라우터 |
 | EmptyState | `core/ui/EmptyState.jsx` | 최진영 | 완료 | S3, S4 |
 | Skeleton | `core/ui/Skeleton.jsx` | 최진영 | 완료 | S3, S4, S6 |
-| 날짜 유틸 | `core/utils/date.js` | 김서현 | 완료 (T-F0-13, DueLabel용) | 카드, 상세 |
+| 날짜 유틸 | `core/utils/date.js` | 김서현·최진영 | 완료 (T-F0-13 DueLabel용, T-F2-05 `formatPeriod` 기간 표시) | 카드, 상세, S3 카드, S4 헤더 |
 | ErrorPage (403·404) | `core/ui/ErrorPage.jsx` | 김서현 | 미착수 (T-F0-14) | S8 |
 | PriorityBadge | `features/tasks/PriorityBadge.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | StatusSelect | `features/tasks/StatusSelect.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
@@ -333,5 +333,5 @@ if (loading) return <SkeletonList count={3} className="sm:grid-cols-2 lg:grid-co
 | ✅ ProjectHeader·MemberSelect 담당 결정 → ProjectHeader 최진영, MemberSelect 김서현 | 최진영·김서현 | 11/17 완료 |
 | ✅ 세션 만료 토스트 연결 → S1에서 `?expired=1`이면 만료 토스트 (PR #16) | 최진영 | 11/17 완료 |
 | 공통 컴포넌트를 실제 브라우저에서 시안과 눈으로 비교 (`/dev/components`) | 최진영 | 11/16 (5일차 공통 컴포넌트 구현) |
-| S3 카드의 멤버 아바타·멤버 수 — `GET /projects` 응답에 멤버 정보가 없음 (API-SPEC §4) | 양준석과 협의 | 11/17 아침 회의 |
+| ✅ S3 카드의 멤버 아바타·멤버 수 → 넣지 않음. 카드는 이름·기간·내 역할(SPEC PRJ-02-a, US-06, UI-DESIGN S3), 멤버 아바타는 S4 ProjectHeader(UI-DESIGN §S4) | 최진영 | 11/17 완료 (PR #18) |
 | Modal 입력 중 확인을 브라우저 기본 확인창 대신 디자인에 맞출지, Tab 포커스 가두기 | 최진영 | P0 화면 연결 시 |

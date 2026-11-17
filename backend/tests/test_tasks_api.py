@@ -372,3 +372,29 @@ def test_delete_by_member_not_author_403(client, team, db, who):
 
 def test_delete_without_token_401(client, team):
     assert client.delete(_task_url(team["task_id"])).status_code == 401
+
+
+# --- 빈 PATCH (리뷰 보강: 권한표에 따른 {} 처리) ---
+
+
+def test_patch_empty_body_by_assignee_200_no_change(client, team, db):
+    """담당자의 {}는 'status만' 범위 안(빈 집합)이라 200, 바뀌는 것·이력 없음."""
+    before = client.get(_task_url(team["task_id"]), headers=_auth(team["owner"])).json()
+
+    res = client.patch(
+        _task_url(team["task_id"]), headers=_auth(team["assignee"]), json={}
+    )
+
+    assert res.status_code == 200
+    assert res.json() == before  # updated_at도 그대로
+    assert _activities(db) == []
+
+
+def test_patch_empty_body_by_other_member_403(client, team):
+    """작성자도 담당자도 아닌 MEMBER는 {}여도 수정 권한이 없다."""
+    res = client.patch(
+        _task_url(team["task_id"]), headers=_auth(team["other"]), json={}
+    )
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "FORBIDDEN"

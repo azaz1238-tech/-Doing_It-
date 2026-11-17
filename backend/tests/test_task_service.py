@@ -443,3 +443,19 @@ def test_delete_rolls_back_when_activity_fails(
 
     db.rollback()
     assert _snapshot_row(db, cast.task.id)[0] == "원래 제목"
+
+
+def test_update_same_values_no_row(db: Session, cast: Cast) -> None:
+    """이력 대상 4개를 모두 지금과 같은 값으로 보내면 이력 0행 (API-SPEC §5.4 처리 2)."""
+    cast.task.due_date = date(2026, 11, 20)
+    db.commit()
+    body = {
+        "status": "TODO",
+        "priority": "MEDIUM",
+        "assignee_id": cast.assignee.id,
+        "due_date": "2026-11-20",
+    }
+
+    _update(db, cast, cast.author, body)
+
+    assert _activities(db) == []

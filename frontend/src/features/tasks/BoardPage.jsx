@@ -6,6 +6,7 @@ import EmptyState from "../../core/ui/EmptyState";
 import { ChevronDownIcon, PlusIcon } from "../../core/ui/icons";
 import { SkeletonList } from "../../core/ui/Skeleton";
 import { useToast } from "../../core/ui/useToast";
+import { formatPeriod } from "../../core/utils/date";
 import {
   MOCK_ME,
   MOCK_PROJECT,
@@ -124,7 +125,8 @@ export default function BoardPage() {
           <p className="text-xs text-neutral-500">프로젝트 ›</p>
           <h1 className="text-2xl font-bold">{project.name}</h1>
           <p className="mt-1 text-xs text-neutral-500">
-            {formatPeriod(project.start_date, project.end_date)}
+            {/* 시작일·종료일은 선택 항목이라 없을 수 있다. S3 카드와 같게 "기간 없음" */}
+            {formatPeriod(project.start_date, project.end_date) || "기간 없음"}
           </p>
         </div>
         {/* + 업무 추가는 헤더 오른쪽 버튼 1개만 (UI-DESIGN §8-1) */}
@@ -215,13 +217,4 @@ export default function BoardPage() {
       <Outlet />
     </div>
   );
-}
-
-// 프로젝트 기간 "11.10 – 11.19" (UI-DESIGN §6.4)
-function formatPeriod(start, end) {
-  const md = (d) => {
-    const [, m, day] = d.split("-");
-    return `${Number(m)}.${day}`;
-  };
-  return `${md(start)} – ${md(end)}`;
 }

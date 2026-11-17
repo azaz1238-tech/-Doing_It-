@@ -17,3 +17,10 @@ export async function createProject({ name, description, startDate, endDate }) {
   });
   return data; // Project (my_role: "OWNER")
 }
+
+// 프로젝트 상세 (PRJ-07). 칸반(S4)이 이름·기간·내 역할(my_role)을 읽는다.
+// 비멤버 403 NOT_PROJECT_MEMBER, 없으면 404 PROJECT_NOT_FOUND
+export async function getProject(projectId) {
+  const { data } = await client.get(`/projects/${projectId}`);
+  return data; // Project
+}

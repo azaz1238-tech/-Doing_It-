@@ -6,11 +6,10 @@ import { useToast } from "../../core/ui/useToast";
 import { cn } from "../../core/utils/cn";
 import { todayKst } from "../../core/utils/date";
 import MemberSelect from "../projects/MemberSelect";
-import { createMockTask } from "./mockData";
+import { createTask } from "./api";
 import { PRIORITIES } from "./taskDisplay";
 
 // S5 업무 등록 모달 — UI-DESIGN §4 S5, TASK-01·03·04
-// TODO(T-F2-11): createMockTask → features/tasks/api.js의 POST /projects/{id}/tasks
 
 const TITLE_MAX = 30;
 const TITLE_ERROR = "업무 제목은 1~30자로 입력해 주세요"; // SPEC TASK-01-b
@@ -26,6 +25,7 @@ const EMPTY_FORM = {
 };
 
 /**
+ * @param {number|string} projectId
  * @param {() => void} onClose
  * @param {(task: object) => void} onCreated 등록 성공 → 보드가 '할 일' 컬럼을 다시 불러온다
  * @param {Array} members 보드(S4)에서 받은 멤버 목록을 재사용한다
@@ -34,6 +34,7 @@ const EMPTY_FORM = {
  * 열 때마다 새 입력으로 시작하도록, 보드에서 열려 있을 때만 그린다({open && <TaskFormModal/>}).
  */
 export default function TaskFormModal({
+  projectId,
   onClose,
   onCreated,
   members,
@@ -84,7 +85,7 @@ export default function TaskFormModal({
       if (form.assigneeId != null) body.assignee_id = form.assigneeId;
       if (form.dueDate) body.due_date = form.dueDate;
 
-      const created = await createMockTask(body);
+      const created = await createTask(projectId, body);
       toast.success("업무를 추가했습니다");
       onCreated(created);
     } catch (error) {

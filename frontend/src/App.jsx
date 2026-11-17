@@ -2,6 +2,8 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import ProtectedRoute from "./core/auth/ProtectedRoute";
 import AppLayout from "./core/layout/AppLayout";
+import LoginPage from "./features/auth/LoginPage";
+import SignupPage from "./features/auth/SignupPage";
 
 // 개발 서버에서만 쓰는 공통 컴포넌트 미리보기. 배포 빌드에서는 경로와 코드가 모두 빠진다.
 const ComponentPreviewPage = import.meta.env.DEV
@@ -17,8 +19,8 @@ function Placeholder({ title }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Placeholder title="로그인" />} />
-      <Route path="/signup" element={<Placeholder title="회원가입" />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
       {/* 개발용: 로그인 없이 TopBar + 공통 컴포넌트를 본다 */}
       {ComponentPreviewPage && (
         <Route element={<AppLayout />}>

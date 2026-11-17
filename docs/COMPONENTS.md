@@ -26,14 +26,14 @@
 | PriorityBadge | `features/tasks/PriorityBadge.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | StatusSelect | `features/tasks/StatusSelect.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | DueLabel | `features/tasks/DueLabel.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
-| ProjectHeader | `features/projects` | 미정 | 미착수 | S4, S7 |
-| MemberSelect | `features/projects/MemberSelect.jsx` | 김서현 (임시, 담당 확정 필요) | 완료 (T-F2-12에서 기본형) | S5, S6 |
+| ProjectHeader | `features/projects` | 최진영 | 미착수 (11/18 오전) | S4, S7 |
+| MemberSelect | `features/projects/MemberSelect.jsx` | 김서현 | 완료 (T-F2-12에서 기본형) | S5, S6 |
 | TaskCard | `features/tasks/TaskCard.jsx` | 김서현 | 완료 (T-F2-10, 목 데이터) | S4 |
 | TaskFormModal | `features/tasks/TaskFormModal.jsx` | 김서현 | 완료 (T-F2-12, 목 데이터) | S5 |
 
 - **상태 뜻:** 완료 = 코드가 있고 린트·빌드 통과 / 미착수 = 코드 없음.
 - **ErrorPage 담당:** TASKS.md(11/16 조 편성)대로 김서현이 맡는다(11/16 확인).
-- **ProjectHeader·MemberSelect** 담당은 FE 두 명이 정한 뒤 적는다.
+- **ProjectHeader·MemberSelect** 담당은 11/17 FE 두 명이 정했다: ProjectHeader는 최진영(S7과 이어짐), MemberSelect는 김서현(S5·S6에서 씀). 둘 다 데이터를 props로 받아 그리기만 하고, S4는 프로젝트·멤버를 한 번 받아 둘에 넘긴다.
 - 폴더는 ARCHITECTURE §5.1의 `features/projects`·`features/tasks`(복수형). 업무용 배지는 동잇 고유 값을 다루므로 `features/tasks`에 둔다(UI-DESIGN v1.1 §5, SPEC-CHANGELOG #9).
 
 ## 2. 사용 규칙
@@ -71,7 +71,7 @@
 | `neutral-600` | `text-neutral-600` | 본문 보조 | `#4D596A` |
 | `neutral-700` | `text-neutral-700` | 버튼 글자 | `#364152` |
 | `neutral-900` | `text-neutral-900` | 제목·본문 | `#1C2433` |
-| `avatar-1~4` | `bg-avatar-1` | 아바타 | `#7084C9` · `#4F8FAC` · `#4A9D90` · `#8C7CC4` (2는 화면에서 읽은 값, 확인 필요) |
+| `avatar-1~4` | `bg-avatar-1` | 아바타 | `#7084C9` · `#4F97B5` · `#4A9D90` · `#8C7CC4` |
 | `--font-sans` | 기본 | 글꼴 | 시스템 글꼴 (미정) |
 
 - 카드는 `bg-white`(n0). 기본 글자 14px(`body`).
@@ -329,9 +329,9 @@ if (loading) return <SkeletonList count={3} className="sm:grid-cols-2 lg:grid-co
 | 항목 | 담당 | 언제 |
 | --- | --- | --- |
 | UI-DESIGN §7 토큰 표를 v0.3 값으로 수정 (문서 → Figma 순서) | 양준석 승인 | 11/17 아침 회의 |
-| `avatar-2` 확정 값 확인 (`danger-strong`·`avatar-1`·`avatar-4`는 11/16 김서현 확인 완료) | 김서현 → 최진영 반영 | 11/17 |
-| ProjectHeader·MemberSelect 담당 결정 | 최진영·김서현 | 11/17 아침 회의 |
-| 세션 만료 토스트 연결 | 최진영 | 11/17 (T-F1-05) |
+| ✅ `avatar-2` 확정 값 확인 → `#4F97B5` (SPEC-CHANGELOG #12) | 김서현 → 최진영 반영 | 11/17 완료 |
+| ✅ ProjectHeader·MemberSelect 담당 결정 → ProjectHeader 최진영, MemberSelect 김서현 | 최진영·김서현 | 11/17 완료 |
+| ✅ 세션 만료 토스트 연결 → S1에서 `?expired=1`이면 만료 토스트 (PR #16) | 최진영 | 11/17 완료 |
 | 공통 컴포넌트를 실제 브라우저에서 시안과 눈으로 비교 (`/dev/components`) | 최진영 | 11/16 (5일차 공통 컴포넌트 구현) |
 | S3 카드의 멤버 아바타·멤버 수 — `GET /projects` 응답에 멤버 정보가 없음 (API-SPEC §4) | 양준석과 협의 | 11/17 아침 회의 |
 | Modal 입력 중 확인을 브라우저 기본 확인창 대신 디자인에 맞출지, Tab 포커스 가두기 | 최진영 | P0 화면 연결 시 |

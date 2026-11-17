@@ -26,3 +26,13 @@ export function formatMonthDay(dateStr) {
   const [, m, d] = dateStr.split("-").map(Number);
   return `${m}/${d}`;
 }
+
+/** 프로젝트 기간 "11.10 – 11.19" (UI-DESIGN §6.4). 날짜는 선택 항목이라 없는 쪽은 비운다. 둘 다 없으면 "" */
+export function formatPeriod(start, end) {
+  if (!start && !end) return "";
+  const md = (d) => {
+    const [, m, day] = d.split("-");
+    return `${Number(m)}.${day}`;
+  };
+  return `${start ? md(start) : ""} – ${end ? md(end) : ""}`.trim();
+}

@@ -41,9 +41,12 @@ export default function TopBar() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-8 px-4 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:gap-8 sm:px-6">
         {/* 로고: 시안 v0.3 — "동"은 본문색, "잇"은 주 색 */}
-        <Link to="/projects" className="text-lg font-bold text-neutral-900">
+        <Link
+          to="/projects"
+          className="shrink-0 whitespace-nowrap text-lg font-bold text-neutral-900"
+        >
           동<span className="text-primary">잇</span>
         </Link>
 
@@ -53,7 +56,7 @@ export default function TopBar() {
             to="/projects"
             className={({ isActive }) =>
               cn(
-                "-mb-px flex items-center border-b-2 px-1 font-semibold",
+                "-mb-px flex items-center whitespace-nowrap border-b-2 px-1 font-semibold",
                 isActive
                   ? "border-neutral-900 text-neutral-900"
                   : "border-transparent text-neutral-500 hover:text-neutral-900",
@@ -65,7 +68,7 @@ export default function TopBar() {
         </nav>
 
         {user && (
-          <div ref={menuRef} className="relative ml-auto">
+          <div ref={menuRef} className="relative ml-auto min-w-0">
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}

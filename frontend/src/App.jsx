@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import ProtectedRoute from "./core/auth/ProtectedRoute";
 import AppLayout from "./core/layout/AppLayout";
+import BoardPage from "./features/tasks/BoardPage";
 
 // 개발 서버에서만 쓰는 공통 컴포넌트 미리보기. 배포 빌드에서는 경로와 코드가 모두 빠진다.
 const ComponentPreviewPage = import.meta.env.DEV
@@ -30,6 +31,13 @@ export default function App() {
               </Suspense>
             }
           />
+          {/* TODO(T-F2-11): 로그인 화면(T-F1-05) 전까지 목 데이터 칸반을 보는 주소. API 연결 후 지운다 */}
+          <Route path="/dev/projects/:id" element={<BoardPage />}>
+            <Route
+              path="tasks/:taskId"
+              element={<Placeholder title="업무 상세" />}
+            />
+          </Route>
         </Route>
       )}
       {/* 로그인 후 화면은 TopBar가 있는 AppLayout 안에 그린다(UI-DESIGN §3.1). */}
@@ -45,7 +53,7 @@ export default function App() {
           path="/projects"
           element={<Placeholder title="프로젝트 목록" />}
         />
-        <Route path="/projects/:id" element={<Placeholder title="칸반 보드" />}>
+        <Route path="/projects/:id" element={<BoardPage />}>
           <Route
             path="tasks/:taskId"
             element={<Placeholder title="업무 상세" />}

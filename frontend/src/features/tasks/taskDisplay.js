@@ -6,11 +6,28 @@ import { cn } from "../../core/utils/cn";
 // Tailwind가 클래스를 찾을 수 있도록 전체 이름을 그대로 적는다(문자열 조합 금지).
 
 // §6.1 우선순위 (긴급 빨강, 높음 주황, 보통 파랑, 낮음 회색)
+// className = 배지(배경+글자), text = 글자색만(등록 모달 세그먼트 선택 표시)
 export const PRIORITIES = {
-  URGENT: { label: "긴급", className: "bg-danger-soft text-danger" },
-  HIGH: { label: "높음", className: "bg-warning-soft text-warning" },
-  MEDIUM: { label: "보통", className: "bg-primary-soft text-info" },
-  LOW: { label: "낮음", className: "bg-neutral-100 text-neutral-500" },
+  URGENT: {
+    label: "긴급",
+    className: "bg-danger-soft text-danger",
+    text: "text-danger",
+  },
+  HIGH: {
+    label: "높음",
+    className: "bg-warning-soft text-warning",
+    text: "text-warning",
+  },
+  MEDIUM: {
+    label: "보통",
+    className: "bg-primary-soft text-info",
+    text: "text-info",
+  },
+  LOW: {
+    label: "낮음",
+    className: "bg-neutral-100 text-neutral-500",
+    text: "text-neutral-700",
+  },
 };
 
 // §6.2 상태. 순서는 칸반 컬럼 순서와 같고, 어느 방향으로든 바꿀 수 있다(TASK-02).

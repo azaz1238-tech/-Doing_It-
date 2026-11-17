@@ -9,17 +9,20 @@ import { useToast } from "../../core/ui/useToast";
 import {
   MOCK_ME,
   MOCK_PROJECT,
+  fetchMockMembers,
   fetchMockTasks,
   updateMockTaskStatus,
 } from "./mockData";
 import { canChangeStatus } from "./permissions";
 import TaskCard from "./TaskCard";
+import TaskFormModal from "./TaskFormModal";
 import { STATUSES } from "./taskDisplay";
 
 // S4 칸반 보드 — UI-DESIGN §4 S4, TASK-02·TASK-05.
 // TODO(T-F2-11): 목 데이터(mockData.js)를 features/tasks/api.js 호출로 바꾼다.
 //   fetchMockTasks → GET /projects/{id}/tasks, updateMockTaskStatus → PATCH /tasks/{id},
-//   MOCK_PROJECT → GET /projects/{id}, MOCK_ME → useAuth().user
+//   MOCK_PROJECT → GET /projects/{id}, MOCK_ME → useAuth().user,
+//   fetchMockMembers → GET /projects/{id}/members (양준석 T-F3-02)
 
 const PAGE_SIZE = 20;
 const COLUMN_ORDER = ["TODO", "IN_PROGRESS", "DONE"];
@@ -47,6 +50,12 @@ export default function BoardPage() {
     Object.fromEntries(COLUMN_ORDER.map((s) => [s, emptyColumn()])),
   );
   const [updatingId, setUpdatingId] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  // 담당자 선택지(S5·S6)에 쓰는 멤버 목록. 보드에서 한 번 받아 모달에 넘긴다(UI-DESIGN S5).
+  const [members, setMembers] = useState([]);
+
+  const loadMembers = () =>
+    fetchMockMembers().then((data) => setMembers(data.items));
 
   const patchColumn = (status, patch) =>
     setColumns((prev) => ({
@@ -68,6 +77,7 @@ export default function BoardPage() {
 
   useEffect(() => {
     COLUMN_ORDER.forEach(loadColumn);
+    fetchMockMembers().then((data) => setMembers(data.items));
   }, [loadColumn]);
 
   // "n개 더 보기": 다음 page를 불러와 이어 붙인다.
@@ -117,8 +127,8 @@ export default function BoardPage() {
             {formatPeriod(project.start_date, project.end_date)}
           </p>
         </div>
-        {/* TODO(T-F2-12): 업무 등록 모달 연결 */}
-        <Button>
+        {/* + 업무 추가는 헤더 오른쪽 버튼 1개만 (UI-DESIGN §8-1) */}
+        <Button onClick={() => setFormOpen(true)}>
           <PlusIcon />
           업무 추가
         </Button>
@@ -187,6 +197,19 @@ export default function BoardPage() {
           );
         })}
       </div>
+
+      {/* 새 업무는 항상 TODO로 만들어지므로 '할 일' 컬럼만 다시 불러온다. */}
+      {formOpen && (
+        <TaskFormModal
+          members={members}
+          onMembersStale={loadMembers}
+          onClose={() => setFormOpen(false)}
+          onCreated={() => {
+            setFormOpen(false);
+            loadColumn("TODO");
+          }}
+        />
+      )}
 
       {/* 업무 상세 모달(S6)이 보드 위에 열린다 — /projects/:id/tasks/:taskId */}
       <Outlet />

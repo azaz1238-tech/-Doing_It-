@@ -1,0 +1,432 @@
+{
+  "info": {
+    "name": "동잇 F1 인증",
+    "description": "F1 인증 API 확인 (AUTH-01·02·04, API-SPEC §5.1). 위에서부터 순서대로 실행한다.\n실행할 때마다 새 아이디로 가입하므로 몇 번을 돌려도 된다. 환경: local.postman_environment.json",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "서버 확인",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 서버 동작\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "회원가입",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/signup",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "signup"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{loginId}}\",\n  \"password\": \"password123\",\n  \"name\": \"포스트맨\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 실행할 때마다 새 아이디를 만든다 (영문 소문자·숫자 4~20자)",
+              "pm.collectionVariables.set(\"loginId\", \"pm\" + Date.now().toString(36));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 가입, password_hash 없음\", () => {",
+              "  pm.response.to.have.status(201);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.login_id).to.eql(pm.collectionVariables.get(\"loginId\"));",
+              "  pm.expect(body).to.not.have.property(\"password_hash\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "회원가입 - 아이디 중복 409",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/signup",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "signup"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{loginId}}\",\n  \"password\": \"password123\",\n  \"name\": \"포스트맨\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"409 LOGIN_ID_ALREADY_EXISTS\", () => {",
+              "  pm.response.to.have.status(409);",
+              "  pm.expect(pm.response.json().code).to.eql(\"LOGIN_ID_ALREADY_EXISTS\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "회원가입 - 형식 오류 422",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/signup",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "signup"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"ab\",\n  \"password\": \"short\",\n  \"name\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"422 칸별 오류\", () => {",
+              "  pm.response.to.have.status(422);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.code).to.eql(\"VALIDATION_ERROR\");",
+              "  const fields = body.errors.map((e) => e.field);",
+              "  pm.expect(fields).to.include.members([\"login_id\", \"password\", \"name\"]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "로그인",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{loginId}}\",\n  \"password\": \"password123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 토큰 발급\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().token_type).to.eql(\"bearer\");",
+              "});",
+              "pm.collectionVariables.set(\"token\", pm.response.json().access_token);",
+              "",
+              "pm.test(\"만료 2시간\", () => pm.expect(pm.response.json().expires_in).to.eql(7200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "로그인 - 틀린 비밀번호 401",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{loginId}}\",\n  \"password\": \"wrongpass123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"401 INVALID_CREDENTIALS\", () => {",
+              "  pm.response.to.have.status(401);",
+              "  pm.expect(pm.response.json().code).to.eql(\"INVALID_CREDENTIALS\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "로그인 - 형식이 틀린 아이디도 401",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"ab\",\n  \"password\": \"password123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"401 INVALID_CREDENTIALS\", () => {",
+              "  pm.response.to.have.status(401);",
+              "  pm.expect(pm.response.json().code).to.eql(\"INVALID_CREDENTIALS\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "내 정보",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 내 정보, password_hash 없음\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.login_id).to.eql(pm.collectionVariables.get(\"loginId\"));",
+              "  pm.expect(body).to.not.have.property(\"password_hash\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "내 정보 - 토큰 없음 401",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/users/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "me"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"401 UNAUTHORIZED\", () => {",
+              "  pm.response.to.have.status(401);",
+              "  pm.expect(pm.response.json().code).to.eql(\"UNAUTHORIZED\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "loginId",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}

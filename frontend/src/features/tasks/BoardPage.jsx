@@ -45,6 +45,15 @@ function pageErrorOf(error) {
 // 프로젝트가 바뀌면 상태를 모두 새로 시작하도록 id를 key로 준다(/projects/1 → /projects/2).
 export default function BoardPage() {
   const { id } = useParams();
+  // 주소의 id가 숫자가 아니면(/projects/abc) 서버가 422를 줘 스켈레톤만 남는다 → 바로 404 안내(최진영 #53 제보).
+  if (!/^\d+$/.test(id))
+    return (
+      <ErrorPage
+        type="404"
+        title="프로젝트를 찾을 수 없습니다"
+        description="삭제되었거나 주소가 올바르지 않습니다"
+      />
+    );
   return <Board key={id} projectId={id} />;
 }
 

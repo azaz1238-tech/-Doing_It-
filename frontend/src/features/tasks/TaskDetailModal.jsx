@@ -153,7 +153,7 @@ function TaskDetail({ taskId }) {
       ? getTaskPermissions(task, project.my_role, user.id)
       : { canEdit: false, canChangeStatus: false, canDelete: false };
 
-  // 현재 담당자가 선택지에 없으면(멤버 목록 API 전 임시 목록) 그 사람도 넣어 지금 값이 보이게 한다.
+  // 현재 담당자가 멤버 목록에 없으면(그 사이 프로젝트에서 빠짐 등) 그 사람도 넣어 지금 값이 보이게 한다.
   const memberOptions =
     task.assignee && !members.some((m) => m.user_id === task.assignee.id)
       ? [

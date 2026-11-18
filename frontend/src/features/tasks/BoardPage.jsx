@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Outlet, useNavigate, useParams } from "react-router";
 import { useAuth } from "../../core/auth/useAuth";
 import Button from "../../core/ui/Button";
@@ -9,10 +9,10 @@ import {
   LockIcon,
   PlusIcon,
 } from "../../core/ui/icons";
-import Skeleton, { SkeletonList } from "../../core/ui/Skeleton";
+import { SkeletonList } from "../../core/ui/Skeleton";
 import { useToast } from "../../core/ui/useToast";
-import { formatPeriod } from "../../core/utils/date";
-import { getProject } from "../projects/api";
+import { getProject, listMembers } from "../projects/api";
+import ProjectHeader from "../projects/ProjectHeader";
 import { listTasks, updateTask } from "./api";
 import { canChangeStatus } from "./permissions";
 import TaskCard from "./TaskCard";
@@ -66,16 +66,8 @@ function Board({ projectId }) {
   // 컬럼마다 마지막 요청 번호. 늦게 도착한 옛 응답이 새 응답을 덮지 않게 한다.
   const requestSeq = useRef({});
 
-  // 담당자 선택지(S5·S6). TODO(T-F3-02): 멤버 목록 API(양준석, 11/18)가 나오면
-  // features/projects/api.js의 listMembers로 바꾼다. 그전에는 확실히 멤버인 "나"만 둔다
-  // (목 멤버를 두면 DB에 없는 사용자 id를 보내게 된다).
-  const members = useMemo(
-    () =>
-      user
-        ? [{ user_id: user.id, login_id: user.login_id, name: user.name }]
-        : [],
-    [user],
-  );
+  // 멤버 목록 — 헤더 아바타 묶음(§3.2)과 담당자 선택지(S5·S6)가 같이 쓴다. 보드에서 한 번 받아 넘긴다.
+  const [members, setMembers] = useState([]);
 
   const showError = useCallback(
     (error, fallback) => {
@@ -133,11 +125,24 @@ function Board({ projectId }) {
         (error) =>
           !ignore && showError(error, "프로젝트를 불러오지 못했습니다"),
       );
+    listMembers(projectId)
+      .then((data) => !ignore && setMembers(data.items))
+      .catch(
+        (error) =>
+          !ignore && showError(error, "멤버 목록을 불러오지 못했습니다"),
+      );
     COLUMN_ORDER.forEach(loadColumn);
     return () => {
       ignore = true;
     };
   }, [projectId, loadColumn, showError]);
+
+  // 등록 중 400 ASSIGNEE_NOT_MEMBER(그 사이 멤버가 빠짐) → 멤버 목록을 새로 받는다(UI-DESIGN S5).
+  const reloadMembers = () =>
+    listMembers(projectId).then(
+      (data) => setMembers(data.items),
+      () => {},
+    );
 
   // "n개 더 보기": 다음 page를 불러와 이어 붙인다.
   const loadMore = async (status) => {
@@ -226,31 +231,19 @@ function Board({ projectId }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* TODO(최진영 ProjectHeader, 11/18 오전): UI-DESIGN §3.2 헤더로 교체. '업무 추가'는 BoardPage에 둔다 */}
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        {project ? (
-          <div>
-            <p className="text-xs text-neutral-500">프로젝트 ›</p>
-            <h1 className="text-2xl font-bold">{project.name}</h1>
-            <p className="mt-1 text-xs text-neutral-500">
-              {/* 시작일·종료일은 선택 항목이라 없을 수 있다. S3 카드와 같게 "기간 없음" */}
-              {formatPeriod(project.start_date, project.end_date) ||
-                "기간 없음"}
-            </p>
-          </div>
-        ) : (
-          <div aria-hidden="true" className="flex flex-col gap-2">
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-7 w-48" />
-            <Skeleton className="h-3 w-24" />
-          </div>
-        )}
-        {/* + 업무 추가는 헤더 오른쪽 버튼 1개만 (UI-DESIGN §8-1) */}
-        <Button onClick={() => setFormOpen(true)} disabled={!project}>
-          <PlusIcon />
-          업무 추가
-        </Button>
-      </header>
+      {/* UI-DESIGN §3.2 (최진영 ProjectHeader, COMPONENTS §3.14) */}
+      <ProjectHeader
+        project={project}
+        members={members}
+        active="board"
+        actions={
+          // + 업무 추가는 헤더 오른쪽 버튼 1개만 (UI-DESIGN §8-1)
+          <Button onClick={() => setFormOpen(true)} disabled={!project}>
+            <PlusIcon />
+            업무 추가
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         {COLUMN_ORDER.map((status) => {
@@ -322,6 +315,7 @@ function Board({ projectId }) {
         <TaskFormModal
           projectId={projectId}
           members={members}
+          onMembersStale={reloadMembers}
           onClose={() => setFormOpen(false)}
           onCreated={() => {
             setFormOpen(false);

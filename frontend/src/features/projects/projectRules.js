@@ -5,8 +5,8 @@ export const NAME_MAX = 30;
 export const NAME_ERROR = "프로젝트 이름은 1~30자로 입력해 주세요"; // PRJ-01-b
 export const PERIOD_ERROR = "종료일은 시작일 이후여야 합니다"; // PRJ-01-c
 
-// 서버(Python len)와 같게 센다 — 이모지 같은 글자도 1자
-export const countChars = (value) => [...value].length;
+// 글자 수는 공통 유틸을 쓴다(서버 Python len과 같게 — 이모지도 1자)
+export { countChars } from "../../core/utils/text";
 
 // 역할 배지 색 — S3 카드의 내 역할, S7 멤버 목록의 역할 (토큰 색만, COMPONENTS §3.1)
 export const ROLE_STYLES = {

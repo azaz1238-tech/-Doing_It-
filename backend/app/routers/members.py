@@ -2,11 +2,11 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.models import User
-from app.schemas.member import MemberOut
+from app.schemas.member import MemberAdd, MemberOut
 from app.services import member_service
 from app.services.auth_service import get_current_user
 from core.db import get_db
@@ -30,3 +30,11 @@ def list_members(
         db, user, project_id, params.offset, params.size
     )
     return Page(items=items, total=total, page=params.page, size=params.size)
+
+
+@router.post("", response_model=MemberOut, status_code=status.HTTP_201_CREATED)
+def add_member(
+    project_id: int, body: MemberAdd, user: CurrentUser, db: DbSession
+) -> MemberOut:
+    """멤버 추가 (PRJ-04). OWNER만. 알림·수락 절차 없이 바로 멤버가 된다."""
+    return member_service.add_member(db, user, project_id, body)

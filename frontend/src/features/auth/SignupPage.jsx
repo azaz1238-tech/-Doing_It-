@@ -14,19 +14,23 @@ const PASSWORD_MAX_BYTES = 72; // bcrypt 한계. 한글은 1자 = 3바이트
 
 // 오류 문구는 백엔드 422 문구와 똑같이 쓴다 (schemas/auth.py, core/exceptions.py).
 // 검사 순서도 백엔드와 같다: 비밀번호는 길이를 먼저 보고, 길이가 맞을 때만 바이트를 본다.
+function checkPassword(password) {
+  const passwordLength = countChars(password);
+  if (passwordLength < 8) return "8자 이상 입력해 주세요";
+  if (passwordLength > 64) return "64자 이하로 입력해 주세요";
+  if (new TextEncoder().encode(password).length > PASSWORD_MAX_BYTES) {
+    return "72바이트 이하로 입력해 주세요 (한글은 24자까지)";
+  }
+  return undefined;
+}
+
 function validate({ loginId, password, name }) {
   const errors = {};
   if (!LOGIN_ID_PATTERN.test(loginId.trim())) {
     errors.login_id = "영문 소문자·숫자 4~20자로 입력해 주세요";
   }
-  const passwordLength = countChars(password);
-  if (passwordLength < 8) {
-    errors.password = "8자 이상 입력해 주세요";
-  } else if (passwordLength > 64) {
-    errors.password = "64자 이하로 입력해 주세요";
-  } else if (new TextEncoder().encode(password).length > PASSWORD_MAX_BYTES) {
-    errors.password = "72바이트 이하로 입력해 주세요 (한글은 24자까지)";
-  }
+  const passwordError = checkPassword(password);
+  if (passwordError) errors.password = passwordError;
   const nameLength = countChars(name.trim());
   if (nameLength < 1) {
     errors.name = "1자 이상 입력해 주세요";
@@ -42,6 +46,9 @@ export default function SignupPage() {
   const [form, setForm] = useState({ loginId: "", password: "", name: "" });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  // 비밀번호가 규칙(8~64자, 72바이트 이하)에 맞으면 입력하는 동안 바로 알려 준다(시안 v0.3 S2).
+  // 틀린 경우는 지금처럼 제출할 때만 보여 준다.
+  const passwordOk = form.password !== "" && !checkPassword(form.password);
 
   // 입력을 고치면 그 칸의 오류만 지운다. 아이디 대문자는 입력 즉시 소문자로 바꿔 보여 준다.
   const change = (key, field) => (e) => {
@@ -112,6 +119,7 @@ export default function SignupPage() {
             value={form.password}
             onChange={change("password", "password")}
             error={errors.password}
+            success={passwordOk ? "사용할 수 있습니다" : undefined}
           />
           <Input
             label="이름"

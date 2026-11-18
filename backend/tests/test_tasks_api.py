@@ -440,3 +440,15 @@ def test_assignee_sends_assignee_id_403_not_400(client, team):
 
     assert res.status_code == 403
     assert res.json()["code"] == "FORBIDDEN"
+
+
+def test_non_member_create_with_non_member_assignee_403_not_400(client, team):
+    """등록도 검사 순서 403 → 400: 비멤버는 담당자 검사 전에 NOT_PROJECT_MEMBER."""
+    res = client.post(
+        _tasks_url(team["project_id"]),
+        headers=_auth(team["outsider"]),
+        json={"title": "t", "assignee_id": team["outsider"].id},
+    )
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "NOT_PROJECT_MEMBER"

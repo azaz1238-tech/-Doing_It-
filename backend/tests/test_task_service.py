@@ -489,6 +489,9 @@ def test_create_unknown_assignee_400(db: Session, cast: Cast) -> None:
             db, cast.owner, cast.project.id, TaskCreate(title="t", assignee_id=999_999)
         )
     assert exc.value.code == "ASSIGNEE_NOT_MEMBER"
+    db.rollback()
+    assert db.scalar(select(Task).where(Task.title == "t")) is None
+    assert _activities(db) == []
 
 
 def test_create_member_assignee_ok(db: Session, cast: Cast) -> None:

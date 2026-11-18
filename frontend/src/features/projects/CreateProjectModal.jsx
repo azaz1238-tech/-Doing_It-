@@ -4,14 +4,9 @@ import Input from "../../core/ui/Input";
 import Modal from "../../core/ui/Modal";
 import { useToast } from "../../core/ui/useToast";
 import { createProject } from "./api";
+import { countChars, NAME_ERROR, NAME_MAX, PERIOD_ERROR } from "./projectRules";
 
 // S3 새 프로젝트 모달 — PRJ-01 · UI-DESIGN S3 · 시안2 "새 프로젝트 모달"
-// 문구는 SPEC 따옴표 문구 = 백엔드 schemas/project.py 문구
-const NAME_MAX = 30;
-const NAME_ERROR = "프로젝트 이름은 1~30자로 입력해 주세요"; // PRJ-01-b
-const PERIOD_ERROR = "종료일은 시작일 이후여야 합니다"; // PRJ-01-c
-
-const countChars = (value) => [...value].length; // 서버(Python len)와 같게 센다
 
 /**
  * @param {() => void} onClose

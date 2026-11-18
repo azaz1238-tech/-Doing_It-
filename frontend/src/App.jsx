@@ -5,6 +5,7 @@ import AppLayout from "./core/layout/AppLayout";
 import LoginPage from "./features/auth/LoginPage";
 import SignupPage from "./features/auth/SignupPage";
 import ProjectListPage from "./features/projects/ProjectListPage";
+import ProjectSettingsPage from "./features/projects/ProjectSettingsPage";
 import BoardPage from "./features/tasks/BoardPage";
 
 // 개발 서버에서만 쓰는 공통 컴포넌트 미리보기. 배포 빌드에서는 경로와 코드가 모두 빠진다.
@@ -54,7 +55,7 @@ export default function App() {
         </Route>
         <Route
           path="/projects/:id/settings"
-          element={<Placeholder title="설정" />}
+          element={<ProjectSettingsPage />}
         />
         <Route
           path="*"

@@ -34,3 +34,16 @@ export async function listMembers(projectId, { page = 1, size = 100 } = {}) {
   });
   return data; // { items: Member[], total, page, size }
 }
+
+// 프로젝트 수정 (PRJ-03, OWNER). 바꿀 필드만 snake_case로 보낸다.
+// description·날짜는 null로 비울 수 있고 name은 비울 수 없다. MEMBER 403 FORBIDDEN, 422 errors[]
+export async function updateProject(projectId, patch) {
+  const { data } = await client.patch(`/projects/${projectId}`, patch);
+  return data; // Project
+}
+
+// 프로젝트 삭제 (PRJ-03, OWNER). 업무·댓글·이력이 CASCADE로 함께 지워진다.
+// 이름 확인 절차는 화면(S7 확인 창)에서만 한다. 응답 204
+export async function deleteProject(projectId) {
+  await client.delete(`/projects/${projectId}`);
+}

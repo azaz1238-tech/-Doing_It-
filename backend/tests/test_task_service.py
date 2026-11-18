@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.models import Project, Task, TaskActivity, User
 from app.models.enums import TaskPriority, TaskStatus
 from app.schemas.task import TaskCreate, TaskUpdate
-from app.services import activity_service
+from app.services import activity_service, member_service
 from app.services.task_service import (
     create_task,
     delete_task,
@@ -525,3 +525,62 @@ def test_update_assignee_null_ok(db: Session, cast: Cast) -> None:
 def test_update_without_assignee_field_skips_check(db: Session, cast: Cast) -> None:
     task = _update(db, cast, cast.author, {"title": "제목만"})
     assert task.title == "제목만"
+
+
+# --- 담당자 지정 ↔ 멤버 제거 경쟁 (TASK-03 + PRJ-05) ---
+# 지정 요청은 첫 조회 때 스냅샷이 열린다. 그 뒤 다른 요청이 멤버를 제거·커밋해도
+# 일반 SELECT는 옛 스냅샷을 봐서 "아직 멤버"로 통과한다. 공유 잠금(최신 값 읽기)이 이를 막는다.
+
+
+def _assign_race_setup(db: Session) -> tuple[int, int, int, int]:
+    jisu, minho = make_user(db), make_user(db)
+    project = make_project(db, jisu)
+    add_member(db, project, minho)
+    task = make_task(db, project, jisu)
+    return jisu.id, minho.id, project.id, task.id
+
+
+def test_update_assignee_after_removal_committed_400(
+    engine: Engine, db: Session
+) -> None:
+    jisu_id, minho_id, project_id, task_id = _assign_race_setup(db)
+    assign, remove = sessionmaker(bind=engine)(), sessionmaker(bind=engine)()
+    try:
+        actor = assign.get(User, jisu_id)  # 여기서 스냅샷이 열린다 (실제 요청과 같음)
+        assign.get(Task, task_id)
+        remover = remove.get(User, jisu_id)
+        member_service.remove_member(remove, remover, project_id, minho_id)
+
+        with pytest.raises(BusinessRuleError) as exc:
+            update_task(assign, actor, task_id, TaskUpdate(assignee_id=minho_id))
+        assert exc.value.code == "ASSIGNEE_NOT_MEMBER"
+    finally:
+        assign.rollback()
+        assign.close()
+        remove.close()
+    db.rollback()
+    assert db.get(Task, task_id).assignee_id is None
+
+
+def test_create_with_assignee_after_removal_committed_400(
+    engine: Engine, db: Session
+) -> None:
+    jisu_id, minho_id, project_id, _ = _assign_race_setup(db)
+    assign, remove = sessionmaker(bind=engine)(), sessionmaker(bind=engine)()
+    try:
+        actor = assign.get(User, jisu_id)  # 스냅샷 시작
+        remover = remove.get(User, jisu_id)
+        member_service.remove_member(remove, remover, project_id, minho_id)
+
+        with pytest.raises(BusinessRuleError) as exc:
+            create_task(
+                assign,
+                actor,
+                project_id,
+                TaskCreate(title="경쟁", assignee_id=minho_id),
+            )
+        assert exc.value.code == "ASSIGNEE_NOT_MEMBER"
+    finally:
+        assign.rollback()
+        assign.close()
+        remove.close()

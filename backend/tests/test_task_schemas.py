@@ -111,3 +111,20 @@ def test_task_out_with_assignee(db: Session) -> None:
         "login_id": member.login_id,
         "name": "민호",
     }
+
+
+# --- description 최대 2000자 (API-SPEC v1.3 §5.4, SPEC-CHANGELOG #15) ---
+
+
+def test_create_description_max_2000() -> None:
+    assert len(TaskCreate(title="t", description="가" * 2000).description) == 2000
+    with pytest.raises(ValidationError) as exc:
+        TaskCreate(title="t", description="가" * 2001)
+    assert exc.value.errors()[0]["loc"] == ("description",)
+
+
+def test_update_description_max_2000_and_null_ok() -> None:
+    assert TaskUpdate(description="a" * 2000).description == "a" * 2000
+    assert TaskUpdate.model_validate({"description": None}).description is None
+    with pytest.raises(ValidationError):
+        TaskUpdate(description="a" * 2001)

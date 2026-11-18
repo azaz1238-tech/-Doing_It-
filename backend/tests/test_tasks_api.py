@@ -452,3 +452,50 @@ def test_non_member_create_with_non_member_assignee_403_not_400(client, team):
 
     assert res.status_code == 403
     assert res.json()["code"] == "NOT_PROJECT_MEMBER"
+
+
+# --- description 최대 2000자 (API-SPEC v1.3, SPEC-CHANGELOG #15) ---
+
+
+def test_create_description_2001_chars_422(client, team, db):
+    """넘으면 500이 아니라 422 (예전에는 DB 한도 초과로 500)."""
+    res = client.post(
+        _tasks_url(team["project_id"]),
+        headers=_auth(team["owner"]),
+        json={"title": "t", "description": "가" * 2001},
+    )
+
+    assert res.status_code == 422
+    assert res.json()["errors"] == [
+        {"field": "description", "message": "2000자 이하로 입력해 주세요"}
+    ]
+    assert _activities(db) == []
+
+
+def test_patch_description_2001_chars_422(client, team):
+    res = client.patch(
+        _task_url(team["task_id"]),
+        headers=_auth(team["author"]),
+        json={"description": "a" * 2001},
+    )
+
+    assert res.status_code == 422
+    assert res.json()["errors"][0]["field"] == "description"
+
+
+def test_create_description_2000_emoji_saved_201(client, team):
+    """경계값을 DB까지: 4바이트 글자로 꽉 채워도(8,000바이트) TEXT 한도 안이라 저장된다.
+
+    #15의 이유(한도 초과 500 방지)를 직접 확인한다. 2000자는 글자 수 기준.
+    """
+    description = "😀" * 2000
+
+    res = client.post(
+        _tasks_url(team["project_id"]),
+        headers=_auth(team["owner"]),
+        json={"title": "t", "description": description},
+    )
+
+    assert res.status_code == 201
+    saved = client.get(_task_url(res.json()["id"]), headers=_auth(team["owner"]))
+    assert saved.json()["description"] == description

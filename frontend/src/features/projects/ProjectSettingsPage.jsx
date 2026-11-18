@@ -1,28 +1,43 @@
-import { useEffect, useId, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useCallback, useEffect, useId, useState } from "react";
+import { useNavigate, useParams } from "react-router";
+import { useAuth } from "../../core/auth/useAuth";
+import Avatar from "../../core/ui/Avatar";
 import Button from "../../core/ui/Button";
 import ConfirmDialog from "../../core/ui/ConfirmDialog";
-import EmptyState from "../../core/ui/EmptyState";
-import { FolderIcon, LockIcon } from "../../core/ui/icons";
+import ErrorPage from "../../core/ui/ErrorPage";
 import Input from "../../core/ui/Input";
 import Skeleton from "../../core/ui/Skeleton";
+import { cn } from "../../core/utils/cn";
 import { useToast } from "../../core/ui/useToast";
 import { formatPeriod } from "../../core/utils/date";
 import { listTasks } from "../tasks/api";
-import { deleteProject, getProject, listMembers, updateProject } from "./api";
+import {
+  addMember,
+  deleteProject,
+  getProject,
+  listMembers,
+  removeMember,
+  updateProject,
+} from "./api";
 import ProjectHeader from "./ProjectHeader";
-import { countChars, NAME_ERROR, NAME_MAX, PERIOD_ERROR } from "./projectRules";
+import {
+  countChars,
+  NAME_ERROR,
+  NAME_MAX,
+  PERIOD_ERROR,
+  ROLE_STYLES,
+} from "./projectRules";
 
-// S7 프로젝트 설정 — UI-DESIGN §4 S7 · PRJ-03(수정·삭제) · US-08
-// 한 페이지에 세 구역(프로젝트 정보 · 멤버 · 프로젝트 삭제). 멤버 구역은 T-F3-05에서 추가한다.
+// S7 프로젝트 설정 — UI-DESIGN §4 S7 · PRJ-03(수정·삭제) · PRJ-04·05·07(멤버) · US-07·08·09
+// 한 페이지에 세 구역(프로젝트 정보 · 멤버 · 프로젝트 삭제). 하위 주소나 탭은 만들지 않는다.
 // 버튼 숨김은 편의 기능이다. 권한 판단은 백엔드가 한다(MEMBER가 다른 방법으로 시도하면 403).
 
-// 페이지 진입 오류 → 안내 화면 (UI-DESIGN S8). 버튼 동작 중 403 FORBIDDEN은 토스트만 띄운다.
-// TODO(T-F0-14): 김서현 ErrorPage가 나오면 BoardPage와 함께 교체
+// 페이지 진입 오류 → S8 안내 화면. 버튼 동작 중 403 FORBIDDEN은 토스트만 띄운다.
+// 404는 code로 가른다 — USER_NOT_FOUND·MEMBER_NOT_FOUND도 404라서 상태 코드만 보면 안 된다.
 function pageErrorOf(error) {
-  const res = error.response;
-  if (res?.data?.code === "NOT_PROJECT_MEMBER") return "403";
-  if (res?.status === 404) return "404";
+  const code = error.response?.data?.code;
+  if (code === "NOT_PROJECT_MEMBER") return "403";
+  if (code === "PROJECT_NOT_FOUND") return "404";
   return null;
 }
 
@@ -41,6 +56,7 @@ export default function ProjectSettingsPage() {
 
 function Settings({ projectId }) {
   const toast = useToast();
+  const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState(null);
   const [pageError, setPageError] = useState(null); // "403" | "404" | null
@@ -65,40 +81,35 @@ function Settings({ projectId }) {
             error.response?.data?.message ?? "프로젝트를 불러오지 못했습니다",
           );
       });
-    // 멤버는 헤더 아바타용. 실패하면 아바타만 숨긴다(권한·없음 안내는 getProject 쪽이 맡는다).
-    listMembers(projectId)
-      .then((data) => !ignore && setMembers(data.items))
-      .catch(() => {});
     return () => {
       ignore = true;
     };
   }, [projectId, toast]);
 
-  if (pageError) {
-    const forbidden = pageError === "403";
+  // 멤버 목록 — 헤더 아바타와 멤버 구역이 같이 쓴다. 추가·제거 뒤 다시 부른다(T-F3-05 "목록 갱신").
+  // 실패하면 목록만 비워 둔다(권한·없음 안내는 getProject 쪽이 맡는다).
+  const loadMembers = useCallback(
+    () =>
+      listMembers(projectId)
+        .then((data) => setMembers(data.items))
+        .catch(() => setMembers((prev) => prev ?? [])),
+    [projectId],
+  );
+
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
+
+  // S8 안내 화면. PRJ-07-a: 비멤버에게는 프로젝트 이름도 보이지 않는다(헤더를 그리지 않음).
+  if (pageError === "403") return <ErrorPage type="403" />;
+  if (pageError === "404")
     return (
-      <EmptyState
-        icon={forbidden ? LockIcon : FolderIcon}
-        // PRJ-07-a: 비멤버에게는 프로젝트 이름도 보이지 않는다.
-        title={
-          forbidden ? "접근 권한이 없습니다" : "프로젝트를 찾을 수 없습니다"
-        }
-        description={
-          forbidden
-            ? "이 프로젝트의 멤버만 볼 수 있습니다"
-            : "삭제되었거나 주소가 올바르지 않습니다"
-        }
-        action={
-          <Link
-            to="/projects"
-            className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-white hover:bg-primary-hover"
-          >
-            프로젝트 목록으로
-          </Link>
-        }
+      <ErrorPage
+        type="404"
+        title="프로젝트를 찾을 수 없습니다"
+        description="삭제되었거나 주소가 올바르지 않습니다"
       />
     );
-  }
 
   // 화면 편의용 구분. 실제 권한은 백엔드가 판단한다.
   const isOwner = project?.my_role === "OWNER";
@@ -115,6 +126,14 @@ function Settings({ projectId }) {
             project={project}
             editable={isOwner}
             onSaved={setProject}
+            onError={handleError}
+          />
+          <MemberSection
+            projectId={project.id}
+            members={members}
+            editable={isOwner}
+            myId={user?.id}
+            onChanged={loadMembers}
             onError={handleError}
           />
           {/* MEMBER에게는 삭제 구역을 숨긴다(UI-DESIGN S7) */}
@@ -361,6 +380,203 @@ function DeleteSection({ project, onError }) {
           onChange={(e) => setTypedName(e.target.value)}
         />
       </ConfirmDialog>
+    </Section>
+  );
+}
+
+// 멤버 구역 문구 — SPEC 따옴표 문구 = 백엔드 member_service 문구
+// (UI-DESIGN S7은 409를 "이미 멤버입니다"로 적었지만, 문서 순서상 SPEC PRJ-04-c를 따른다)
+const ADD_ERRORS = {
+  USER_NOT_FOUND: "해당 아이디의 회원이 없습니다", // PRJ-04-b
+  ALREADY_MEMBER: "이미 프로젝트 멤버입니다", // PRJ-04-c
+};
+const LAST_OWNER_ERROR = "OWNER는 최소 1명 있어야 합니다"; // PRJ-05-b
+
+const SELECT_CLASS =
+  "h-10 rounded-lg border border-neutral-300 bg-white px-3 text-sm text-neutral-900 focus:outline-2 focus:-outline-offset-1 focus:outline-primary";
+
+// 멤버 — 모든 멤버가 목록(이름·아이디·역할)을 본다(PRJ-07-b).
+// OWNER만 아이디 + 역할로 추가(PRJ-04), 행마다 제거(PRJ-05).
+function MemberSection({
+  projectId,
+  members,
+  editable,
+  myId,
+  onChanged,
+  onError,
+}) {
+  const navigate = useNavigate();
+  const toast = useToast();
+  const formId = useId();
+  const [loginId, setLoginId] = useState("");
+  const [role, setRole] = useState("MEMBER");
+  const [addError, setAddError] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [target, setTarget] = useState(null); // 제거 확인 창에 띄운 Member
+  const [removing, setRemoving] = useState(false);
+
+  const submitAdd = async (e) => {
+    e.preventDefault();
+    const value = loginId.trim();
+    if (!value || adding) return;
+    setAdding(true);
+    try {
+      const member = await addMember(projectId, { loginId: value, role });
+      // TODO(Figma): 멤버 추가 성공 토스트 문구는 시안 확정 전 추정값
+      toast.success(`${member.name}님을 멤버로 추가했습니다`);
+      setLoginId("");
+      setRole("MEMBER");
+      await onChanged();
+    } catch (error) {
+      const code = error.response?.data?.code;
+      const fieldError = fieldErrorsOf(error)?.login_id;
+      // PRJ-04-b·c: 입력 필드 아래에 보여 준다(UI-DESIGN S7). 403 FORBIDDEN 등은 토스트
+      if (ADD_ERRORS[code]) setAddError(ADD_ERRORS[code]);
+      else if (fieldError) setAddError(fieldError);
+      else onError(error, "잠시 후 다시 시도해 주세요");
+    }
+    setAdding(false);
+  };
+
+  const confirmRemove = async () => {
+    const removed = target;
+    setRemoving(true);
+    try {
+      await removeMember(projectId, removed.user_id);
+      // TODO(Figma): 멤버 제거 성공 토스트 문구는 시안 확정 전 추정값
+      toast.success(`${removed.name}님을 멤버에서 제거했습니다`);
+      // 나를 제거했으면(OWNER가 2명 이상일 때) 이 프로젝트를 더 볼 수 없다 → 목록으로
+      if (removed.user_id === myId) {
+        navigate("/projects", { replace: true });
+        return;
+      }
+      setTarget(null);
+      await onChanged();
+    } catch (error) {
+      const code = error.response?.data?.code;
+      setTarget(null);
+      if (code === "LAST_OWNER") toast.error(LAST_OWNER_ERROR);
+      else {
+        onError(error, "잠시 후 다시 시도해 주세요");
+        // 그 사이 다른 OWNER가 먼저 제거했으면(MEMBER_NOT_FOUND) 목록을 다시 맞춘다
+        if (code === "MEMBER_NOT_FOUND") onChanged();
+      }
+    }
+    setRemoving(false);
+  };
+
+  return (
+    <Section title="멤버">
+      {editable && (
+        <form
+          id={formId}
+          onSubmit={submitAdd}
+          className="mb-5 flex flex-wrap items-start gap-2"
+        >
+          <Input
+            label="아이디"
+            className="min-w-48 flex-1"
+            placeholder="추가할 회원의 아이디"
+            autoComplete="off"
+            value={loginId}
+            onChange={(e) => {
+              setLoginId(e.target.value);
+              setAddError(null);
+            }}
+            error={addError}
+          />
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor={`${formId}-role`}
+              className="font-semibold text-neutral-900"
+            >
+              역할
+            </label>
+            <select
+              id={`${formId}-role`}
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className={SELECT_CLASS}
+            >
+              <option value="MEMBER">MEMBER</option>
+              <option value="OWNER">OWNER</option>
+            </select>
+          </div>
+          {/* 라벨 줄 높이만큼 내려 입력칸과 버튼 줄을 맞춘다 */}
+          <Button
+            type="submit"
+            className="mt-7"
+            loading={adding}
+            disabled={!loginId.trim()}
+          >
+            추가
+          </Button>
+        </form>
+      )}
+
+      {members == null ? (
+        <div aria-hidden="true" className="flex flex-col gap-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ) : members.length === 0 ? (
+        <p className="text-sm text-neutral-500">
+          멤버 목록을 불러오지 못했습니다
+        </p>
+      ) : (
+        <ul className="divide-y divide-neutral-200">
+          {members.map((m) => (
+            <li key={m.user_id} className="flex items-center gap-3 py-3">
+              <Avatar user={{ id: m.user_id, name: m.name }} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold text-neutral-900">
+                  {m.name}
+                </p>
+                <p className="truncate text-xs text-neutral-500">
+                  {m.login_id}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-xs font-semibold",
+                  ROLE_STYLES[m.role],
+                )}
+              >
+                {m.role}
+              </span>
+              {editable && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTarget(m)}
+                  aria-label={`${m.name}님 제거`}
+                >
+                  제거
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <ConfirmDialog
+        open={target != null}
+        title={target ? `${target.name}님을 멤버에서 제거하시겠습니까?` : ""}
+        message={
+          target && (
+            // COMPONENTS §3.7 · UI-DESIGN S7 (PRJ-05)
+            <>
+              {target.name}님이 담당하던 업무는{" "}
+              <strong className="text-neutral-900">담당자 없음</strong>이 됩니다
+            </>
+          )
+        }
+        confirmLabel="제거"
+        danger
+        loading={removing}
+        onConfirm={confirmRemove}
+        onCancel={() => !removing && setTarget(null)}
+      />
     </Section>
   );
 }

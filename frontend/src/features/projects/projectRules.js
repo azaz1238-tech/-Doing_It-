@@ -7,3 +7,9 @@ export const PERIOD_ERROR = "종료일은 시작일 이후여야 합니다"; // 
 
 // 서버(Python len)와 같게 센다 — 이모지 같은 글자도 1자
 export const countChars = (value) => [...value].length;
+
+// 역할 배지 색 — S3 카드의 내 역할, S7 멤버 목록의 역할 (토큰 색만, COMPONENTS §3.1)
+export const ROLE_STYLES = {
+  OWNER: "bg-primary-soft text-primary",
+  MEMBER: "bg-neutral-100 text-neutral-600",
+};

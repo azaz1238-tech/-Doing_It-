@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useAuth } from "../../core/auth/useAuth";
 import Avatar from "../../core/ui/Avatar";
@@ -172,6 +172,8 @@ function InfoSection({ project, editable, onSaved, onError }) {
   const [form, setForm] = useState(initial);
   const [serverErrors, setServerErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  // 빠르게 두 번 누르면 saving이 바뀌기 전에 두 번째 요청이 나간다 → ref로 바로 막는다(#56과 같은 방식).
+  const savingRef = useRef(false);
 
   if (!editable) {
     return (
@@ -219,7 +221,8 @@ function InfoSection({ project, editable, onSaved, onError }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!isDirty || !nameValid || !periodValid || saving) return;
+    if (!isDirty || !nameValid || !periodValid || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const updated = await updateProject(project.id, patch);
@@ -230,6 +233,7 @@ function InfoSection({ project, editable, onSaved, onError }) {
       const fieldErrors = fieldErrorsOf(error);
       if (fieldErrors) setServerErrors(fieldErrors);
       else onError(error, "잠시 후 다시 시도해 주세요"); // 403 FORBIDDEN 등은 토스트
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -314,6 +318,7 @@ function DeleteSection({ project, onError }) {
   const [taskCount, setTaskCount] = useState(null);
   const [typedName, setTypedName] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false); // 두 번 클릭 방지
 
   // 확인 창 문구의 "업무 n개" — 상태 필터 없이 1건만 받아 total만 읽는다.
   const openDialog = async () => {
@@ -334,6 +339,8 @@ function DeleteSection({ project, onError }) {
   };
 
   const confirmDelete = async () => {
+    if (deletingRef.current) return;
+    deletingRef.current = true;
     setDeleting(true);
     try {
       await deleteProject(project.id);
@@ -341,6 +348,7 @@ function DeleteSection({ project, onError }) {
       toast.success("프로젝트를 삭제했습니다");
       navigate("/projects", { replace: true }); // S7 → S3 (UI-DESIGN 화면 흐름)
     } catch (error) {
+      deletingRef.current = false;
       setDeleting(false);
       setOpen(false);
       onError(error, "잠시 후 다시 시도해 주세요"); // 403 FORBIDDEN은 토스트, 404는 안내 화면
@@ -414,11 +422,15 @@ function MemberSection({
   const [adding, setAdding] = useState(false);
   const [target, setTarget] = useState(null); // 제거 확인 창에 띄운 Member
   const [removing, setRemoving] = useState(false);
+  // 두 번 클릭 방지 — 상태보다 먼저 바뀌는 ref로 막는다
+  const addingRef = useRef(false);
+  const removingRef = useRef(false);
 
   const submitAdd = async (e) => {
     e.preventDefault();
     const value = loginId.trim();
-    if (!value || adding) return;
+    if (!value || addingRef.current) return;
+    addingRef.current = true;
     setAdding(true);
     try {
       const member = await addMember(projectId, { loginId: value, role });
@@ -435,10 +447,13 @@ function MemberSection({
       else if (fieldError) setAddError(fieldError);
       else onError(error, "잠시 후 다시 시도해 주세요");
     }
+    addingRef.current = false;
     setAdding(false);
   };
 
   const confirmRemove = async () => {
+    if (removingRef.current) return;
+    removingRef.current = true;
     const removed = target;
     setRemoving(true);
     try {
@@ -462,6 +477,7 @@ function MemberSection({
         if (code === "MEMBER_NOT_FOUND") onChanged();
       }
     }
+    removingRef.current = false;
     setRemoving(false);
   };
 

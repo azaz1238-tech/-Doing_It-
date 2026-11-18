@@ -36,3 +36,25 @@ export function formatPeriod(start, end) {
   };
   return `${start ? md(start) : ""} – ${end ? md(end) : ""}`.trim();
 }
+
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/**
+ * 서버 시각(UTC `Z`)을 한국 시간으로 — UI-DESIGN §6.4
+ * 오늘이면 "오늘 09:41", 어제면 "어제 18:22", 그 밖은 "11/10 14:20"
+ */
+export function formatDateTime(isoString, now = Date.now()) {
+  const kst = new Date(new Date(isoString).getTime() + KST_OFFSET_MS);
+  const day = kst.toISOString().slice(0, 10);
+  const time = kst.toISOString().slice(11, 16);
+  const diff = daysBetween(day, todayKst(now));
+  if (diff === 0) return `오늘 ${time}`;
+  if (diff === 1) return `어제 ${time}`;
+  return `${formatMonthDay(day)} ${time}`;
+}
+
+/** 마감일 입력창 옆 표기 "2026-11-14 (토)" — UI-DESIGN §6.4 */
+export function formatDateWithWeekday(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${dateStr} (${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
+}

@@ -66,7 +66,7 @@ function Board({ projectId }) {
   // 컬럼마다 마지막 요청 번호. 늦게 도착한 옛 응답이 새 응답을 덮지 않게 한다.
   const requestSeq = useRef({});
 
-  // 담당자 선택지(S5). TODO(T-F3-02): 멤버 목록 API(양준석, 11/18)가 나오면
+  // 담당자 선택지(S5·S6). TODO(T-F3-02): 멤버 목록 API(양준석, 11/18)가 나오면
   // features/projects/api.js의 listMembers로 바꾼다. 그전에는 확실히 멤버인 "나"만 둔다
   // (목 멤버를 두면 DB에 없는 사용자 id를 보내게 된다).
   const members = useMemo(
@@ -331,7 +331,16 @@ function Board({ projectId }) {
       )}
 
       {/* 업무 상세 모달(S6)이 보드 위에 열린다 — /projects/:id/tasks/:taskId */}
-      <Outlet />
+      <Outlet
+        context={{
+          projectId,
+          project,
+          members,
+          user,
+          // 상세에서 바꾸면 어느 컬럼이 바뀌었는지 몰라도 되게 세 컬럼을 다시 불러온다.
+          onTaskChanged: () => COLUMN_ORDER.forEach(loadColumn),
+        }}
+      />
     </div>
   );
 }

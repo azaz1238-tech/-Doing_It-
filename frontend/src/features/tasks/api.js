@@ -21,3 +21,14 @@ export async function updateTask(taskId, patch) {
   const { data } = await client.patch(`/tasks/${taskId}`, patch);
   return data; // Task
 }
+
+/** 업무 상세 — 업무가 속한 프로젝트 멤버만(아니면 403 NOT_PROJECT_MEMBER) */
+export async function getTask(taskId) {
+  const { data } = await client.get(`/tasks/${taskId}`);
+  return data; // Task
+}
+
+/** 업무 삭제 — OWNER·작성자만(아니면 403 FORBIDDEN). 이력은 남는다 */
+export async function deleteTask(taskId) {
+  await client.delete(`/tasks/${taskId}`); // 204
+}

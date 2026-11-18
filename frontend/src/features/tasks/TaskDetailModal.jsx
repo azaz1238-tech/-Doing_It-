@@ -9,7 +9,12 @@ import Modal from "../../core/ui/Modal";
 import Skeleton from "../../core/ui/Skeleton";
 import { useToast } from "../../core/ui/useToast";
 import { cn } from "../../core/utils/cn";
-import { formatDateTime, formatDateWithWeekday } from "../../core/utils/date";
+import {
+  daysBetween,
+  formatDateTime,
+  formatDateWithWeekday,
+  todayKst,
+} from "../../core/utils/date";
 import MemberSelect from "../projects/MemberSelect";
 import { deleteTask, getTask, updateTask } from "./api";
 import DueLabel from "./DueLabel";
@@ -67,13 +72,22 @@ function TaskDetail({ taskId }) {
 
   useEffect(() => {
     let ignore = false;
+    // 주소의 id가 숫자가 아니면 서버에 묻지 않고 "없는 업무"로 처리한다(서버는 422를 준다).
+    // 개발 모드(StrictMode)는 effect를 두 번 돌리므로, 한 박자 미뤄 정리(cleanup) 때 취소되게 한다 → 토스트 1번.
+    if (!/^\d+$/.test(taskId)) {
+      const timer = setTimeout(() => {
+        toast.error("업무를 찾을 수 없습니다");
+        close();
+      });
+      return () => clearTimeout(timer);
+    }
     getTask(taskId)
       .then((data) => !ignore && setTask(data))
       .catch((error) => !ignore && handleLoadError(error));
     return () => {
       ignore = true;
     };
-  }, [taskId, handleLoadError]);
+  }, [taskId, handleLoadError, toast, close]);
 
   // 바꾼 필드만 보낸다. 성공하면 응답(Task)으로 화면을 바꾸고 보드도 다시 불러온다.
   const save = async (field, patch, successMessage = "저장했습니다") => {
@@ -380,7 +394,9 @@ function TaskDetail({ taskId }) {
                 </span>
               </Locked>
             )}
-            {task.due_date && (
+            {/* 입력칸·읽기 전용 줄에 날짜가 이미 있으므로, 배지는 지연·임박(오늘 ~ +3일)일 때만 보인다.
+                먼 날짜까지 DueLabel을 그리면 "11/25"가 한 번 더 보인다(최진영 #53 제보). */}
+            {task.due_date && daysBetween(todayKst(), task.due_date) <= 3 && (
               <DueLabel
                 dueDate={task.due_date}
                 status={task.status}

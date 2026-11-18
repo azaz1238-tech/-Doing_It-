@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useOutletContext, useParams } from "react-router";
 import Avatar from "../../core/ui/Avatar";
 import Button from "../../core/ui/Button";
@@ -21,7 +21,7 @@ import DueLabel from "./DueLabel";
 import { getTaskPermissions } from "./permissions";
 import PriorityBadge from "./PriorityBadge";
 import StatusSelect from "./StatusSelect";
-import { PRIORITIES, STATUSES } from "./taskDisplay";
+import { charCount, PRIORITIES, STATUSES } from "./taskDisplay";
 
 // S6 업무 상세 모달 — UI-DESIGN §4 S6, TASK-02·03·06, SPEC TASK-06-a~e
 // 주소 /projects/:id/tasks/:taskId — 보드(S4) 위에 열리고, 새로고침·공유해도 같은 창이 열린다(TASK-06-a).
@@ -53,6 +53,8 @@ function TaskDetail({ taskId }) {
   const [descDraft, setDescDraft] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // 삭제 확인을 빠르게 두 번 누르면 두 번째 DELETE가 404로 돌아온다 → ref로 바로 막는다(D7-01).
+  const deletingRef = useRef(false);
 
   const close = useCallback(
     () => navigate(`/projects/${projectId}`),
@@ -133,6 +135,8 @@ function TaskDetail({ taskId }) {
   };
 
   const confirmDelete = async () => {
+    if (deletingRef.current) return;
+    deletingRef.current = true;
     setDeleting(true);
     try {
       await deleteTask(task.id);
@@ -140,6 +144,7 @@ function TaskDetail({ taskId }) {
       onTaskChanged();
       close();
     } catch (error) {
+      deletingRef.current = false;
       setDeleting(false);
       setConfirmOpen(false);
       handleSaveError(error);
@@ -181,8 +186,8 @@ function TaskDetail({ taskId }) {
       : members;
 
   const trimmedTitle = titleDraft?.trim() ?? "";
-  const titleValid =
-    trimmedTitle.length >= 1 && trimmedTitle.length <= TITLE_MAX;
+  const titleLength = charCount(trimmedTitle);
+  const titleValid = titleLength >= 1 && titleLength <= TITLE_MAX;
   const isDirty =
     (titleDraft !== null && titleDraft !== task.title) ||
     (descDraft !== null && descDraft !== (task.description ?? ""));

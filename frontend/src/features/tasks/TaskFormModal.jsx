@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import Button from "../../core/ui/Button";
 import Input from "../../core/ui/Input";
 import Modal from "../../core/ui/Modal";
@@ -7,7 +7,7 @@ import { cn } from "../../core/utils/cn";
 import { todayKst } from "../../core/utils/date";
 import MemberSelect from "../projects/MemberSelect";
 import { createTask } from "./api";
-import { PRIORITIES } from "./taskDisplay";
+import { charCount, PRIORITIES } from "./taskDisplay";
 
 // S5 업무 등록 모달 — UI-DESIGN §4 S5, TASK-01·03·04
 
@@ -46,6 +46,8 @@ export default function TaskFormModal({
   const [titleTouched, setTitleTouched] = useState(false);
   const [serverErrors, setServerErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  // 빠르게 두 번 누르면 상태(submitting)가 바뀌기 전에 두 번째 제출이 들어온다 → ref로 바로 막는다(D7-01).
+  const submittingRef = useRef(false);
 
   const set = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -54,8 +56,8 @@ export default function TaskFormModal({
   };
 
   const trimmedTitle = form.title.trim();
-  const titleValid =
-    trimmedTitle.length >= 1 && trimmedTitle.length <= TITLE_MAX;
+  const titleLength = charCount(trimmedTitle);
+  const titleValid = titleLength >= 1 && titleLength <= TITLE_MAX;
   // 처음 열었을 때 빈 제목에 오류를 띄우지 않는다. 입력을 시작했거나 30자를 넘으면 보인다.
   const titleError =
     serverErrors.title ??
@@ -73,10 +75,12 @@ export default function TaskFormModal({
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!titleValid || submitting) {
+    if (submittingRef.current) return;
+    if (!titleValid) {
       setTitleTouched(true);
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       // 비어 있는 선택 필드는 보내지 않는다(API-SPEC §5.4: 모두 선택, priority 기본 MEDIUM).
@@ -90,6 +94,7 @@ export default function TaskFormModal({
       onCreated(created);
     } catch (error) {
       handleError(error);
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

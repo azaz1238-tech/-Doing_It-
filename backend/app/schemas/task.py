@@ -25,13 +25,16 @@ from app.schemas.common import UtcDatetime
 TaskTitle = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)
 ]
+# 최대 2000자 (API-SPEC v1.3 §5.4, SPEC-CHANGELOG #15). 없으면 DB TEXT 한도 초과로 500.
+# 공백은 지우지 않는다(사용자가 쓴 줄바꿈·들여쓰기 유지).
+TaskDescription = Annotated[str, StringConstraints(max_length=2000)]
 
 
 class TaskCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: TaskTitle
-    description: str | None = None
+    description: TaskDescription | None = None
     assignee_id: int | None = None
     due_date: date | None = None
     priority: TaskPriority = TaskPriority.MEDIUM
@@ -43,7 +46,7 @@ class TaskUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: TaskTitle | None = None
-    description: str | None = None
+    description: TaskDescription | None = None
     status: TaskStatus | None = None
     assignee_id: int | None = None
     due_date: date | None = None

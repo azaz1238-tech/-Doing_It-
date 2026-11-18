@@ -452,3 +452,32 @@ def test_non_member_create_with_non_member_assignee_403_not_400(client, team):
 
     assert res.status_code == 403
     assert res.json()["code"] == "NOT_PROJECT_MEMBER"
+
+
+# --- description 최대 2000자 (API-SPEC v1.3, SPEC-CHANGELOG #15) ---
+
+
+def test_create_description_2001_chars_422(client, team, db):
+    """넘으면 500이 아니라 422 (예전에는 DB 한도 초과로 500)."""
+    res = client.post(
+        _tasks_url(team["project_id"]),
+        headers=_auth(team["owner"]),
+        json={"title": "t", "description": "가" * 2001},
+    )
+
+    assert res.status_code == 422
+    assert res.json()["errors"] == [
+        {"field": "description", "message": "2000자 이하로 입력해 주세요"}
+    ]
+    assert _activities(db) == []
+
+
+def test_patch_description_2001_chars_422(client, team):
+    res = client.patch(
+        _task_url(team["task_id"]),
+        headers=_auth(team["author"]),
+        json={"description": "a" * 2001},
+    )
+
+    assert res.status_code == 422
+    assert res.json()["errors"][0]["field"] == "description"

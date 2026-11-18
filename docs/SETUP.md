@@ -119,6 +119,30 @@ DATABASE_URL doing_it
 TEST_DATABASE_URL doing_it_test
 ```
 
+## 5. 시연 데이터 넣기 (seed)
+
+화면을 확인하거나 시연할 때 쓴다. 개발 DB(`DATABASE_URL`)에 사용자 4명, 프로젝트 1개("동잇 개발"), 업무 12개(할 일 4·진행 중 3·완료 5)를 넣는다. 마감일은 실행한 날 기준이라 지연·오늘·임박 업무가 항상 보인다.
+
+```powershell
+python -m alembic -c backend/alembic.ini upgrade head   # 테이블이 없으면 먼저 (저장소 루트에서)
+cd backend
+python -m scripts.seed
+cd ..
+```
+
+- 로그인: `jisoo01`(프로젝트 OWNER), `minho`, `seoyeon`, `hyunwoo` / 비밀번호 모두 `password123`
+- **로컬 개발·시연 전용이다.** 비밀번호가 공개돼 있으므로 배포 환경(클라우드 등)에서는 실행하지 않는다.
+- **빈 DB에만 넣는다.** 사용자가 한 명이라도 있으면 `[seed] 멈춤: 이미 데이터가 있습니다`가 나오고 아무것도 넣지 않는다.
+- 마감일이 실행한 날 기준이라, 전날 넣으면 시연 날에는 하루씩 밀린다(오늘 마감 → 지연). 날짜를 정확히 보이려면 **시연 당일 아침**에 아래 방법으로 초기화 후 다시 넣는다.
+- seed가 중간에 오류로 끝나면 일부 데이터만 남는다(다시 실행하면 "이미 데이터가 있습니다"로 멈춤). 이때도 아래 방법으로 초기화 후 다시 실행한다.
+- 처음 상태로 되돌리기 (**개발 DB의 모든 데이터가 지워진다**, 테스트 DB는 그대로):
+
+  ```powershell
+  python -m alembic -c backend/alembic.ini downgrade base
+  python -m alembic -c backend/alembic.ini upgrade head
+  cd backend; python -m scripts.seed; cd ..
+  ```
+
 ## 막히면
 
 | 증상 | 원인 | 해결 |

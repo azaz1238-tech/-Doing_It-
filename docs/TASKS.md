@@ -145,7 +145,7 @@
 | T-F0-07 | — | 모델 5개 + `enums.py` + Alembic `0001_p0_initial` (= DB 스키마 스크립트) | 서승범 | 4 | 11/16 | F0-06 | 테이블 5개·CHECK·FK 확인 | ✅ 완료 (11/16) |
 | T-F0-08 | — | `core/`: security·auth(토큰 검사)·exceptions·clock·pagination | 양준석 | 4 | 11/16 | F0-04 | 잘못된 토큰 401, 422 공통 형식 | ✅ 완료 (11/16) |
 | T-F0-09 | — | pytest 기반: `conftest.py`(테스트 DB·TRUNCATE), `factories.py` | 서승범 | 1.5 | 11/16 | F0-07 | 샘플 테스트 통과 | ✅ 완료 (11/16) |
-| T-F0-10 | — | `scripts/seed.py` 시연 데이터 | 서승범 | 2 | 11/18 | F0-07 | 빈 DB에 실행 후 시연 가능 | 예정 |
+| T-F0-10 | — | `scripts/seed.py` 시연 데이터 | 서승범 | 2 | 11/18 | F0-07 | 빈 DB에 실행 후 시연 가능 | ✅ 완료 (11/18) |
 | T-F0-11 | — | 프론트 `core/`: Axios(JWT 헤더·401 처리), AuthContext | 최진영 | 3 | 11/16 | F0-05 | 토큰 없으면 `/login` | ✅ 완료 (11/16) |
 | T-F0-12 | — | 공통 레이아웃 + Button·Input·Modal·Toast (= 공통 컴포넌트 목록) | 최진영 | 3 | 11/16 | F0-05 | UI-DESIGN §5 해당 항목 | ✅ 완료 (11/16) |
 | T-F0-13 | — | 업무용 배지 StatusSelect·PriorityBadge·DueLabel | 김서현 | 1.5 | 11/16 | F0-05 | 목 데이터에서 표시 | ✅ 완료 (11/17) |

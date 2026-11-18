@@ -41,6 +41,9 @@ def _require_assignee_member(
             ProjectMember.project_id == project_id,
             ProjectMember.user_id == assignee_id,
         )
+        # 공유 잠금 + 최신 값 읽기. 멤버 제거(PRJ-05)와 순서를 맞춘다:
+        # 제거가 먼저면 행이 없어 400, 지정이 먼저면 제거가 기다렸다가 이 지정까지 해제한다.
+        .with_for_update(read=True)
     )
     if is_member is None:
         raise BusinessRuleError(

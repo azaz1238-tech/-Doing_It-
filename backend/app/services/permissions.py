@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Project, ProjectMember, Task, User
 from app.models.enums import ProjectRole
-from core.exceptions import Forbidden, NotFound
+from core.exceptions import BusinessRuleError, Forbidden, NotFound
 
 # 자주 쓰는 허용 역할 묶음
 ANY_MEMBER: frozenset[ProjectRole] = frozenset(ProjectRole)
@@ -53,6 +53,35 @@ def owner_first() -> ColumnElement[int]:
     역할 값 비교라서 이 파일에 둔다. 서비스는 order_by(owner_first(), ...)로만 쓴다.
     """
     return case((ProjectMember.role == ProjectRole.OWNER.value, 0), else_=1)
+
+
+def lock_owners(db: Session, project_id: int) -> list[ProjectMember]:
+    """이 프로젝트의 OWNER 행을 모두 잠그고 돌려준다 (DATABASE-DESIGN §6.1).
+
+    OWNER 수를 세기 전에 부른다. 두 OWNER가 동시에 서로를 제거하면
+    두 번째 요청은 첫 번째가 끝날 때까지 기다린 뒤 줄어든 OWNER 수를 본다.
+    역할 변경(PRJ-08)·나가기(PRJ-09)·탈퇴(AUTH-08)도 OWNER 수를 바꾸므로 반드시 이 함수를 쓴다.
+
+    참고: REPEATABLE READ에서 잠그며 읽으면 훑은 인덱스 범위가 함께 잠겨,
+    실제로는 이 프로젝트의 멤버 행 대부분이 잠긴다. 트랜잭션이 짧아 문제는 없다.
+    """
+    return list(
+        db.scalars(
+            select(ProjectMember)
+            .where(
+                ProjectMember.project_id == project_id,
+                ProjectMember.role == ProjectRole.OWNER.value,
+            )
+            .order_by(ProjectMember.id)  # 잠그는 순서를 고정해 교착 상태를 막는다
+            .with_for_update()
+        )
+    )
+
+
+def require_not_last_owner(owners: list[ProjectMember], target: ProjectMember) -> None:
+    """대상이 마지막 OWNER면 400 LAST_OWNER. owners는 lock_owners()의 결과."""
+    if ProjectRole(target.role) in OWNER_ONLY and len(owners) <= 1:
+        raise BusinessRuleError("LAST_OWNER", "OWNER는 최소 1명 있어야 합니다")
 
 
 # ---------- 업무 권한 (TASK-06 권한 매트릭스, API-SPEC §5.4) — 서승범 추가 ----------

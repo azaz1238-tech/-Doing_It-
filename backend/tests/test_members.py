@@ -4,12 +4,17 @@
           추가 — 없는 아이디 404, 중복 409, MEMBER 403.
 """
 
+import threading
 from datetime import datetime
 
-from app.models import ProjectMember
-from app.models.enums import ProjectRole
+from sqlalchemy.orm import sessionmaker
+
+from app.models import ProjectMember, Task, TaskActivity, User
+from app.models.enums import ActivityAction, ProjectRole
+from app.services import member_service
+from core.exceptions import AppError
 from core.security import create_access_token
-from tests.factories import add_member, make_project, make_user
+from tests.factories import add_member, make_project, make_task, make_user
 
 
 def _url(project_id: int) -> str:
@@ -303,3 +308,226 @@ def test_add_without_token_invalid_body_401(
     res = _add(client, project.id, None, role="VIEWER")
 
     assert res.status_code == 401
+
+
+# --- 제거 (PRJ-05) ---
+
+
+def _remove(client, project_id, caller, user_id):
+    headers = _auth(caller) if caller else {}
+    return client.delete(f"{_url(project_id)}/{user_id}", headers=headers)
+
+
+def _member_count(db, project_id) -> int:
+    db.rollback()  # API가 커밋한 결과를 보려고 열린 트랜잭션을 끝낸다
+    return db.query(ProjectMember).filter_by(project_id=project_id).count()
+
+
+def test_remove_204_unassigns_tasks(client, db):  # PRJ-05-a
+    jisu, minho = make_user(db), make_user(db)
+    project = make_project(db, jisu)
+    add_member(db, project, minho)
+    t1 = make_task(db, project, jisu, assignee_id=minho.id)
+    t2 = make_task(db, project, jisu, assignee_id=minho.id)
+    project_id, minho_id, jisu_id, t1_id, t2_id = (
+        project.id,
+        minho.id,
+        jisu.id,
+        t1.id,
+        t2.id,
+    )
+
+    res = _remove(client, project_id, jisu, minho_id)
+
+    assert res.status_code == 204
+    assert res.content == b""
+    assert _member_count(db, project_id) == 1
+    for task_id in (t1_id, t2_id):
+        assert db.get(Task, task_id).assignee_id is None
+    rows = (
+        db.query(TaskActivity)
+        .filter_by(project_id=project_id, action=ActivityAction.UPDATED.value)
+        .order_by(TaskActivity.id)
+        .all()
+    )
+    got = [(r.task_id, r.field, r.old_value, r.new_value, r.user_id) for r in rows]
+    assert got == [
+        (t1_id, "assignee_id", str(minho_id), None, jisu_id),
+        (t2_id, "assignee_id", str(minho_id), None, jisu_id),
+    ]
+    # 민호의 목록에서 P가 사라지고, 상세도 볼 수 없다
+    assert client.get("/api/projects", headers=_auth(minho)).json()["items"] == []
+    detail = client.get(f"/api/projects/{project_id}", headers=_auth(minho))
+    assert detail.status_code == 403
+
+
+def test_remove_keeps_other_tasks(client, db):
+    jisu, minho, sora = make_user(db), make_user(db), make_user(db)
+    project = make_project(db, jisu)
+    other = make_project(db, minho)  # 민호가 OWNER인 다른 프로젝트
+    add_member(db, project, minho)
+    add_member(db, project, sora)
+    sora_task = make_task(db, project, jisu, assignee_id=sora.id)
+    other_task = make_task(db, other, minho, assignee_id=minho.id)
+    sora_task_id, other_task_id = sora_task.id, other_task.id
+    sora_id, minho_id = sora.id, minho.id
+
+    res = _remove(client, project.id, jisu, minho_id)
+
+    assert res.status_code == 204
+    db.rollback()
+    assert db.get(Task, sora_task_id).assignee_id == sora_id
+    assert db.get(Task, other_task_id).assignee_id == minho_id
+    assert db.query(TaskActivity).count() == 0
+
+
+def test_remove_last_owner_self_400(client, db):  # PRJ-05-b
+    jisu, minho = make_user(db), make_user(db)
+    project = make_project(db, jisu)
+    add_member(db, project, minho)
+    make_task(db, project, jisu, assignee_id=jisu.id)
+    project_id = project.id
+
+    res = _remove(client, project_id, jisu, jisu.id)
+
+    assert res.status_code == 400
+    assert res.json() == {
+        "code": "LAST_OWNER",
+        "message": "OWNER는 최소 1명 있어야 합니다",
+    }
+    assert _member_count(db, project_id) == 2
+    assert db.query(TaskActivity).count() == 0  # 담당 해제도 일어나지 않는다
+
+
+def test_remove_self_when_two_owners_204(client, db):
+    jisu, minho = make_user(db), make_user(db)
+    project = make_project(db, jisu)
+    add_member(db, project, minho, ProjectRole.OWNER)
+
+    res = _remove(client, project.id, jisu, jisu.id)
+
+    assert res.status_code == 204
+    assert _member_count(db, project.id) == 1
+
+
+def test_remove_other_owner_204(client, db):
+    jisu, minho = make_user(db), make_user(db)
+    project = make_project(db, jisu)
+    add_member(db, project, minho, ProjectRole.OWNER)
+
+    res = _remove(client, project.id, jisu, minho.id)
+
+    assert res.status_code == 204
+    assert _member_count(db, project.id) == 1
+
+
+def test_remove_by_member_403(client, db):
+    jisu, minho, sora = make_user(db), make_user(db), make_user(db)
+    project = make_project(db, jisu)
+    add_member(db, project, minho)
+    add_member(db, project, sora)
+
+    res = _remove(client, project.id, minho, sora.id)
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "FORBIDDEN"
+    assert _member_count(db, project.id) == 3
+
+
+def test_remove_self_by_member_403(client, db):  # 본인 나가기는 P2(PRJ-09)
+    jisu, minho = make_user(db), make_user(db)
+    project = make_project(db, jisu)
+    add_member(db, project, minho)
+
+    res = _remove(client, project.id, minho, minho.id)
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "FORBIDDEN"
+
+
+def test_remove_by_non_member_403(client, db):
+    jisu, outsider = make_user(db), make_user(db)
+    project = make_project(db, jisu)
+
+    res = _remove(client, project.id, outsider, jisu.id)
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "NOT_PROJECT_MEMBER"
+
+
+def test_remove_target_not_member_404(client, db):
+    jisu, outsider = make_user(db), make_user(db)
+    project = make_project(db, jisu)
+
+    res = _remove(client, project.id, jisu, outsider.id)
+
+    assert res.status_code == 404
+    assert res.json() == {
+        "code": "MEMBER_NOT_FOUND",
+        "message": "해당 사용자는 이 프로젝트의 멤버가 아닙니다",
+    }
+
+
+def test_remove_project_not_found_404(client, db):
+    user = make_user(db)
+
+    res = _remove(client, 999999, user, user.id)
+
+    assert res.status_code == 404
+    assert res.json()["code"] == "PROJECT_NOT_FOUND"
+
+
+def test_remove_without_token_401(client, db):
+    jisu = make_user(db)
+    project = make_project(db, jisu)
+
+    res = _remove(client, project.id, None, jisu.id)
+
+    assert res.status_code == 401
+
+
+def test_concurrent_owners_remove_each_other(engine, db):  # DATABASE-DESIGN §6.1
+    """OWNER 2명이 동시에 서로를 제거 → 하나만 성공, OWNER 1명 남음."""
+    jisu, minho = make_user(db), make_user(db)
+    project = make_project(db, jisu)
+    add_member(db, project, minho, ProjectRole.OWNER)
+    ids = {"jisu": (jisu.id, minho.id), "minho": (minho.id, jisu.id)}
+    project_id = project.id
+    barrier = threading.Barrier(2)
+    results: dict[str, str] = {}
+
+    def run(name: str) -> None:
+        actor_id, target_id = ids[name]
+        session = sessionmaker(bind=engine)()  # 스레드마다 따로 세션
+        try:
+            actor = session.get(User, actor_id)
+            barrier.wait()  # 두 요청을 동시에 출발시킨다
+            member_service.remove_member(session, actor, project_id, target_id)
+            results[name] = "ok"
+        except AppError as exc:
+            session.rollback()
+            results[name] = exc.code
+        # 교착(1213) 같은 예상 밖 오류도 기록해야 아래 단언에서 잡힌다
+        except Exception as exc:  # noqa: BLE001
+            session.rollback()
+            results[name] = repr(exc)
+        finally:
+            session.close()
+
+    threads = [threading.Thread(target=run, args=(n,)) for n in ids]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=60)  # 행 잠금 대기 기본값(50초)보다 길게
+
+    assert not any(t.is_alive() for t in threads)
+    # 첫 조회(session.get)에서 스냅샷이 열려 둘 다 OWNER로 권한 검사를 통과한다.
+    # 하나는 성공, 다른 하나는 잠금을 기다린 뒤 OWNER가 1명뿐인 것을 보고 LAST_OWNER.
+    assert sorted(results.values()) == ["LAST_OWNER", "ok"]
+    db.rollback()
+    owners = (
+        db.query(ProjectMember)
+        .filter_by(project_id=project_id, role=ProjectRole.OWNER.value)
+        .count()
+    )
+    assert owners == 1

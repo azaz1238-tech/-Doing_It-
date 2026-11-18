@@ -5,7 +5,7 @@
 - 업무 API는 업무를 먼저 조회(없으면 404 TASK_NOT_FOUND)한 뒤 task.project_id로 이 함수를 부른다.
 """
 
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, case, select
 from sqlalchemy.orm import Session
 
 from app.models import Project, ProjectMember, Task, User
@@ -45,6 +45,14 @@ def require_project_role(
         raise Forbidden("FORBIDDEN", "권한이 없습니다")
 
     return member
+
+
+def owner_first() -> ColumnElement[int]:
+    """멤버 목록 정렬용 식: OWNER면 0, 아니면 1 (PRJ-07, DATABASE-DESIGN §8.2).
+
+    역할 값 비교라서 이 파일에 둔다. 서비스는 order_by(owner_first(), ...)로만 쓴다.
+    """
+    return case((ProjectMember.role == ProjectRole.OWNER.value, 0), else_=1)
 
 
 # ---------- 업무 권한 (TASK-06 권한 매트릭스, API-SPEC §5.4) — 서승범 추가 ----------

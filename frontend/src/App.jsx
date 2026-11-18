@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import ProtectedRoute from "./core/auth/ProtectedRoute";
 import AppLayout from "./core/layout/AppLayout";
+import ErrorPage from "./core/ui/ErrorPage";
 import LoginPage from "./features/auth/LoginPage";
 import SignupPage from "./features/auth/SignupPage";
 import ProjectListPage from "./features/projects/ProjectListPage";
@@ -54,10 +55,7 @@ export default function App() {
           path="/projects/:id/settings"
           element={<Placeholder title="설정" />}
         />
-        <Route
-          path="*"
-          element={<Placeholder title="페이지를 찾을 수 없습니다" />}
-        />
+        <Route path="*" element={<ErrorPage type="404" />} />
       </Route>
     </Routes>
   );

@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, Outlet, useNavigate, useParams } from "react-router";
+import { Outlet, useNavigate, useParams } from "react-router";
 import { useAuth } from "../../core/auth/useAuth";
 import Button from "../../core/ui/Button";
 import EmptyState from "../../core/ui/EmptyState";
-import {
-  ChevronDownIcon,
-  FolderIcon,
-  LockIcon,
-  PlusIcon,
-} from "../../core/ui/icons";
+import ErrorPage from "../../core/ui/ErrorPage";
+import { ChevronDownIcon, PlusIcon } from "../../core/ui/icons";
 import { SkeletonList } from "../../core/ui/Skeleton";
 import { useToast } from "../../core/ui/useToast";
 import { getProject, listMembers } from "../projects/api";
@@ -41,7 +37,8 @@ const emptyColumn = () => ({ items: [], total: 0, page: 0, loading: true });
 function pageErrorOf(error) {
   const res = error.response;
   if (res?.data?.code === "NOT_PROJECT_MEMBER") return "403";
-  if (res?.status === 404) return "404";
+  // 프로젝트가 없을 때만 404 화면. 그 밖의 404(예: 업무 없음)는 토스트로 보여 준다.
+  if (res?.data?.code === "PROJECT_NOT_FOUND") return "404";
   return null;
 }
 
@@ -202,32 +199,16 @@ function Board({ projectId }) {
     }
   };
 
-  // TODO(T-F0-14): ErrorPage(S8, 11/18)가 나오면 교체한다.
-  if (pageError) {
-    const forbidden = pageError === "403";
+  // S8 안내 화면. PRJ-07-a: 비멤버에게는 프로젝트 이름도 보이지 않는다(헤더를 그리지 않음).
+  if (pageError === "403") return <ErrorPage type="403" />;
+  if (pageError === "404")
     return (
-      <EmptyState
-        icon={forbidden ? LockIcon : FolderIcon}
-        // PRJ-07-a: 비멤버에게는 프로젝트 이름도 보이지 않는다.
-        title={
-          forbidden ? "접근 권한이 없습니다" : "프로젝트를 찾을 수 없습니다"
-        }
-        description={
-          forbidden
-            ? "이 프로젝트의 멤버만 볼 수 있습니다"
-            : "삭제되었거나 주소가 올바르지 않습니다"
-        }
-        action={
-          <Link
-            to="/projects"
-            className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-white hover:bg-primary-hover"
-          >
-            프로젝트 목록으로
-          </Link>
-        }
+      <ErrorPage
+        type="404"
+        title="프로젝트를 찾을 수 없습니다"
+        description="삭제되었거나 주소가 올바르지 않습니다"
       />
     );
-  }
 
   return (
     <div className="flex flex-col gap-5">

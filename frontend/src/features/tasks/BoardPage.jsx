@@ -47,13 +47,7 @@ export default function BoardPage() {
   const { id } = useParams();
   // 주소의 id가 숫자가 아니면(/projects/abc) 서버가 422를 줘 스켈레톤만 남는다 → 바로 404 안내(최진영 #53 제보).
   if (!/^\d+$/.test(id))
-    return (
-      <ErrorPage
-        type="404"
-        title="프로젝트를 찾을 수 없습니다"
-        description="삭제되었거나 주소가 올바르지 않습니다"
-      />
-    );
+    return <ErrorPage type="404" title="프로젝트를 찾을 수 없습니다" />;
   return <Board key={id} projectId={id} />;
 }
 
@@ -211,13 +205,7 @@ function Board({ projectId }) {
   // S8 안내 화면. PRJ-07-a: 비멤버에게는 프로젝트 이름도 보이지 않는다(헤더를 그리지 않음).
   if (pageError === "403") return <ErrorPage type="403" />;
   if (pageError === "404")
-    return (
-      <ErrorPage
-        type="404"
-        title="프로젝트를 찾을 수 없습니다"
-        description="삭제되었거나 주소가 올바르지 않습니다"
-      />
-    );
+    return <ErrorPage type="404" title="프로젝트를 찾을 수 없습니다" />;
 
   return (
     <div className="flex flex-col gap-5">

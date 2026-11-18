@@ -352,12 +352,12 @@ UI-DESIGN §3.2. 데이터는 받아서 그리기만 한다. S4·S7이 `getProje
 
 ### 3.15 ErrorPage — `core/ui/ErrorPage.jsx` (T-F0-14)
 
-UI-DESIGN S8, NFR-09. 컴포넌트 1개에 문구만 바꿔 쓴다. TopBar는 AppLayout이 그리고, 본문에 아이콘 + 제목 + 설명 + `프로젝트 목록으로` 버튼을 그린다(EmptyState 재사용).
+UI-DESIGN S8(v1.6), NFR-09. 컴포넌트 1개에 문구만 바꿔 쓴다. TopBar는 AppLayout이 그리고, 본문에 아이콘 + 제목 위 작은 숫자(`403`/`404`) + 제목 + 설명 + `프로젝트 목록으로` 버튼을 그린다(시안 S8, 모양은 EmptyState page와 같음).
 
 | props | 설명 |
 | --- | --- |
-| `type` | `"403"` (방패, 기본 "접근 권한이 없습니다" — SPEC PRJ-07-a) · `"404"` (나침반, 기본 "페이지를 찾을 수 없습니다") |
-| `title`, `description` | 기본 문구 대신 쓸 때 (예: 칸반 404 → "프로젝트를 찾을 수 없습니다") |
+| `type` | `"403"` (방패, "접근 권한이 없습니다" / "프로젝트 OWNER에게 멤버 추가를 요청해 주세요") · `"404"` (나침반, "페이지를 찾을 수 없습니다" / "주소가 바뀌었거나 삭제된 항목입니다"). 문구는 UI-DESIGN S8 표 |
+| `title`, `description` | 기본 문구 대신 쓸 때 (예: 칸반 404 → 제목만 "프로젝트를 찾을 수 없습니다") |
 
 ```jsx
 <Route path="*" element={<ErrorPage type="404" />} />

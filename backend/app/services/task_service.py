@@ -22,8 +22,30 @@ from app.services.permissions import (
     require_task_delete,
     require_task_edit,
 )
-from core.exceptions import NotFound
+from core.exceptions import BusinessRuleError, NotFound
 from core.pagination import PageParams
+
+
+def _require_assignee_member(
+    db: Session, project_id: int, assignee_id: int | None
+) -> None:
+    """담당자는 이 프로젝트 멤버만 (TASK-03). 없음(None)은 통과.
+
+    없는 사용자 id도 멤버가 아니므로 같은 400이다(FK 위반 500을 막는다).
+    역할이 아니라 멤버인지만 보므로 permissions.py가 아니라 여기에 둔다.
+    """
+    if assignee_id is None:
+        return
+    is_member = db.scalar(
+        select(ProjectMember.id).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == assignee_id,
+        )
+    )
+    if is_member is None:
+        raise BusinessRuleError(
+            "ASSIGNEE_NOT_MEMBER", "담당자는 프로젝트 멤버여야 합니다"
+        )
 
 
 def _get_task_or_404(db: Session, task_id: int) -> Task:
@@ -45,7 +67,7 @@ def _task_with_member(
 def create_task(db: Session, user: User, project_id: int, data: TaskCreate) -> Task:
     """업무 등록 + CREATED 이력 (TASK-01, LOG-01). 상태는 항상 TODO. 멤버 누구나."""
     require_project_role(db, project_id, user, ANY_MEMBER)
-    # TODO(T-F3-04): data.assignee_id가 이 프로젝트 멤버가 아니면 400 ASSIGNEE_NOT_MEMBER
+    _require_assignee_member(db, project_id, data.assignee_id)  # 403 다음 400
     task = Task(
         project_id=project_id,
         created_by=user.id,
@@ -107,7 +129,10 @@ def update_task(db: Session, user: User, task_id: int, data: TaskUpdate) -> Task
     task, member = _task_with_member(db, user, task_id)
     fields = data.model_fields_set
     require_task_edit(member, task, fields)  # 403이면 아무것도 바꾸지 않는다
-    # TODO(T-F3-04): assignee_id를 보냈고 값이 있으면 멤버인지 검사(400 ASSIGNEE_NOT_MEMBER)
+    if (
+        "assignee_id" in fields
+    ):  # 보낸 경우만, 값 반영 전에 검사(400이면 아무것도 안 바뀜)
+        _require_assignee_member(db, task.project_id, data.assignee_id)
 
     before = activity_service.snapshot(task)
     for field in fields:

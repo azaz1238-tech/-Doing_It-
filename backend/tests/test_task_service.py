@@ -22,7 +22,7 @@ from app.services.task_service import (
     list_tasks,
     update_task,
 )
-from core.exceptions import Forbidden, NotFound
+from core.exceptions import BusinessRuleError, Forbidden, NotFound
 from core.pagination import PageParams
 from tests.factories import add_member, make_project, make_task, make_user
 
@@ -459,3 +459,66 @@ def test_update_same_values_no_row(db: Session, cast: Cast) -> None:
     _update(db, cast, cast.author, body)
 
     assert _activities(db) == []
+
+
+# ---------- 담당자 = 프로젝트 멤버 (T-F3-04, TASK-03) ----------
+
+
+def test_create_non_member_assignee_400(db: Session, cast: Cast) -> None:
+    outsider = make_user(db)
+
+    with pytest.raises(BusinessRuleError) as exc:
+        create_task(
+            db,
+            cast.owner,
+            cast.project.id,
+            TaskCreate(title="t", assignee_id=outsider.id),
+        )
+
+    assert exc.value.code == "ASSIGNEE_NOT_MEMBER"
+    assert exc.value.message == "담당자는 프로젝트 멤버여야 합니다"
+    db.rollback()
+    assert db.scalar(select(Task).where(Task.title == "t")) is None
+    assert _activities(db) == []
+
+
+def test_create_unknown_assignee_400(db: Session, cast: Cast) -> None:
+    """없는 사용자 id도 멤버가 아니므로 400 (FK 위반 500이 아님)."""
+    with pytest.raises(BusinessRuleError) as exc:
+        create_task(
+            db, cast.owner, cast.project.id, TaskCreate(title="t", assignee_id=999_999)
+        )
+    assert exc.value.code == "ASSIGNEE_NOT_MEMBER"
+
+
+def test_create_member_assignee_ok(db: Session, cast: Cast) -> None:
+    task = create_task(
+        db,
+        cast.owner,
+        cast.project.id,
+        TaskCreate(title="t", assignee_id=cast.other.id),
+    )
+    assert task.assignee_id == cast.other.id
+
+
+def test_update_non_member_assignee_400_no_change(db: Session, cast: Cast) -> None:
+    outsider = make_user(db)
+    before = _snapshot_row(db, cast.task.id)
+
+    with pytest.raises(BusinessRuleError) as exc:
+        _update(db, cast, cast.owner, {"assignee_id": outsider.id, "status": "DONE"})
+
+    assert exc.value.code == "ASSIGNEE_NOT_MEMBER"
+    db.rollback()
+    assert _snapshot_row(db, cast.task.id) == before  # status도 안 바뀜
+    assert _activities(db) == []
+
+
+def test_update_assignee_null_ok(db: Session, cast: Cast) -> None:
+    task = _update(db, cast, cast.author, {"assignee_id": None})
+    assert task.assignee_id is None
+
+
+def test_update_without_assignee_field_skips_check(db: Session, cast: Cast) -> None:
+    task = _update(db, cast, cast.author, {"title": "제목만"})
+    assert task.title == "제목만"

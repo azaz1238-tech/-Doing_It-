@@ -44,7 +44,7 @@ TASKS = [
     ("로그인 화면 오류 문구 정리", _T, TaskPriority.HIGH, "seoyeon", 0, "seoyeon"),
     ("프로젝트 목록 API", _T, TaskPriority.MEDIUM, None, 1, "jisoo01"),
     ("시드 데이터 스크립트 작성", _T, TaskPriority.LOW, "hyunwoo", None, "hyunwoo"),
-    ("칸반 보드 API 연결", _P, TaskPriority.HIGH, "minho", 2, "minho"),
+    ("칸반 보드 API 연결", _P, TaskPriority.HIGH, "minho", 3, "minho"),  # D-3 경계
     ("업무 등록 모달 검증 문구", _P, TaskPriority.MEDIUM, "jisoo01", 7, "jisoo01"),
     ("멤버 추가 API 권한 테스트", _P, TaskPriority.URGENT, "hyunwoo", -2, "jisoo01"),
     ("회원가입 API", _D, TaskPriority.HIGH, "jisoo01", -4, "jisoo01"),

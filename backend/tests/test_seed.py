@@ -56,6 +56,8 @@ def test_seed_has_overdue_and_due_soon(db: Session) -> None:
         )
         >= 1
     )
+    # 임박의 끝(오늘+3일, DASH-03 "3일 이내" 경계)을 보여 줄 업무가 있다
+    assert _count(db, Task, not_done, Task.due_date == TODAY + timedelta(days=3)) >= 1
     assert _count(db, Task, Task.due_date.is_(None)) >= 1
 
 
@@ -64,7 +66,7 @@ def test_seed_records_activities(db: Session) -> None:
     seed(db, TODAY)
 
     assert _count(db, TaskActivity, TaskActivity.action == "CREATED") == 12
-    # 진행 중 3 + 완료 5 = 상태 변경 8번 이상
+    # 진행 중 3 + 완료 5 = 상태 변경 정확히 8번 (중복 기록이 생기면 잡힌다)
     assert (
         _count(
             db,
@@ -72,8 +74,10 @@ def test_seed_records_activities(db: Session) -> None:
             TaskActivity.action == "UPDATED",
             TaskActivity.field == "status",
         )
-        >= 8
+        == 8
     )
+    # 상태 외에는 바꾸지 않으므로 다른 UPDATED 이력은 없다
+    assert _count(db, TaskActivity, TaskActivity.action == "UPDATED") == 8
 
 
 def test_seed_user_can_login(db: Session, client) -> None:

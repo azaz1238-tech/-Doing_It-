@@ -7,12 +7,16 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import ProjectMember, User
+from app.models import ProjectMember, Task, User
+from app.models.enums import ActivityAction, ActivityField
 from app.schemas.member import MemberAdd, MemberOut
+from app.services import activity_service
 from app.services.permissions import (
     ANY_MEMBER,
     OWNER_ONLY,
+    lock_owners,
     owner_first,
+    require_not_last_owner,
     require_project_role,
 )
 from core.exceptions import Conflict, NotFound
@@ -96,3 +100,67 @@ def add_member(db: Session, user: User, project_id: int, data: MemberAdd) -> Mem
         role=member.role,
         joined_at=member.joined_at,
     )
+
+
+def remove_member(
+    db: Session, user: User, project_id: int, target_user_id: int
+) -> None:
+    """멤버 제거 (PRJ-05). OWNER만(OWNER 자신 포함). 한 트랜잭션, 커밋 1번.
+
+    P0에서는 MEMBER의 호출을 모두 403으로 막는다(본인 나가기는 P2 PRJ-09).
+    """
+    require_project_role(db, project_id, user, OWNER_ONLY)
+    _remove_member_rows(db, project_id, target_user_id, actor_id=user.id)
+    db.commit()
+
+
+def _remove_member_rows(
+    db: Session, project_id: int, target_user_id: int, actor_id: int
+) -> None:
+    """멤버 1명을 제거하는 DB 작업. 커밋하지 않는다 (ARCHITECTURE §4.3).
+
+    1. OWNER 행 잠금 → 대상이 마지막 OWNER면 400
+    2. 대상이 담당하던 업무의 담당자를 NULL로, 업무마다 이력 1행 (변경자 = actor)
+    3. project_members 행 삭제
+
+    잠그는 순서: OWNER 행 → 대상 멤버 행 → 대상의 업무 행. 업무 담당자 지정은
+    대상 멤버 행에 공유 잠금을 걸어(task_service._require_assignee_member) 이 순서와 맞춘다.
+    여러 프로젝트에서 반복해 부를 때(AUTH-08 탈퇴)는 project_id 오름차순으로 부른다.
+    """
+    owners = lock_owners(db, project_id)
+
+    # 일반 SELECT는 트랜잭션 시작 시점의 값을 보여 줘서, 방금 다른 요청이 지운 행이
+    # 보일 수 있다. 잠금과 함께 읽어(FOR UPDATE) 최신 값을 본다.
+    target = db.scalar(
+        select(ProjectMember)
+        .where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == target_user_id,
+        )
+        .with_for_update()
+    )
+    if target is None:
+        raise NotFound(
+            "MEMBER_NOT_FOUND", "해당 사용자는 이 프로젝트의 멤버가 아닙니다"
+        )
+    require_not_last_owner(owners, target)
+
+    tasks = db.scalars(
+        select(Task)
+        .where(Task.project_id == project_id, Task.assignee_id == target_user_id)
+        .order_by(Task.id)
+        .with_for_update()
+    ).all()
+    for task in tasks:
+        activity_service.record(
+            db,
+            task,
+            actor_id,
+            ActivityAction.UPDATED,
+            ActivityField.ASSIGNEE_ID,
+            old_value=target_user_id,
+            new_value=None,
+        )
+        task.assignee_id = None
+
+    db.delete(target)

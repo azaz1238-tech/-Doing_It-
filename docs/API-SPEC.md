@@ -1,6 +1,6 @@
 # API 명세서 (API-SPEC.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.3 (2026-11-18 §5.2·§5.4 프로젝트·업무 `description` 최대 2000자, 넘으면 422) · v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-18
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.4 (2026-11-18 §5.3 멤버 제거: 검사 순서와 `MEMBER_NOT_FOUND` 문구) · v1.3 (2026-11-18 §5.2·§5.4 프로젝트·업무 `description` 최대 2000자, 넘으면 422) · v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-18
 > 근거: [CONSTITUTION.md](./CONSTITUTION.md) §6·§7·§8 · [REQUIREMENTS.md](./REQUIREMENTS.md) v1.0 · [USER-STORIES.md](./USER-STORIES.md) v1.0 · [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) v1.0
 > 상위 문서와 다르면 상위 문서를 따르고 이 문서를 고친다. API를 바꿀 때는 **이 문서를 먼저 수정**한다(CONSTITUTION 7-5).
 > 각 API에 근거 기능 ID와 우선순위를 표시한다. **P0 API부터 구현하고, P1·P2 API는 P0 게이트 통과 후에 만든다.**
@@ -322,7 +322,9 @@ P1(DASH-01)에서 `"progress": { "total": 10, "done": 4, "percent": 40 }`을 추
 2. 이 프로젝트에서 대상이 담당하던 업무의 `assignee_id`를 NULL로 바꾸고, 업무마다 `task_activities`에 1행 기록(`field=assignee_id`, 변경자 = 제거한 OWNER)
 3. `project_members` 행 삭제
 
-오류: 403 `FORBIDDEN`(MEMBER), 404 `MEMBER_NOT_FOUND`, 400 `LAST_OWNER`
+오류: 403 `FORBIDDEN`(MEMBER), 404 `MEMBER_NOT_FOUND`("해당 사용자는 이 프로젝트의 멤버가 아닙니다"), 400 `LAST_OWNER`("OWNER는 최소 1명 있어야 합니다")
+
+검사 순서: 프로젝트 404 `PROJECT_NOT_FOUND` → 403 `NOT_PROJECT_MEMBER`·`FORBIDDEN` → 대상 404 `MEMBER_NOT_FOUND` → 400 `LAST_OWNER`. §1.5의 404 → 403은 경로의 프로젝트에 적용하고, 경로의 `user_id`가 멤버인지는 권한 검사 뒤에 본다(멤버 추가의 `login_id` 조회와 같은 방식). 비멤버·MEMBER가 이 API로 누가 멤버인지 알아내지 못하게 하기 위해서다.
 
 **P2 확장 (PRJ-09 프로젝트 나가기):** `user_id`가 요청자 본인이면 MEMBER도 호출할 수 있다. 처리(1~3단계)와 `LAST_OWNER` 규칙은 같고, 이력의 변경자는 나간 본인이다. P0 구현에서는 MEMBER의 호출을 모두 403으로 막는다.
 

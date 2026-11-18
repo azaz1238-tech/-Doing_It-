@@ -1,0 +1,2081 @@
+{
+  "info": {
+    "name": "동잇 F2 업무",
+    "description": "F2 업무 API 확인 (TASK-01~06, API-SPEC §5.4). 위에서부터 순서대로 실행한다.\n사용자 4명: OWNER, 작성자(MEMBER), 담당자(MEMBER), 비멤버. 권한별 허용·403과 400·422 검증 규칙을 확인한다.\n실행마다 새 아이디로 가입하고, 마지막에 만든 프로젝트를 지운다. 환경: local.postman_environment.json",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "준비 - OWNER지수 가입",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/signup",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "signup"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{ownerLoginId}}\",\n  \"password\": \"password123\",\n  \"name\": \"OWNER지수\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 실행할 때마다 새 아이디를 만든다 (영문 소문자·숫자 4~20자)",
+              "pm.collectionVariables.set(\"ownerLoginId\", \"pto\" + Date.now().toString(36));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 가입\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"ownerId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - OWNER지수 로그인",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{ownerLoginId}}\",\n  \"password\": \"password123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 토큰 발급\", () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set(\"ownerToken\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - 작성자민호 가입",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/signup",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "signup"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{authorLoginId}}\",\n  \"password\": \"password123\",\n  \"name\": \"작성자민호\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 실행할 때마다 새 아이디를 만든다 (영문 소문자·숫자 4~20자)",
+              "pm.collectionVariables.set(\"authorLoginId\", \"pta\" + Date.now().toString(36));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 가입\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"authorId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - 작성자민호 로그인",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{authorLoginId}}\",\n  \"password\": \"password123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 토큰 발급\", () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set(\"authorToken\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - 담당자서연 가입",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/signup",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "signup"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{assigneeLoginId}}\",\n  \"password\": \"password123\",\n  \"name\": \"담당자서연\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 실행할 때마다 새 아이디를 만든다 (영문 소문자·숫자 4~20자)",
+              "pm.collectionVariables.set(\"assigneeLoginId\", \"pta\" + Date.now().toString(36));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 가입\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"assigneeId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - 담당자서연 로그인",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{assigneeLoginId}}\",\n  \"password\": \"password123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 토큰 발급\", () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set(\"assigneeToken\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - 비멤버현우 가입",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/signup",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "signup"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{outsiderLoginId}}\",\n  \"password\": \"password123\",\n  \"name\": \"비멤버현우\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 실행할 때마다 새 아이디를 만든다 (영문 소문자·숫자 4~20자)",
+              "pm.collectionVariables.set(\"outsiderLoginId\", \"pto\" + Date.now().toString(36));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 가입\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"outsiderId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - 비멤버현우 로그인",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{outsiderLoginId}}\",\n  \"password\": \"password123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 토큰 발급\", () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set(\"outsiderToken\", pm.response.json().access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - 프로젝트 생성",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{ownerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"업무 확인용\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 생성\", () => {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "pm.collectionVariables.set(\"projectId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - 작성자 멤버 추가",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/members",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "members"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{ownerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{authorLoginId}}\",\n  \"role\": \"MEMBER\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 멤버 추가\", () => {",
+              "  pm.response.to.have.status(201);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 - 담당자 멤버 추가",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/members",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "members"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{ownerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login_id\": \"{{assigneeLoginId}}\",\n  \"role\": \"MEMBER\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 멤버 추가\", () => {",
+              "  pm.response.to.have.status(201);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 등록 - 작성자가 담당자 지정",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"  로그인 API 구현  \",\n  \"description\": \"JWT 발급까지\",\n  \"assignee_id\": {{assigneeId}},\n  \"due_date\": \"2026-11-20\",\n  \"priority\": \"HIGH\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201 등록, 상태 TODO·제목 앞뒤 공백 제거 (TASK-01)\", () => {",
+              "  pm.response.to.have.status(201);",
+              "  const t = pm.response.json();",
+              "  pm.expect(t.status).to.eql(\"TODO\");",
+              "  pm.expect(t.title).to.eql(\"로그인 API 구현\");",
+              "  pm.expect(t.priority).to.eql(\"HIGH\");",
+              "  pm.expect(t.assignee.id).to.eql(Number(pm.collectionVariables.get(\"assigneeId\")));",
+              "  pm.expect(t.created_by.id).to.eql(Number(pm.collectionVariables.get(\"authorId\")));",
+              "  pm.expect(t.completed_at).to.eql(null);",
+              "  pm.expect(t.created_at).to.match(/Z$/);",
+              "});",
+              "pm.collectionVariables.set(\"taskId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 등록 - 우선순위 생략 → MEDIUM",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{ownerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"OWNER 업무\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"201, 우선순위 기본 MEDIUM·담당자 없음 (TASK-04-a)\", () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(pm.response.json().priority).to.eql(\"MEDIUM\");",
+              "  pm.expect(pm.response.json().assignee).to.eql(null);",
+              "});",
+              "pm.collectionVariables.set(\"ownerTaskId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 등록 - 제목 31자 422",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나다\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"422 VALIDATION_ERROR, errors[].field = title (TASK-01-b)\", () => {",
+              "  pm.response.to.have.status(422);",
+              "  const b = pm.response.json();",
+              "  pm.expect(b.code).to.eql(\"VALIDATION_ERROR\");",
+              "  pm.expect(b.errors.map(e => e.field)).to.include(\"title\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 등록 - 제목 공백만 422",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"   \"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"422 VALIDATION_ERROR\", () => {",
+              "  pm.response.to.have.status(422);",
+              "  pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 등록 - 없는 우선순위 422",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"우선순위 확인\",\n  \"priority\": \"CRITICAL\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"422 정해진 4개 외 값 거절 (TASK-04-b)\", () => {",
+              "  pm.response.to.have.status(422);",
+              "  pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 등록 - status를 보내면 422",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"상태 지정\",\n  \"status\": \"DONE\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"422 등록은 status를 받지 않음\", () => {",
+              "  pm.response.to.have.status(422);",
+              "  pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 등록 - 비멤버 담당자 400",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"비멤버 담당\",\n  \"assignee_id\": {{outsiderId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"400 ASSIGNEE_NOT_MEMBER (TASK-03-b)\", () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().code).to.eql(\"ASSIGNEE_NOT_MEMBER\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 등록 - 비멤버 403",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{outsiderToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"비멤버 등록\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"403 NOT_PROJECT_MEMBER\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().code).to.eql(\"NOT_PROJECT_MEMBER\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "칸반 목록 - 할 일 컬럼",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks?status=TODO&size=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "TODO"
+            },
+            {
+              "key": "size",
+              "value": "20"
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{assigneeToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 목록, HIGH가 MEDIUM보다 먼저 (TASK-05 정렬)\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const b = pm.response.json();",
+              "  pm.expect(b.total).to.eql(2);",
+              "  pm.expect(b.page).to.eql(1);",
+              "  pm.expect(b.size).to.eql(20);",
+              "  pm.expect(b.items.map(t => t.priority)).to.eql([\"HIGH\", \"MEDIUM\"]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "칸반 목록 - size 101 422",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks?size=101",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ],
+          "query": [
+            {
+              "key": "size",
+              "value": "101"
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{assigneeToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"422 size는 1~100\", () => {",
+              "  pm.response.to.have.status(422);",
+              "  pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "칸반 목록 - 비멤버 403",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{outsiderToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"403 NOT_PROJECT_MEMBER\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().code).to.eql(\"NOT_PROJECT_MEMBER\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 상세 - 멤버 200",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{assigneeToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 상세\", () => {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 상세 - 비멤버 403",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{outsiderToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"403 NOT_PROJECT_MEMBER\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().code).to.eql(\"NOT_PROJECT_MEMBER\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "상태 변경 - 담당자 200",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{assigneeToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 담당자는 상태를 바꿀 수 있음 (TASK-02-b)\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().status).to.eql(\"IN_PROGRESS\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "수정 - 담당자가 우선순위 403",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{assigneeToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"priority\": \"LOW\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"403 담당자는 상태 외 수정 불가 (TASK-06-d)\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "수정 - 담당자가 상태+제목 함께 403",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{assigneeToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"DONE\",\n  \"title\": \"몰래 바꿈\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"403 다른 필드가 섞이면 요청 전체 거절\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "상태 변경 - 작성자도 담당자도 아닌 MEMBER 403",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{ownerTaskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{ownerTaskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{assigneeToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"403 남의 업무 상태 변경 불가 (TASK-02-c)\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "상태 변경 - 작성자 DONE → completed_at 기록",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"DONE\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 DONE, completed_at 기록\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().completed_at).to.match(/Z$/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "상태 변경 - DONE → TODO면 completed_at 해제",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"TODO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 TODO, completed_at null (TASK-02 거꾸로도 가능)\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().completed_at).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "수정 - 작성자가 여러 항목 + 담당 해제",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"로그인 API 완성\",\n  \"priority\": \"URGENT\",\n  \"due_date\": null,\n  \"assignee_id\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 보낸 필드만 반영, 담당·마감일 해제\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const t = pm.response.json();",
+              "  pm.expect(t.title).to.eql(\"로그인 API 완성\");",
+              "  pm.expect(t.priority).to.eql(\"URGENT\");",
+              "  pm.expect(t.due_date).to.eql(null);",
+              "  pm.expect(t.assignee).to.eql(null);",
+              "  pm.expect(t.description).to.eql(\"JWT 발급까지\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "수정 - 비멤버 담당자 400",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"assignee_id\": {{outsiderId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"400 ASSIGNEE_NOT_MEMBER\", () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().code).to.eql(\"ASSIGNEE_NOT_MEMBER\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "수정 - 제목 null 422",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authorToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"422 제목은 null 불가\", () => {",
+              "  pm.response.to.have.status(422);",
+              "  pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "수정 - 비멤버 403",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{outsiderToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"DONE\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"403 NOT_PROJECT_MEMBER\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().code).to.eql(\"NOT_PROJECT_MEMBER\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "삭제 - 작성자 아닌 MEMBER 403",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{assigneeToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"403 MEMBER는 남의 업무 삭제 불가 (TASK-06-b)\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().code).to.eql(\"FORBIDDEN\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "삭제 - OWNER가 MEMBER 업무 삭제 204",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{ownerToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"204 OWNER는 모든 업무 삭제 가능 (TASK-06-e)\", () => {",
+              "  pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "업무 상세 - 삭제 후 404",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/tasks/{{taskId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "tasks",
+            "{{taskId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{ownerToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"404 TASK_NOT_FOUND\", () => {",
+              "  pm.response.to.have.status(404);",
+              "  pm.expect(pm.response.json().code).to.eql(\"TASK_NOT_FOUND\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "칸반 목록 - 토큰 없음 401",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"401 인증 필요\", () => {",
+              "  pm.response.to.have.status(401);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "정리 - 프로젝트 삭제",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{ownerToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"204 정리\", () => {",
+              "  pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "ownerLoginId",
+      "value": ""
+    },
+    {
+      "key": "ownerId",
+      "value": ""
+    },
+    {
+      "key": "ownerToken",
+      "value": ""
+    },
+    {
+      "key": "authorLoginId",
+      "value": ""
+    },
+    {
+      "key": "authorId",
+      "value": ""
+    },
+    {
+      "key": "authorToken",
+      "value": ""
+    },
+    {
+      "key": "assigneeLoginId",
+      "value": ""
+    },
+    {
+      "key": "assigneeId",
+      "value": ""
+    },
+    {
+      "key": "assigneeToken",
+      "value": ""
+    },
+    {
+      "key": "outsiderLoginId",
+      "value": ""
+    },
+    {
+      "key": "outsiderId",
+      "value": ""
+    },
+    {
+      "key": "outsiderToken",
+      "value": ""
+    },
+    {
+      "key": "projectId",
+      "value": ""
+    },
+    {
+      "key": "taskId",
+      "value": ""
+    },
+    {
+      "key": "ownerTaskId",
+      "value": ""
+    }
+  ]
+}

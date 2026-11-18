@@ -5,6 +5,7 @@ import AppLayout from "./core/layout/AppLayout";
 import LoginPage from "./features/auth/LoginPage";
 import SignupPage from "./features/auth/SignupPage";
 import ProjectListPage from "./features/projects/ProjectListPage";
+import ProjectSettingsPage from "./features/projects/ProjectSettingsPage";
 import BoardPage from "./features/tasks/BoardPage";
 import TaskDetailModal from "./features/tasks/TaskDetailModal";
 
@@ -52,7 +53,7 @@ export default function App() {
         </Route>
         <Route
           path="/projects/:id/settings"
-          element={<Placeholder title="설정" />}
+          element={<ProjectSettingsPage />}
         />
         <Route
           path="*"

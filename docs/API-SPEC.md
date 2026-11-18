@@ -1,6 +1,6 @@
 # API 명세서 (API-SPEC.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-12
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-18
 > 근거: [CONSTITUTION.md](./CONSTITUTION.md) §6·§7·§8 · [REQUIREMENTS.md](./REQUIREMENTS.md) v1.0 · [USER-STORIES.md](./USER-STORIES.md) v1.0 · [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) v1.0
 > 상위 문서와 다르면 상위 문서를 따르고 이 문서를 고친다. API를 바꿀 때는 **이 문서를 먼저 수정**한다(CONSTITUTION 7-5).
 > 각 API에 근거 기능 ID와 우선순위를 표시한다. **P0 API부터 구현하고, P1·P2 API는 P0 게이트 통과 후에 만든다.**
@@ -310,8 +310,10 @@ P1(DASH-01)에서 `"progress": { "total": 10, "done": 4, "percent": 40 }`을 추
 | 오류 | 상황 |
 | --- | --- |
 | 403 `FORBIDDEN` | MEMBER가 추가 시도 |
-| 404 `USER_NOT_FOUND` | 가입하지 않은 아이디 |
+| 404 `USER_NOT_FOUND` | 가입하지 않은 아이디, 또는 비활성 계정(`is_active=0`) |
 | 409 `ALREADY_MEMBER` | 이미 멤버 (DB `UNIQUE(project_id, user_id)`로도 막음) |
+
+검사 순서: §1.5의 404 → 403은 경로의 프로젝트에 적용한다. 본문 `login_id`로 사용자를 찾는 일(404 `USER_NOT_FOUND`)은 **권한 검사(403) 뒤**에 한다. 비멤버·MEMBER가 이 API로 가입된 아이디를 알아내지 못하게 하기 위해서다(로그인의 계정 존재 숨기기와 같은 이유). 비활성 계정도 같은 404로 답해 계정 상태를 드러내지 않는다.
 
 #### DELETE `/projects/{project_id}/members/{user_id}` — 멤버 제거 · PRJ-05 · US-09
 

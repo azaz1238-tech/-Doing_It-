@@ -22,7 +22,7 @@
 | EmptyState | `core/ui/EmptyState.jsx` | 최진영 | 완료 | S3, S4 |
 | Skeleton | `core/ui/Skeleton.jsx` | 최진영 | 완료 | S3, S4, S6 |
 | 날짜 유틸 | `core/utils/date.js` | 김서현·최진영 | 완료 (T-F0-13 DueLabel용, T-F2-05 `formatPeriod` 기간 표시) | 카드, 상세, S3 카드, S4 헤더 |
-| ErrorPage (403·404) | `core/ui/ErrorPage.jsx` | 김서현 | 미착수 (T-F0-14) | S8 |
+| ErrorPage (403·404) | `core/ui/ErrorPage.jsx` | 김서현 | 완료 (T-F0-14) | S8 |
 | PriorityBadge | `features/tasks/PriorityBadge.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | StatusSelect | `features/tasks/StatusSelect.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | DueLabel | `features/tasks/DueLabel.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
@@ -96,14 +96,13 @@
 | `CalendarIcon` | 기간·날짜 입력 |
 | `EyeIcon` / `EyeOffIcon` | 비밀번호 보기·숨기기 |
 | `LoaderIcon` | Button 로딩 (회전) |
+| `ShieldAlertIcon` / `CompassIcon` | S8 ErrorPage 403 / 404 (시안 방패·나침반, T-F0-14) |
 
 공통 props: `size`(기본 16), `className`(색은 `text-*`로 지정). 화면 읽기 프로그램에서는 숨겨진다(`aria-hidden`).
 
 ```jsx
 <ClockIcon className="text-warning" />
 ```
-
-시안 S8의 방패(403)·나침반(404) 아이콘은 ErrorPage를 만들 때 추가한다.
 
 ### 3.3 Button — `core/ui/Button.jsx`
 
@@ -349,6 +348,23 @@ UI-DESIGN §3.2. 데이터는 받아서 그리기만 한다. S4·S7이 `getProje
 - 멤버 아바타는 최대 4개 + `+n`, 누르면 S7로 간다. Member의 `user_id`를 Avatar의 `id`로 바꿔 넘긴다.
 - 탭은 `보드`·`설정` 2개이고 모든 멤버에게 보인다. 선택 탭은 `active`로 정한다(NavLink 자동 판단은 S6 주소 `/projects/:id/tasks/:taskId`에서 보드 탭이 꺼져서 쓰지 않는다).
 - 진행률 바(DASH-01)는 P1. 지금은 자리만 비워 둔다.
+
+### 3.15 ErrorPage — `core/ui/ErrorPage.jsx` (T-F0-14)
+
+UI-DESIGN S8, NFR-09. 컴포넌트 1개에 문구만 바꿔 쓴다. TopBar는 AppLayout이 그리고, 본문에 아이콘 + 제목 + 설명 + `프로젝트 목록으로` 버튼을 그린다(EmptyState 재사용).
+
+| props | 설명 |
+| --- | --- |
+| `type` | `"403"` (방패, 기본 "접근 권한이 없습니다" — SPEC PRJ-07-a) · `"404"` (나침반, 기본 "페이지를 찾을 수 없습니다") |
+| `title`, `description` | 기본 문구 대신 쓸 때 (예: 칸반 404 → "프로젝트를 찾을 수 없습니다") |
+
+```jsx
+<Route path="*" element={<ErrorPage type="404" />} />
+if (pageError === "403") return <ErrorPage type="403" />;
+```
+
+- 403 `NOT_PROJECT_MEMBER`(페이지 진입)에만 쓴다. 버튼 동작의 403 `FORBIDDEN`은 토스트로 보여 주고 화면은 유지한다.
+- 비멤버에게 보이는 화면이라 프로젝트 이름 같은 정보를 넣지 않는다.
 
 ## 4. 남은 일
 

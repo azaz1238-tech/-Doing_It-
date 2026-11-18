@@ -3,6 +3,7 @@ import Avatar from "../../core/ui/Avatar";
 import Button from "../../core/ui/Button";
 import ConfirmDialog from "../../core/ui/ConfirmDialog";
 import EmptyState from "../../core/ui/EmptyState";
+import ErrorPage from "../../core/ui/ErrorPage";
 import * as Icons from "../../core/ui/icons";
 import Input from "../../core/ui/Input";
 import Modal from "../../core/ui/Modal";
@@ -379,6 +380,15 @@ export default function ComponentPreviewPage() {
           />
         </ConfirmDialog>
       </Section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Section title="ErrorPage · 403 (S8)">
+          <ErrorPage type="403" />
+        </Section>
+        <Section title="ErrorPage · 404 (S8)">
+          <ErrorPage type="404" />
+        </Section>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Section title="빈 상태 · 프로젝트 0개 (S3)">

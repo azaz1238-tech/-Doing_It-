@@ -15,11 +15,6 @@ const ComponentPreviewPage = import.meta.env.DEV
   ? lazy(() => import("./features/dev/ComponentPreviewPage"))
   : null;
 
-// 임시 화면. 각 담당자가 실제 페이지를 만들면 import로 교체한다.
-function Placeholder({ title }) {
-  return <h1 className="p-6 text-xl font-bold">{title}</h1>;
-}
-
 // 화면 주소는 ARCHITECTURE §5.2를 따른다.
 export default function App() {
   return (

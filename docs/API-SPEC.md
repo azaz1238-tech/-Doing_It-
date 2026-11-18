@@ -1,6 +1,6 @@
 # API 명세서 (API-SPEC.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-18
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.3 (2026-11-18 §5.2·§5.4 프로젝트·업무 `description` 최대 2000자, 넘으면 422) · v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-18
 > 근거: [CONSTITUTION.md](./CONSTITUTION.md) §6·§7·§8 · [REQUIREMENTS.md](./REQUIREMENTS.md) v1.0 · [USER-STORIES.md](./USER-STORIES.md) v1.0 · [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) v1.0
 > 상위 문서와 다르면 상위 문서를 따르고 이 문서를 고친다. API를 바꿀 때는 **이 문서를 먼저 수정**한다(CONSTITUTION 7-5).
 > 각 API에 근거 기능 ID와 우선순위를 표시한다. **P0 API부터 구현하고, P1·P2 API는 P0 게이트 통과 후에 만든다.**
@@ -267,7 +267,7 @@ P1(DASH-01)에서 `"progress": { "total": 10, "done": 4, "percent": 40 }`을 추
 | 필드 | 규칙 |
 | --- | --- |
 | `name` | 필수. 앞뒤 공백 제거 후 1~30자 |
-| `description` | 선택. 문자열 또는 `null` |
+| `description` | 선택. 문자열 또는 `null`, 최대 2000자(넘으면 422) |
 | `start_date`, `end_date` | 선택. 둘 다 있으면 `end_date >= start_date` (위반 시 422, "종료일은 시작일 이후여야 합니다") |
 
 응답 `201` — Project (`my_role: "OWNER"`)
@@ -353,7 +353,7 @@ P1(DASH-01)에서 `"progress": { "total": 10, "done": 4, "percent": 40 }`을 추
 | 필드 | 규칙 |
 | --- | --- |
 | `title` | 필수. 앞뒤 공백 제거 후 1~30자 |
-| `description` | 선택 |
+| `description` | 선택. 최대 2000자(넘으면 422) |
 | `assignee_id` | 선택. 이 프로젝트 멤버만 가능(아니면 400 `ASSIGNEE_NOT_MEMBER`) |
 | `due_date` | 선택. 과거 날짜·프로젝트 기간 밖 날짜도 허용 |
 | `priority` | 선택. 기본 `MEDIUM` |
@@ -377,7 +377,7 @@ P1(DASH-01)에서 `"progress": { "total": 10, "done": 4, "percent": 40 }`을 추
 | 필드 | 규칙 |
 | --- | --- |
 | `title` | 1~30자. `null` 불가 |
-| `description` | 문자열 또는 `null` |
+| `description` | 문자열 또는 `null`, 최대 2000자(넘으면 422) |
 | `status` | 어느 방향으로든 변경 가능(TASK-02) |
 | `assignee_id` | 멤버 id 또는 `null`(담당 해제) |
 | `due_date` | 날짜 또는 `null`(마감일 해제) |

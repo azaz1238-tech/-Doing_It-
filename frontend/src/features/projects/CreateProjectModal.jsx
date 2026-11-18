@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import Button from "../../core/ui/Button";
 import Input from "../../core/ui/Input";
 import Modal from "../../core/ui/Modal";
@@ -26,6 +26,8 @@ export default function CreateProjectModal({ onClose, onCreated }) {
   const [nameTouched, setNameTouched] = useState(false);
   const [serverErrors, setServerErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  // 빠르게 두 번 누르면 submitting이 바뀌기 전에 두 번째 제출이 들어온다 → ref로 바로 막는다(이슈 #48).
+  const submittingRef = useRef(false);
 
   const nameLength = countChars(form.name.trim());
   const nameValid = nameLength >= 1 && nameLength <= NAME_MAX;
@@ -49,10 +51,12 @@ export default function CreateProjectModal({ onClose, onCreated }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!nameValid || !periodValid || submitting) {
+    if (submittingRef.current) return;
+    if (!nameValid || !periodValid) {
       setNameTouched(true);
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const project = await createProject({
@@ -73,6 +77,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
       } else {
         toast.error(body?.message ?? "잠시 후 다시 시도해 주세요");
       }
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

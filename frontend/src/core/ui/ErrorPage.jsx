@@ -1,10 +1,10 @@
 import { Link } from "react-router";
-import { CompassIcon, ShieldAlertIcon } from "./icons";
+import { CompassIcon, ShieldIcon } from "./icons";
 
 // 문구는 UI-DESIGN S8 표(v1.6, 시안 Figma와 같음)를 따른다. 403 제목은 SPEC PRJ-07-a 따옴표 문구.
 const DEFAULTS = {
   403: {
-    icon: ShieldAlertIcon,
+    icon: ShieldIcon,
     title: "접근 권한이 없습니다",
     description: "프로젝트 OWNER에게 멤버 추가를 요청해 주세요",
   },
@@ -30,9 +30,9 @@ export default function ErrorPage({ type = "404", title, description }) {
   const base = DEFAULTS[type] ?? DEFAULTS[404];
   const Icon = base.icon;
   return (
-    // 모양은 EmptyState(page)와 같고, 제목 위 숫자만 더한다.
+    // 모양은 EmptyState(page)와 같고, 제목 위 숫자만 더한다. 아이콘 상자는 시안 S8대로 회색(EmptyState는 파랑).
     <div className="flex flex-col items-center px-4 py-16 text-center">
-      <div className="mb-5 flex size-16 items-center justify-center rounded-xl bg-primary-soft text-primary">
+      <div className="mb-5 flex size-16 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500">
         <Icon size={28} />
       </div>
       <p className="mb-1 text-xs font-semibold tracking-widest text-neutral-400">

@@ -97,7 +97,7 @@
 | `CalendarIcon` | 기간·날짜 입력 |
 | `EyeIcon` / `EyeOffIcon` | 비밀번호 보기·숨기기 |
 | `LoaderIcon` | Button 로딩 (회전) |
-| `ShieldAlertIcon` / `CompassIcon` | S8 ErrorPage 403 / 404 (시안 방패·나침반, T-F0-14) |
+| `ShieldIcon` / `CompassIcon` | S8 ErrorPage 403 / 404 (시안 빈 방패·나침반, 회색 상자, T-F0-14) |
 
 공통 props: `size`(기본 16), `className`(색은 `text-*`로 지정). 화면 읽기 프로그램에서는 숨겨진다(`aria-hidden`).
 
@@ -352,7 +352,7 @@ UI-DESIGN §3.2. 데이터는 받아서 그리기만 한다. S4·S7이 `getProje
 
 ### 3.15 ErrorPage — `core/ui/ErrorPage.jsx` (T-F0-14)
 
-UI-DESIGN S8(v1.6), NFR-09. 컴포넌트 1개에 문구만 바꿔 쓴다. TopBar는 AppLayout이 그리고, 본문에 아이콘 + 제목 위 작은 숫자(`403`/`404`) + 제목 + 설명 + `프로젝트 목록으로` 버튼을 그린다(시안 S8, 모양은 EmptyState page와 같음).
+UI-DESIGN S8(v1.6), NFR-09. 컴포넌트 1개에 문구만 바꿔 쓴다. TopBar는 AppLayout이 그리고, 본문에 아이콘 + 제목 위 작은 숫자(`403`/`404`) + 제목 + 설명 + `프로젝트 목록으로` 버튼을 그린다(시안 S8, 배치는 EmptyState page와 같고 아이콘 상자만 회색 `bg-neutral-100 text-neutral-500`).
 
 | props | 설명 |
 | --- | --- |

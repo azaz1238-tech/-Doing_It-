@@ -481,3 +481,21 @@ def test_patch_description_2001_chars_422(client, team):
 
     assert res.status_code == 422
     assert res.json()["errors"][0]["field"] == "description"
+
+
+def test_create_description_2000_emoji_saved_201(client, team):
+    """경계값을 DB까지: 4바이트 글자로 꽉 채워도(8,000바이트) TEXT 한도 안이라 저장된다.
+
+    #15의 이유(한도 초과 500 방지)를 직접 확인한다. 2000자는 글자 수 기준.
+    """
+    description = "😀" * 2000
+
+    res = client.post(
+        _tasks_url(team["project_id"]),
+        headers=_auth(team["owner"]),
+        json={"title": "t", "description": description},
+    )
+
+    assert res.status_code == 201
+    saved = client.get(_task_url(res.json()["id"]), headers=_auth(team["owner"]))
+    assert saved.json()["description"] == description

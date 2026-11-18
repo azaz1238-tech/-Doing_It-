@@ -103,13 +103,7 @@ function Settings({ projectId }) {
   // S8 안내 화면. PRJ-07-a: 비멤버에게는 프로젝트 이름도 보이지 않는다(헤더를 그리지 않음).
   if (pageError === "403") return <ErrorPage type="403" />;
   if (pageError === "404")
-    return (
-      <ErrorPage
-        type="404"
-        title="프로젝트를 찾을 수 없습니다"
-        description="삭제되었거나 주소가 올바르지 않습니다"
-      />
-    );
+    return <ErrorPage type="404" title="프로젝트를 찾을 수 없습니다" />;
 
   // 화면 편의용 구분. 실제 권한은 백엔드가 판단한다.
   const isOwner = project?.my_role === "OWNER";

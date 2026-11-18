@@ -24,3 +24,13 @@ export async function getProject(projectId) {
   const { data } = await client.get(`/projects/${projectId}`);
   return data; // Project
 }
+
+// 멤버 목록 (PRJ-07, API-SPEC §5.3). OWNER 먼저 → joined_at → id 순.
+// S4 헤더 아바타 묶음·담당자 선택지(S5)·S7 멤버 목록이 같이 쓴다. 화면은 size=100.
+// 비멤버 403 NOT_PROJECT_MEMBER, 없으면 404 PROJECT_NOT_FOUND
+export async function listMembers(projectId, { page = 1, size = 100 } = {}) {
+  const { data } = await client.get(`/projects/${projectId}/members`, {
+    params: { page, size },
+  });
+  return data; // { items: Member[], total, page, size }
+}

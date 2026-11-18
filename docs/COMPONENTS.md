@@ -26,7 +26,7 @@
 | PriorityBadge | `features/tasks/PriorityBadge.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | StatusSelect | `features/tasks/StatusSelect.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | DueLabel | `features/tasks/DueLabel.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
-| ProjectHeader | `features/projects` | 최진영 | 미착수 (11/18 오전) | S4, S7 |
+| ProjectHeader | `features/projects/ProjectHeader.jsx` | 최진영 | 완료 (11/18, S4·S7 연결 전) | S4, S7 |
 | MemberSelect | `features/projects/MemberSelect.jsx` | 김서현 | 완료 (T-F2-12에서 기본형) | S5, S6 |
 | TaskCard | `features/tasks/TaskCard.jsx` | 김서현 | 완료 (T-F2-10, 목 데이터) | S4 |
 | TaskFormModal | `features/tasks/TaskFormModal.jsx` | 김서현 | 완료 (T-F2-12, 목 데이터) | S5 |
@@ -323,6 +323,31 @@ if (loading) return <SkeletonList count={3} className="sm:grid-cols-2 lg:grid-co
 ```
 
 - "오늘"은 `core/utils/date.js`의 `todayKst()`(한국 날짜, API-SPEC §1.6). 브라우저 시간대를 쓰지 않는다.
+
+### 3.14 ProjectHeader — `features/projects/ProjectHeader.jsx` (PRJ-07)
+
+UI-DESIGN §3.2. 데이터는 받아서 그리기만 한다. S4·S7이 `getProject`·`listMembers`(`features/projects/api.js`)를 한 번 불러 넘긴다.
+
+| props | 설명 |
+| --- | --- |
+| `project` | Project 응답. `null`이면 스켈레톤 |
+| `members` | Member 목록(`listMembers(...).items`). 없거나 비면 아바타 묶음을 그리지 않는다 |
+| `active` | `"board"` \| `"settings"` — 선택된 탭 |
+| `actions` | 오른쪽 버튼 자리(선택). S4는 `+ 업무 추가` |
+
+```jsx
+<ProjectHeader
+  project={project}
+  members={members}
+  active="board"
+  actions={<Button onClick={openForm}><PlusIcon />업무 추가</Button>}
+/>
+```
+
+- `프로젝트 ›`는 S3(`/projects`)로 간다. 기간이 없으면 `기간 없음`(S3 카드와 같음).
+- 멤버 아바타는 최대 4개 + `+n`, 누르면 S7로 간다. Member의 `user_id`를 Avatar의 `id`로 바꿔 넘긴다.
+- 탭은 `보드`·`설정` 2개이고 모든 멤버에게 보인다. 선택 탭은 `active`로 정한다(NavLink 자동 판단은 S6 주소 `/projects/:id/tasks/:taskId`에서 보드 탭이 꺼져서 쓰지 않는다).
+- 진행률 바(DASH-01)는 P1. 지금은 자리만 비워 둔다.
 
 ## 4. 남은 일
 

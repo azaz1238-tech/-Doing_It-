@@ -11,6 +11,7 @@ import { useToast } from "../../core/ui/useToast";
 import DueLabel from "../tasks/DueLabel";
 import PriorityBadge from "../tasks/PriorityBadge";
 import StatusSelect from "../tasks/StatusSelect";
+import ProjectHeader from "../projects/ProjectHeader";
 
 /**
  * 공통 컴포넌트 미리보기 — 개발 서버에서만 열린다(/dev/components, App.jsx).
@@ -61,6 +62,19 @@ const USERS = [
   { id: 3, name: "박서연" },
   { id: 4, name: "최현우" },
 ];
+
+// ProjectHeader 예시 — 멤버 6명이면 아바타 4개 + "+2"
+const PREVIEW_PROJECT = {
+  id: 1,
+  name: "백엔드 MVP",
+  start_date: "2026-11-10",
+  end_date: "2026-11-19",
+};
+const PREVIEW_MEMBERS = [
+  ...USERS,
+  { id: 5, name: "정하늘" },
+  { id: 6, name: "한도윤" },
+].map((u) => ({ user_id: u.id, name: u.name }));
 
 function Section({ title, children }) {
   return (
@@ -198,6 +212,28 @@ export default function ComponentPreviewPage() {
               />
             ))}
           </div>
+        </div>
+      </Section>
+
+      <Section title="ProjectHeader (features/projects · S4·S7)">
+        <div className="grid gap-8">
+          <ProjectHeader
+            project={PREVIEW_PROJECT}
+            members={PREVIEW_MEMBERS}
+            active="board"
+            actions={
+              <Button>
+                <Icons.PlusIcon />
+                업무 추가
+              </Button>
+            }
+          />
+          <ProjectHeader
+            project={{ ...PREVIEW_PROJECT, start_date: null, end_date: null }}
+            members={PREVIEW_MEMBERS.slice(0, 2)}
+            active="settings"
+          />
+          <ProjectHeader project={null} active="board" />
         </div>
       </Section>
 

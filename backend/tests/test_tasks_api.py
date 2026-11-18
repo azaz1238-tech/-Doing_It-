@@ -1,10 +1,10 @@
-"""업무 API 테스트 (T-F2-07~09, API-SPEC §5.4·§10).
+"""업무 API 테스트 (T-F2-07~09·T-F3-04, API-SPEC §5.4·§10).
 
 §10 필수: 등록 201 + CREATED 이력 1건, 제목 31자 422, 상태+담당자 동시 변경 시 이력 2건,
 DONE 전환 시 completed_at 기록·해제, 삭제 후 이력 task_id NULL 유지, 비멤버 업무 조회 403,
 MEMBER의 타인 업무 수정·삭제 403, 담당자 상태 변경 성공·다른 필드 403,
-작성자도 담당자도 아닌 MEMBER의 상태 변경 403, 토큰 없이 잘못된 본문 401.
-비멤버 담당자 400(ASSIGNEE_NOT_MEMBER)은 T-F3-04에서 추가한다.
+작성자도 담당자도 아닌 MEMBER의 상태 변경 403, 토큰 없이 잘못된 본문 401,
+비멤버 담당자 400(ASSIGNEE_NOT_MEMBER, 맨 아래).
 
 API가 쓴 데이터를 db 픽스처로 읽기 전에는 db.rollback()으로 트랜잭션을 끝낸다
 (REPEATABLE READ라 열린 트랜잭션은 새 행을 못 본다).
@@ -394,6 +394,48 @@ def test_patch_empty_body_by_other_member_403(client, team):
     """작성자도 담당자도 아닌 MEMBER는 {}여도 수정 권한이 없다."""
     res = client.patch(
         _task_url(team["task_id"]), headers=_auth(team["other"]), json={}
+    )
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "FORBIDDEN"
+
+
+# --- 담당자 = 프로젝트 멤버 (T-F3-04, TASK-03, §10 "비멤버 담당자 400") ---
+
+ASSIGNEE_ERROR = {
+    "code": "ASSIGNEE_NOT_MEMBER",
+    "message": "담당자는 프로젝트 멤버여야 합니다",
+}
+
+
+def test_create_non_member_assignee_400(client, team):
+    res = client.post(
+        _tasks_url(team["project_id"]),
+        headers=_auth(team["owner"]),
+        json={"title": "t", "assignee_id": team["outsider"].id},
+    )
+
+    assert res.status_code == 400
+    assert res.json() == ASSIGNEE_ERROR
+
+
+def test_patch_non_member_assignee_400(client, team):
+    res = client.patch(
+        _task_url(team["task_id"]),
+        headers=_auth(team["owner"]),
+        json={"assignee_id": team["outsider"].id},
+    )
+
+    assert res.status_code == 400
+    assert res.json() == ASSIGNEE_ERROR
+
+
+def test_assignee_sends_assignee_id_403_not_400(client, team):
+    """검사 순서 403 → 400 (API-SPEC §1.5): 권한이 없으면 담당자 검사까지 가지 않는다."""
+    res = client.patch(
+        _task_url(team["task_id"]),
+        headers=_auth(team["assignee"]),
+        json={"assignee_id": team["outsider"].id},
     )
 
     assert res.status_code == 403

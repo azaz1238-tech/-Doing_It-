@@ -69,10 +69,5 @@ export function getDueInfo(dueDate, today) {
   };
 }
 
-/**
- * 글자 수 — 서버(Python `len`)와 같게 유니코드 코드 포인트로 센다.
- * JS의 `str.length`는 이모지 하나를 2로 세서 서버가 받는 제목(예: 😀 16개)을 화면이 막는다.
- */
-export function charCount(text) {
-  return [...text].length;
-}
+// 글자 수 — 서버(Python `len`)와 같게 코드 포인트로 센다. 구현은 공통 유틸 하나만 둔다(#49).
+export { countChars as charCount } from "../../core/utils/text";

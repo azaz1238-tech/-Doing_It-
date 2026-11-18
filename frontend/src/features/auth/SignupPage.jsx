@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import Button from "../../core/ui/Button";
 import Input from "../../core/ui/Input";
 import { useToast } from "../../core/ui/useToast";
+import { countChars } from "../../core/utils/text"; // 서버(Python len)와 같게 — 이모지도 1자
 import { signup } from "./api";
 
 // S2 회원가입 — AUTH-01, AUTH-03 · US-01 · UI-DESIGN S2 (모양은 시안 v0.3, 문구는 명세)
@@ -10,9 +11,6 @@ import { signup } from "./api";
 //   아이디 영문 소문자·숫자 4~20자 / 비밀번호 8~64자 + UTF-8 72바이트 이하 / 이름 앞뒤 공백 제거 후 1~50자
 const LOGIN_ID_PATTERN = /^[a-z0-9]{4,20}$/;
 const PASSWORD_MAX_BYTES = 72; // bcrypt 한계. 한글은 1자 = 3바이트
-
-// 글자 수는 서버(Python len)와 같게 센다. 문자열 .length는 이모지 같은 글자를 2로 센다.
-const countChars = (value) => [...value].length;
 
 // 오류 문구는 백엔드 422 문구와 똑같이 쓴다 (schemas/auth.py, core/exceptions.py).
 // 검사 순서도 백엔드와 같다: 비밀번호는 길이를 먼저 보고, 길이가 맞을 때만 바이트를 본다.

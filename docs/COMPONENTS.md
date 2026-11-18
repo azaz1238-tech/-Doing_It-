@@ -22,6 +22,7 @@
 | EmptyState | `core/ui/EmptyState.jsx` | 최진영 | 완료 | S3, S4 |
 | Skeleton | `core/ui/Skeleton.jsx` | 최진영 | 완료 | S3, S4, S6 |
 | 날짜 유틸 | `core/utils/date.js` | 김서현·최진영 | 완료 (T-F0-13 DueLabel용, T-F2-05 `formatPeriod` 기간 표시) | 카드, 상세, S3 카드, S4 헤더 |
+| 글자 수 유틸 | `core/utils/text.js` | 최진영 | 완료 (#49 `countChars` — 서버 Python `len`과 같게 코드 포인트로 셈) | Input `maxCount`, S2·S3·S5·S6·S7 입력 검증 |
 | ErrorPage (403·404) | `core/ui/ErrorPage.jsx` | 김서현 | 완료 (T-F0-14) | S8 |
 | PriorityBadge | `features/tasks/PriorityBadge.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
 | StatusSelect | `features/tasks/StatusSelect.jsx` | 김서현 | 완료 (T-F0-13) | 카드, 상세 |
@@ -131,7 +132,7 @@
 | `error` | 오류 문구. 있으면 빨간 테두리 + `aria-invalid` |
 | `success` | 성공 문구, 앞에 ✓ (예: `사용할 수 있습니다`). `error`가 있으면 숨김 |
 | `hint` | 오류·성공 문구가 없을 때 보이는 도움말 |
-| `maxCount` | 오른쪽에 글자 수 `6/30` 표시, 넘으면 빨간색. 입력을 막지는 않는다(시안 S5의 `34/30`처럼 넘친 상태를 보여 줌) |
+| `maxCount` | 오른쪽에 글자 수 `6/30` 표시, 넘으면 빨간색. 입력을 막지는 않는다(시안 S5의 `34/30`처럼 넘친 상태를 보여 줌). 서버와 같게 앞뒤 공백을 빼고 이모지도 1자로 센다(`countChars`) |
 | `type="password"` | 오른쪽에 보기·숨기기 버튼(👁)이 붙는다 |
 | 그 외 | `value`, `onChange`, `ref` … `<input>`에 그대로 전달 |
 

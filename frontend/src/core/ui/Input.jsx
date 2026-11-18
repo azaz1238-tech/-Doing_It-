@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { cn } from "../utils/cn";
+import { countChars } from "../utils/text";
 import { CheckIcon, EyeIcon, EyeOffIcon } from "./icons";
 
 /**
@@ -12,6 +13,7 @@ import { CheckIcon, EyeIcon, EyeOffIcon } from "./icons";
  * @param {string} [success] 성공 문구 (예: "✓ 사용할 수 있습니다"). error가 있으면 보이지 않는다.
  * @param {string} [hint] 오류·성공 문구가 없을 때 보이는 도움말
  * @param {number} [maxCount] 글자 수 표시 (시안 S3·S5·S7: "6/30"). 넘으면 빨간색.
+ *   서버와 같게 앞뒤 공백을 빼고, 이모지도 1자로 센다.
  *   입력을 막지 않고 보여 주기만 한다 — 막으려면 maxLength를 따로 넘긴다.
  * type="password"면 오른쪽에 보기·숨기기 버튼이 붙는다.
  */
@@ -34,7 +36,8 @@ export default function Input({
   const [showPassword, setShowPassword] = useState(false);
 
   const isPassword = type === "password";
-  const length = String(rest.value ?? "").length;
+  // 서버 검증과 같게 앞뒤 공백을 빼고 코드 포인트로 센다(#49). maxCount를 쓰는 칸은 모두 서버가 trim하는 칸이다.
+  const length = countChars(String(rest.value ?? "").trim());
   const overCount = maxCount != null && length > maxCount;
   const message = error || success || hint;
   const hasRightSlot = isPassword || maxCount != null;

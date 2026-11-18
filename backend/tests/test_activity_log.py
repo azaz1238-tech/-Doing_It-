@@ -15,7 +15,7 @@ API가 쓴 데이터를 db 픽스처로 읽기 전에는 db.rollback()으로 트
 """
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.models import TaskActivity
 from core.security import create_access_token
@@ -27,10 +27,10 @@ def _auth(user) -> dict:
 
 
 def _rows(db) -> list[tuple]:
-    """(action, field, old_value, new_value) 목록, 기록 순서대로."""
+    """(action, field, old_value, new_value, user_id=변경자) 목록, 기록 순서대로."""
     db.rollback()
     return [
-        (r.action, r.field, r.old_value, r.new_value)
+        (r.action, r.field, r.old_value, r.new_value, r.user_id)
         for r in db.scalars(select(TaskActivity).order_by(TaskActivity.id))
     ]
 
@@ -83,7 +83,7 @@ def _patch(ctx, user_key: str, body: dict):
 
 
 def test_create_records_one_created(ctx, db):
-    assert _rows(db) == [("CREATED", None, None, None)]
+    assert _rows(db) == [("CREATED", None, None, None, ctx["author"].id)]
 
 
 # --- 항목 하나씩 변경 → UPDATED 1행 ---
@@ -94,8 +94,6 @@ def test_create_records_one_created(ctx, db):
     [
         ({"status": "IN_PROGRESS"}, ("status", "TODO", "IN_PROGRESS")),
         ({"status": "DONE"}, ("status", "TODO", "DONE")),
-        ({"assignee_id": "other"}, ("assignee_id", "assignee", "other")),
-        ({"assignee_id": None}, ("assignee_id", "assignee", None)),
         ({"due_date": "2026-11-25"}, ("due_date", "2026-11-20", "2026-11-25")),
         ({"due_date": None}, ("due_date", "2026-11-20", None)),
         ({"priority": "URGENT"}, ("priority", "MEDIUM", "URGENT")),
@@ -103,26 +101,40 @@ def test_create_records_one_created(ctx, db):
     ids=[
         "status",
         "status-done",
-        "assignee",
-        "assignee-clear",
         "due",
         "due-clear",
         "priority",
     ],
 )
 def test_single_field_change_one_row(ctx, db, body, expected):
-    def user_id(value):
-        # 테스트 표에는 사람 이름 키를 쓰고, 실행할 때 실제 id로 바꾼다
-        return str(ctx[value].id) if value in ("assignee", "other") else value
-
-    if body.get("assignee_id") == "other":
-        body = {"assignee_id": ctx["other"].id}
-    field, old, new = expected
-
     res = _patch(ctx, "owner", body)
 
     assert res.status_code == 200
-    assert _updated(db) == [("UPDATED", field, user_id(old), user_id(new))]
+    assert _updated(db) == [("UPDATED", *expected, ctx["owner"].id)]
+
+
+def test_assignee_change_one_row(ctx, db):
+    res = _patch(ctx, "owner", {"assignee_id": ctx["other"].id})
+
+    assert res.status_code == 200
+    assert _updated(db) == [
+        (
+            "UPDATED",
+            "assignee_id",
+            str(ctx["assignee"].id),
+            str(ctx["other"].id),
+            ctx["owner"].id,
+        )
+    ]
+
+
+def test_assignee_clear_one_row(ctx, db):
+    res = _patch(ctx, "owner", {"assignee_id": None})
+
+    assert res.status_code == 200
+    assert _updated(db) == [
+        ("UPDATED", "assignee_id", str(ctx["assignee"].id), None, ctx["owner"].id)
+    ]
 
 
 def test_all_four_changed_four_rows_in_order(ctx, db):
@@ -139,11 +151,18 @@ def test_all_four_changed_four_rows_in_order(ctx, db):
 
     assert res.status_code == 200
     # 보낸 순서와 상관없이 status → assignee_id → due_date → priority
+    owner_id = ctx["owner"].id
     assert _updated(db) == [
-        ("UPDATED", "status", "TODO", "IN_PROGRESS"),
-        ("UPDATED", "assignee_id", str(ctx["assignee"].id), str(ctx["other"].id)),
-        ("UPDATED", "due_date", "2026-11-20", None),
-        ("UPDATED", "priority", "MEDIUM", "LOW"),
+        ("UPDATED", "status", "TODO", "IN_PROGRESS", owner_id),
+        (
+            "UPDATED",
+            "assignee_id",
+            str(ctx["assignee"].id),
+            str(ctx["other"].id),
+            owner_id,
+        ),
+        ("UPDATED", "due_date", "2026-11-20", None, owner_id),
+        ("UPDATED", "priority", "MEDIUM", "LOW", owner_id),
     ]
 
 
@@ -178,18 +197,21 @@ def test_same_assignee_no_row(ctx, db):
     [
         ("other", {"status": "DONE"}, 403),  # 권한 없음
         ("assignee", {"status": "DONE", "priority": "HIGH"}, 403),  # 담당자 범위 밖
-        ("owner", {"assignee_id": "outsider", "status": "DONE"}, 400),  # 비멤버 담당자
         ("owner", {"status": "DOING"}, 422),  # 입력 검증
     ],
-    ids=["403-other", "403-assignee-scope", "400-assignee", "422"],
+    ids=["403-other", "403-assignee-scope", "422"],
 )
 def test_rejected_update_no_row(ctx, db, user_key, body, status_code):
-    if body.get("assignee_id") == "outsider":
-        body = {**body, "assignee_id": ctx["outsider"].id}
-
     res = _patch(ctx, user_key, body)
 
     assert res.status_code == status_code
+    assert _updated(db) == []
+
+
+def test_non_member_assignee_rejected_no_row(ctx, db):
+    res = _patch(ctx, "owner", {"assignee_id": ctx["outsider"].id, "status": "DONE"})
+
+    assert res.status_code == 400
     assert _updated(db) == []
 
 
@@ -197,17 +219,19 @@ def test_rejected_update_no_row(ctx, db, user_key, body, status_code):
 
 
 def test_delete_records_deleted_and_keeps_history(ctx, db):
-    _patch(ctx, "owner", {"status": "IN_PROGRESS"})  # UPDATED 1행을 먼저 쌓는다
+    # UPDATED 1행을 먼저 쌓는다
+    assert _patch(ctx, "owner", {"status": "IN_PROGRESS"}).status_code == 200
 
     res = ctx["client"].delete(
         f"/api/tasks/{ctx['task_id']}", headers=_auth(ctx["author"])
     )
 
     assert res.status_code == 204
+    author_id, owner_id = ctx["author"].id, ctx["owner"].id
     assert _rows(db) == [
-        ("CREATED", None, None, None),
-        ("UPDATED", "status", "TODO", "IN_PROGRESS"),
-        ("DELETED", None, "원래 제목", None),
+        ("CREATED", None, None, None, author_id),
+        ("UPDATED", "status", "TODO", "IN_PROGRESS", owner_id),
+        ("DELETED", None, "원래 제목", None, author_id),  # 삭제한 사람 = 작성자
     ]
     # 업무가 지워져도 이력은 모두 남고 task_id만 NULL (CONSTITUTION 8-3)
     assert all(
@@ -232,7 +256,8 @@ def test_member_removal_unassigns_each_task_with_row(ctx, db):
         headers=_auth(ctx["owner"]),
         json={"title": "남의 업무", "assignee_id": ctx["other"].id},
     ).json()
-    before = len(_rows(db))
+    db.rollback()
+    last_id = db.scalar(select(func.max(TaskActivity.id)))  # 제거 전 마지막 이력
 
     res = client.delete(
         f"/api/projects/{project_id}/members/{ctx['assignee'].id}",
@@ -242,7 +267,11 @@ def test_member_removal_unassigns_each_task_with_row(ctx, db):
     assert res.status_code == 204
     db.rollback()
     new_rows = list(
-        db.scalars(select(TaskActivity).order_by(TaskActivity.id).offset(before))
+        db.scalars(
+            select(TaskActivity)
+            .where(TaskActivity.id > last_id)
+            .order_by(TaskActivity.id)
+        )
     )
     assert [
         (r.task_id, r.action, r.field, r.old_value, r.new_value, r.user_id)

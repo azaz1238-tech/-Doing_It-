@@ -129,9 +129,8 @@ def update_task(db: Session, user: User, task_id: int, data: TaskUpdate) -> Task
     task, member = _task_with_member(db, user, task_id)
     fields = data.model_fields_set
     require_task_edit(member, task, fields)  # 403이면 아무것도 바꾸지 않는다
-    if (
-        "assignee_id" in fields
-    ):  # 보낸 경우만, 값 반영 전에 검사(400이면 아무것도 안 바뀜)
+    # 담당자를 보낸 경우만, 값 반영 전에 검사 → 400이면 아무것도 안 바뀜
+    if "assignee_id" in fields:
         _require_assignee_member(db, task.project_id, data.assignee_id)
 
     before = activity_service.snapshot(task)

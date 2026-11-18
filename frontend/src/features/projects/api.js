@@ -47,3 +47,19 @@ export async function updateProject(projectId, patch) {
 export async function deleteProject(projectId) {
   await client.delete(`/projects/${projectId}`);
 }
+
+// 멤버 추가 (PRJ-04, OWNER). login_id는 서버가 소문자로 바꿔 찾는다.
+// 404 USER_NOT_FOUND "해당 아이디의 회원이 없습니다", 409 ALREADY_MEMBER "이미 프로젝트 멤버입니다", MEMBER 403 FORBIDDEN
+export async function addMember(projectId, { loginId, role }) {
+  const { data } = await client.post(`/projects/${projectId}/members`, {
+    login_id: loginId,
+    role,
+  });
+  return data; // Member
+}
+
+// 멤버 제거 (PRJ-05, OWNER). 담당하던 업무는 "담당자 없음"이 되고 이력이 남는다(서버가 한 트랜잭션으로).
+// 400 LAST_OWNER, 404 MEMBER_NOT_FOUND, MEMBER 403 FORBIDDEN. 응답 204
+export async function removeMember(projectId, userId) {
+  await client.delete(`/projects/${projectId}/members/${userId}`);
+}

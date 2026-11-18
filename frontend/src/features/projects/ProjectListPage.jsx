@@ -8,6 +8,7 @@ import { useToast } from "../../core/ui/useToast";
 import { cn } from "../../core/utils/cn";
 import { formatPeriod } from "../../core/utils/date";
 import { listProjects } from "./api";
+import { ROLE_STYLES } from "./projectRules";
 import CreateProjectModal from "./CreateProjectModal";
 
 // S3 프로젝트 목록 — PRJ-01, PRJ-02 · US-05, 06 · UI-DESIGN S3 (모양은 시안 v0.3, 문구는 명세)
@@ -108,11 +109,6 @@ export default function ProjectListPage() {
     </div>
   );
 }
-
-const ROLE_STYLES = {
-  OWNER: "bg-primary-soft text-primary",
-  MEMBER: "bg-neutral-100 text-neutral-600",
-};
 
 // 카드: 이름·기간·내 역할 (PRJ-02-a). 누르면 칸반(S4)
 function ProjectCard({ project }) {

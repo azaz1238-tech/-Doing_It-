@@ -29,7 +29,8 @@
 | ProjectHeader | `features/projects/ProjectHeader.jsx` | 최진영 | 완료 (11/18, S4·S7 연결 전) | S4, S7 |
 | MemberSelect | `features/projects/MemberSelect.jsx` | 김서현 | 완료 (T-F2-12에서 기본형) | S5, S6 |
 | TaskCard | `features/tasks/TaskCard.jsx` | 김서현 | 완료 (T-F2-10, 목 데이터) | S4 |
-| TaskFormModal | `features/tasks/TaskFormModal.jsx` | 김서현 | 완료 (T-F2-12, 목 데이터) | S5 |
+| TaskFormModal | `features/tasks/TaskFormModal.jsx` | 김서현 | 완료 (T-F2-12, API 연결 T-F2-11) | S5 |
+| TaskDetailModal | `features/tasks/TaskDetailModal.jsx` | 김서현 | 완료 (T-F2-13) | S6 |
 
 - **상태 뜻:** 완료 = 코드가 있고 린트·빌드 통과 / 미착수 = 코드 없음.
 - **ErrorPage 담당:** TASKS.md(11/16 조 편성)대로 김서현이 맡는다(11/16 확인).

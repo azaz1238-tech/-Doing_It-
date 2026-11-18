@@ -33,6 +33,8 @@ export default function MemberSelect({
       <div className="relative">
         <select
           id={id}
+          // 라벨을 숨긴 곳(S6 속성 목록)에서도 화면 낭독기가 이름을 읽게 한다.
+          aria-label={label ? undefined : "담당자"}
           value={value ?? ""}
           disabled={disabled}
           aria-invalid={error ? true : undefined}

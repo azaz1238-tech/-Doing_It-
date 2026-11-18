@@ -26,6 +26,16 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // 뒤로 가기로 bfcache(브라우저가 얼려 둔 페이지)에서 돌아오면 React 상태가 그대로 살아 있다.
+  // 그 사이 로그아웃해 토큰이 없으면 user를 비워 보호 라우트가 로그인 화면으로 보내게 한다(AUTH-04-c, 이슈 #35).
+  useEffect(() => {
+    const handlePageShow = (event) => {
+      if (event.persisted && !tokenStorage.get()) setUser(null);
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   // 로그인 API 호출은 features/auth/api.js가 하고, 받은 토큰만 여기로 넘긴다.
   const login = useCallback(
     async (accessToken) => {

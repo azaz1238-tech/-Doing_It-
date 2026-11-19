@@ -144,6 +144,14 @@ function Board({ projectId }) {
       () => {},
     );
 
+  // 업무 수가 바뀌는 동작 뒤 → 프로젝트를 다시 받아 헤더 진행률을 갱신한다(DASH-01, T-F5-02).
+  // 실패해도 보드는 그대로 쓸 수 있으니 안내 없이 이전 값을 둔다.
+  const reloadProject = () =>
+    getProject(projectId).then(
+      (data) => setProject(data),
+      () => {},
+    );
+
   // "n개 더 보기": 다음 page를 불러와 이어 붙인다.
   const loadMore = async (status) => {
     const col = columns[status];
@@ -180,6 +188,7 @@ function Board({ projectId }) {
     try {
       await updateTask(task.id, { status: nextStatus });
       await Promise.all([loadColumn(prevStatus), loadColumn(nextStatus)]);
+      reloadProject();
       toast.success(
         `상태를 '${STATUSES[nextStatus].label}'${TO_PARTICLE[nextStatus]} 변경했습니다`,
       );
@@ -298,6 +307,7 @@ function Board({ projectId }) {
           onCreated={() => {
             setFormOpen(false);
             loadColumn("TODO");
+            reloadProject();
           }}
         />
       )}
@@ -310,7 +320,10 @@ function Board({ projectId }) {
           members,
           user,
           // 상세에서 바꾸면 어느 컬럼이 바뀌었는지 몰라도 되게 세 컬럼을 다시 불러온다.
-          onTaskChanged: () => COLUMN_ORDER.forEach(loadColumn),
+          onTaskChanged: () => {
+            COLUMN_ORDER.forEach(loadColumn);
+            reloadProject();
+          },
         }}
       />
     </div>

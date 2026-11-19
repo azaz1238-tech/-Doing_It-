@@ -452,3 +452,46 @@ def test_create_returns_zero_progress(client, db):
     res = client.post(URL, headers=_auth(make_user(db)), json={"name": "p"})
 
     assert res.json()["progress"] == {"total": 0, "done": 0, "percent": 0}
+
+
+# --- description 최대 2000자 (API-SPEC v1.3, SPEC-CHANGELOG #15, 이슈 #73) ---
+
+
+def test_create_description_2001_chars_422(client, db):
+    """넘으면 500이 아니라 422 (예전에는 DB 한도 초과로 500)."""
+    res = client.post(
+        URL,
+        headers=_auth(make_user(db)),
+        json={"name": "p", "description": "가" * 2001},
+    )
+
+    assert res.status_code == 422
+    assert res.json()["errors"] == [
+        {"field": "description", "message": "2000자 이하로 입력해 주세요"}
+    ]
+    assert db.scalar(select(func.count()).select_from(Project)) == 0
+
+
+def test_update_description_2001_chars_422(client, db):
+    owner, project = _project_with_period(db)
+
+    res = client.patch(
+        f"{URL}/{project.id}", headers=_auth(owner), json={"description": "a" * 2001}
+    )
+
+    assert res.status_code == 422
+    assert res.json()["errors"][0]["field"] == "description"
+
+
+def test_create_description_2000_emoji_saved_201(client, db):
+    """경계값을 DB까지: 4바이트 글자로 꽉 채워도(8,000바이트) TEXT 한도 안이라 저장된다."""
+    description = "😀" * 2000
+
+    res = client.post(
+        URL,
+        headers=_auth(make_user(db)),
+        json={"name": "p", "description": description},
+    )
+
+    assert res.status_code == 201
+    assert res.json()["description"] == description

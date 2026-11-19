@@ -90,6 +90,20 @@ class ProjectUpdate(_PeriodCheck):
         return value
 
 
+class ProgressOut(BaseModel):
+    """프로젝트 진행률 (DASH-01, API-SPEC §4). 업무가 없으면 0%."""
+
+    total: int = 0
+    done: int = 0
+    percent: int = 0
+
+    @classmethod
+    def of(cls, total: int, done: int) -> "ProgressOut":
+        # 반올림(0.5 올림) = DATABASE-DESIGN §8.3 ROUND. 정수 계산이라 오차 없음
+        percent = (200 * done + total) // (2 * total) if total else 0
+        return cls(total=total, done=done, percent=percent)
+
+
 class ProjectOut(BaseModel):
     """Project 객체 (API-SPEC §4). my_role은 요청한 사용자의 역할."""
 
@@ -99,11 +113,14 @@ class ProjectOut(BaseModel):
     start_date: date | None
     end_date: date | None
     my_role: ProjectRole
+    progress: ProgressOut
     created_at: UtcDatetime
     updated_at: UtcDatetime
 
     @classmethod
-    def of(cls, project: Project, role: str) -> "ProjectOut":
+    def of(
+        cls, project: Project, role: str, progress: ProgressOut | None = None
+    ) -> "ProjectOut":
         return cls(
             id=project.id,
             name=project.name,
@@ -111,6 +128,7 @@ class ProjectOut(BaseModel):
             start_date=project.start_date,
             end_date=project.end_date,
             my_role=role,
+            progress=progress or ProgressOut(),  # 새 프로젝트는 업무 0개
             created_at=project.created_at,
             updated_at=project.updated_at,
         )

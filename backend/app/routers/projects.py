@@ -30,10 +30,13 @@ def create_project(body: ProjectCreate, user: CurrentUser, db: DbSession) -> Pro
 def list_projects(
     user: CurrentUser, db: DbSession, params: Annotated[PageParams, Depends()]
 ) -> Page[ProjectOut]:
-    """내 프로젝트 목록 (PRJ-02). 내가 멤버인 것만, 최근 생성순."""
+    """내 프로젝트 목록 (PRJ-02). 내가 멤버인 것만, 최근 생성순. 진행률 포함 (DASH-01)."""
     rows, total = project_service.list_my_projects(db, user, params.offset, params.size)
+    progress = project_service.get_progress(db, [project.id for project, _ in rows])
     return Page(
-        items=[ProjectOut.of(project, role) for project, role in rows],
+        items=[
+            ProjectOut.of(project, role, progress[project.id]) for project, role in rows
+        ],
         total=total,
         page=params.page,
         size=params.size,
@@ -44,7 +47,8 @@ def list_projects(
 def get_project(project_id: int, user: CurrentUser, db: DbSession) -> ProjectOut:
     """프로젝트 상세 (PRJ-07). 멤버만 볼 수 있다."""
     project, role = project_service.get_project(db, user, project_id)
-    return ProjectOut.of(project, role)
+    progress = project_service.get_one_progress(db, project.id)
+    return ProjectOut.of(project, role, progress)
 
 
 @router.patch("/{project_id}", response_model=ProjectOut)
@@ -53,7 +57,8 @@ def update_project(
 ) -> ProjectOut:
     """프로젝트 수정 (PRJ-03). OWNER만. 보낸 필드만 바꾼다."""
     project, role = project_service.update_project(db, user, project_id, body)
-    return ProjectOut.of(project, role)
+    progress = project_service.get_one_progress(db, project.id)
+    return ProjectOut.of(project, role, progress)
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)

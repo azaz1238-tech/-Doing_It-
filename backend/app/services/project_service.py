@@ -3,12 +3,13 @@
 my_role은 Project 모델에 없어서 (Project, 역할) 짝으로 돌려주고, 응답 모양은 라우터가 만든다.
 """
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
-from app.models import Project, ProjectMember, User
-from app.models.enums import ProjectRole
+from app.models import Project, ProjectMember, Task, User
+from app.models.enums import ProjectRole, TaskStatus
 from app.schemas.project import (
+    ProgressOut,
     ProjectCreate,
     ProjectUpdate,
     is_period_valid,
@@ -86,3 +87,25 @@ def delete_project(db: Session, user: User, project_id: int) -> None:
     require_project_role(db, project_id, user, OWNER_ONLY)
     db.delete(db.get(Project, project_id))
     db.commit()
+
+
+def get_progress(db: Session, project_ids: list[int]) -> dict[int, ProgressOut]:
+    """프로젝트별 진행률 (DASH-01, DATABASE-DESIGN §8.3). 여러 개도 쿼리 1번.
+
+    권한 검사를 하지 않는다: 이미 권한을 확인한 프로젝트 id만 넘긴다.
+    """
+    if not project_ids:
+        return {}
+    done = func.sum(case((Task.status == TaskStatus.DONE, 1), else_=0))
+    rows = db.execute(
+        select(Task.project_id, func.count(Task.id), done)
+        .where(Task.project_id.in_(project_ids))
+        .group_by(Task.project_id)
+    ).all()
+    counted = {pid: ProgressOut.of(total, int(d)) for pid, total, d in rows}
+    # 업무가 없는 프로젝트는 GROUP BY 결과에 없다 → 0%
+    return {pid: counted.get(pid, ProgressOut()) for pid in project_ids}
+
+
+def get_one_progress(db: Session, project_id: int) -> ProgressOut:
+    return get_progress(db, [project_id])[project_id]

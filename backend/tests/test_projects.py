@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import func, select
 
 from app.models import Project, ProjectMember, Task, TaskActivity
-from app.models.enums import ActivityAction, ProjectRole
+from app.models.enums import ActivityAction, ProjectRole, TaskStatus
 from core.security import create_access_token
 from tests.factories import add_member, make_project, make_task, make_user
 
@@ -48,6 +48,7 @@ def test_create_201_creator_is_owner(client, db):  # PRJ-01-a
         "start_date",
         "end_date",
         "my_role",
+        "progress",  # DASH-01
         "created_at",
         "updated_at",
     }
@@ -390,6 +391,67 @@ def test_second_owner_can_delete(client, db):
     res = client.delete(f"{URL}/{project.id}", headers=_auth(co_owner))
 
     assert res.status_code == 204
+
+
+# --- 진행률 (DASH-01, T-F5-01) ---
+
+
+def _project_with_tasks(db, done: int, todo: int):
+    owner = make_user(db)
+    project = make_project(db, owner)
+    for _ in range(done):
+        make_task(db, project, owner, status=TaskStatus.DONE)
+    for _ in range(todo):
+        make_task(db, project, owner)
+    return owner, project
+
+
+def test_progress_list_and_detail_40_percent(client, db):  # DASH-01-a
+    owner, project = _project_with_tasks(db, done=4, todo=6)
+    expected = {"total": 10, "done": 4, "percent": 40}
+
+    listed = client.get(URL, headers=_auth(owner)).json()["items"][0]
+    detail = client.get(f"{URL}/{project.id}", headers=_auth(owner)).json()
+
+    assert listed["progress"] == expected
+    assert detail["progress"] == expected
+
+
+def test_progress_no_tasks_0_percent(client, db):  # DASH-01-a 예외
+    owner, project = _project_with_tasks(db, done=0, todo=0)
+
+    res = client.get(f"{URL}/{project.id}", headers=_auth(owner))
+
+    assert res.json()["progress"] == {"total": 0, "done": 0, "percent": 0}
+
+
+@pytest.mark.parametrize(
+    ("done", "todo", "percent"), [(1, 2, 33), (2, 1, 67), (1, 7, 13), (3, 0, 100)]
+)
+def test_progress_rounding(client, db, done, todo, percent):
+    owner, project = _project_with_tasks(db, done=done, todo=todo)
+
+    res = client.get(f"{URL}/{project.id}", headers=_auth(owner))
+
+    assert res.json()["progress"]["percent"] == percent
+
+
+def test_progress_counts_each_project_separately(client, db):
+    """목록에서 프로젝트끼리 섞이지 않는다 (한 쿼리로 묶어 셈)."""
+    owner, a = _project_with_tasks(db, done=1, todo=1)
+    b = make_project(db, owner)
+    make_task(db, b, owner, status=TaskStatus.DONE)
+
+    items = client.get(URL, headers=_auth(owner)).json()["items"]
+    by_id = {item["id"]: item["progress"]["percent"] for item in items}
+
+    assert by_id == {a.id: 50, b.id: 100}
+
+
+def test_create_returns_zero_progress(client, db):
+    res = client.post(URL, headers=_auth(make_user(db)), json={"name": "p"})
+
+    assert res.json()["progress"] == {"total": 0, "done": 0, "percent": 0}
 
 
 # --- description 최대 2000자 (API-SPEC v1.3, SPEC-CHANGELOG #15, 이슈 #73) ---

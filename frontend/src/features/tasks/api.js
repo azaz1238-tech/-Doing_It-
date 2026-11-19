@@ -2,10 +2,16 @@ import client from "../../core/api/client";
 
 // 업무 API (API-SPEC §5.4). 화면에서 axios를 직접 부르지 않는다(ARCHITECTURE §5).
 
-/** 칸반 컬럼 하나 — 컬럼(status)마다 1번씩 부른다. 정렬은 서버 정렬 그대로 */
-export async function listTasks(projectId, { status, page = 1, size = 20 }) {
+/**
+ * 칸반 컬럼 하나 — 컬럼(status)마다 1번씩 부른다. 정렬은 서버 정렬 그대로.
+ * 검색·필터(P1, TASK-07): q · assignee_id(`none` = 담당자 없음) · priority · due_from · due_to
+ */
+export async function listTasks(
+  projectId,
+  { status, page = 1, size = 20, ...filters },
+) {
   const { data } = await client.get(`/projects/${projectId}/tasks`, {
-    params: { status, page, size },
+    params: { ...filters, status, page, size },
   });
   return data; // { items: Task[], total, page, size }
 }

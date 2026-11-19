@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useOutletContext, useParams } from "react-router";
+import {
+  useLocation,
+  useNavigate,
+  useOutletContext,
+  useParams,
+} from "react-router";
 import Avatar from "../../core/ui/Avatar";
 import Button from "../../core/ui/Button";
 import ConfirmDialog from "../../core/ui/ConfirmDialog";
@@ -56,9 +61,11 @@ function TaskDetail({ taskId }) {
   // 삭제 확인을 빠르게 두 번 누르면 두 번째 DELETE가 404로 돌아온다 → ref로 바로 막는다(D7-01).
   const deletingRef = useRef(false);
 
+  // 닫아도 보드의 검색·필터(주소 쿼리)는 그대로 둔다(TASK-07).
+  const { search } = useLocation();
   const close = useCallback(
-    () => navigate(`/projects/${projectId}`),
-    [navigate, projectId],
+    () => navigate(`/projects/${projectId}${search}`),
+    [navigate, projectId, search],
   );
 
   // 업무 없음(삭제됐거나 잘못된 주소) → 안내 후 보드로. 비멤버 403은 보드가 안내 화면을 띄운다.

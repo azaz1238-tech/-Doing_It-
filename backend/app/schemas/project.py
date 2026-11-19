@@ -21,6 +21,9 @@ NAME_MAX = 30
 NAME_MESSAGE = "프로젝트 이름은 1~30자로 입력해 주세요"  # SPEC PRJ-01-b
 PERIOD_MESSAGE = "종료일은 시작일 이후여야 합니다"  # SPEC PRJ-01-c
 
+# 최대 2000자 (API-SPEC v1.3 §5.2, SPEC-CHANGELOG #15). 없으면 DB TEXT 한도 초과로 500.
+ProjectDescription = Annotated[str, StringConstraints(max_length=2000)]
+
 
 def _check_name_length(value: str) -> str:
     if not 1 <= len(value) <= NAME_MAX:
@@ -66,7 +69,7 @@ class ProjectCreate(_PeriodCheck):
     model_config = ConfigDict(extra="forbid")
 
     name: ProjectName
-    description: str | None = None
+    description: ProjectDescription | None = None
     start_date: date | None = None
     end_date: date | None = None
 
@@ -77,7 +80,7 @@ class ProjectUpdate(_PeriodCheck):
     model_config = ConfigDict(extra="forbid")
 
     name: ProjectName | None = None
-    description: str | None = None
+    description: ProjectDescription | None = None
     start_date: date | None = None
     end_date: date | None = None
 

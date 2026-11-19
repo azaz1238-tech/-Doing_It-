@@ -10,6 +10,7 @@ import { formatPeriod } from "../../core/utils/date";
 import { listProjects } from "./api";
 import { ROLE_STYLES } from "./projectRules";
 import CreateProjectModal from "./CreateProjectModal";
+import ProgressBar from "./ProgressBar";
 
 // S3 프로젝트 목록 — PRJ-01, PRJ-02 · US-05, 06 · UI-DESIGN S3 (모양은 시안 v0.3, 문구는 명세)
 const GRID = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"; // 데스크톱 3열 → 태블릿 2열 → 모바일 1열
@@ -138,8 +139,12 @@ function ProjectCard({ project }) {
         <CalendarIcon />
         {period || "기간 없음"}
       </p>
-      {/* P1 진행률(DASH-01) 자리 — P0에서는 비워 둔다. 나중에 막대를 넣어도 카드 높이가 바뀌지 않게 */}
-      <div className="h-8" aria-hidden="true" />
+      {/* 진행률 (DASH-01). 높이를 고정해 막대가 없어도(이전 API) 카드 높이가 같다 */}
+      <div className="flex h-8 items-center">
+        {project.progress && (
+          <ProgressBar progress={project.progress} className="w-full" />
+        )}
+      </div>
     </Link>
   );
 }

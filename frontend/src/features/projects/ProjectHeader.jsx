@@ -3,6 +3,7 @@ import Avatar from "../../core/ui/Avatar";
 import Skeleton from "../../core/ui/Skeleton";
 import { cn } from "../../core/utils/cn";
 import { formatPeriod } from "../../core/utils/date";
+import ProgressBar from "./ProgressBar";
 
 // 아바타 묶음에 보여 줄 최대 인원. 넘치면 +n (UI-DESIGN §3.2)
 const MAX_AVATARS = 4;
@@ -42,7 +43,13 @@ export default function ProjectHeader({ project, members, active, actions }) {
               {members?.length > 0 && (
                 <MemberStack projectId={project.id} members={members} />
               )}
-              {/* P1(DASH-01) 진행률 바 자리 — P0에서는 비워 둔다 */}
+              {/* 진행률 (DASH-01). 응답에 progress가 없으면(이전 API) 그리지 않는다 */}
+              {project.progress && (
+                <ProgressBar
+                  progress={project.progress}
+                  barClassName="w-[260px]"
+                />
+              )}
             </div>
           </div>
         ) : (

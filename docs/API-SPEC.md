@@ -1,6 +1,6 @@
 # API 명세서 (API-SPEC.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.5 (2026-11-19 §2 공통 오류 405 `METHOD_NOT_ALLOWED` 추가) · v1.4 (2026-11-18 §5.3 멤버 제거: 검사 순서와 `MEMBER_NOT_FOUND` 문구) · v1.3 (2026-11-18 §5.2·§5.4 프로젝트·업무 `description` 최대 2000자, 넘으면 422) · v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-19
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.6 (2026-11-19 §6 Activity `task_title`: 삭제된 업무는 `DELETED` 행만 삭제 전 제목, 나머지 행은 `null`) · v1.5 (2026-11-19 §2 공통 오류 405 `METHOD_NOT_ALLOWED` 추가) · v1.4 (2026-11-18 §5.3 멤버 제거: 검사 순서와 `MEMBER_NOT_FOUND` 문구) · v1.3 (2026-11-18 §5.2·§5.4 프로젝트·업무 `description` 최대 2000자, 넘으면 422) · v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-19
 > 근거: [CONSTITUTION.md](./CONSTITUTION.md) §6·§7·§8 · [REQUIREMENTS.md](./REQUIREMENTS.md) v1.0 · [USER-STORIES.md](./USER-STORIES.md) v1.0 · [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) v1.0
 > 상위 문서와 다르면 상위 문서를 따르고 이 문서를 고친다. API를 바꿀 때는 **이 문서를 먼저 수정**한다(CONSTITUTION 7-5).
 > 각 API에 근거 기능 ID와 우선순위를 표시한다. **P0 API부터 구현하고, P1·P2 API는 P0 게이트 통과 후에 만든다.**
@@ -450,7 +450,7 @@ Activity
   "created_at": "2026-11-12T01:00:00Z"
 }
 ```
-- `task_title`: 서버가 `tasks`에서 가져온다. 삭제된 업무(`task_id: null`)는 같은 업무의 `DELETED` 이력 `old_value`(삭제 전 제목)를 쓴다. 화면이 업무를 따로 조회하지 않아도 된다.
+- `task_title`: 서버가 `tasks`에서 가져온다. 화면이 업무를 따로 조회하지 않아도 된다. 삭제된 업무(`task_id: null`)는 `DELETED` 행만 자기 `old_value`(삭제 전 제목)를 쓰고, 그 업무의 다른 행(`CREATED`·`UPDATED`)은 `null`이다. 업무를 지우면 그 업무의 이력이 모두 `task_id = NULL`이 되어 어느 `DELETED` 행과 같은 업무인지 알 수 없기 때문이다. 화면은 `null`을 "삭제된 업무"로 보여 준다.
 - `old_assignee`·`new_assignee`: `field`가 `assignee_id`일 때만 넣고, 다른 필드는 생략한다. 저장된 id로 `users`를 조회해 UserBrief로 돌려준다. 사용자 행은 지우지 않으므로 멤버에서 제거된 사람도 이름이 나온다. 값이 NULL이면 `null`(담당자 없음).
 
 #### GET `/projects/{project_id}/stats/assignees` — 담당자별 현황 · DASH-02 · US-21

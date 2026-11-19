@@ -139,15 +139,27 @@ async def _validation_error_handler(
     return JSONResponse(status_code=422, content=body)
 
 
+# 명세(API-SPEC §2)에 코드가 있는 HTTP 오류만 공통 형식으로 바꾼다
+_HTTP_ERRORS = {
+    404: ("NOT_FOUND", "요청한 경로가 없습니다"),
+    405: ("METHOD_NOT_ALLOWED", "허용되지 않는 요청 방식입니다"),
+}
+
+
 async def _http_error_handler(
     request: Request, exc: StarletteHTTPException
 ) -> JSONResponse:
-    if exc.status_code == 404:
-        return JSONResponse(
-            status_code=404, content=_error_body("NOT_FOUND", "요청한 경로가 없습니다")
-        )
-    # 404 외(405 등)는 명세에 코드가 없어 FastAPI 기본 처리를 따른다
-    return await http_exception_handler(request, exc)
+    known = _HTTP_ERRORS.get(exc.status_code)
+    if known is None:
+        # 명세에 코드가 없는 상태는 FastAPI 기본 처리를 따른다
+        return await http_exception_handler(request, exc)
+    code, message = known
+    # 405의 Allow 헤더를 잃지 않도록 exc.headers를 그대로 넘긴다
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=_error_body(code, message),
+        headers=exc.headers,
+    )
 
 
 async def _unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:

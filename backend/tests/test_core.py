@@ -216,6 +216,18 @@ def test_unknown_path_404(client):
     assert res.json() == {"code": "NOT_FOUND", "message": "요청한 경로가 없습니다"}
 
 
+def test_wrong_method_405(client):
+    # /items는 GET·POST만 있다 (API-SPEC §2, SPEC-CHANGELOG #19)
+    res = client.delete("/items")
+    assert res.status_code == 405
+    assert res.json() == {
+        "code": "METHOD_NOT_ALLOWED",
+        "message": "허용되지 않는 요청 방식입니다",
+    }
+    # Allow 헤더가 유지된다 (Starlette는 처음 맞은 경로의 메서드만 적는다)
+    assert res.headers["allow"]
+
+
 def test_unhandled_error_500_hides_detail(client):
     res = client.get("/errors/500")
     assert res.status_code == 500

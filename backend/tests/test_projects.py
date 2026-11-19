@@ -195,6 +195,16 @@ def test_detail_not_found_404(client, db):
     assert res.json()["code"] == "PROJECT_NOT_FOUND"
 
 
+@pytest.mark.parametrize("method", ["get", "patch", "delete"])
+def test_detail_update_delete_without_token_401(client, method):
+    # 검사 순서 401 → 404: 없는 프로젝트여도 토큰이 없으면 401 (D8-02)
+    kwargs = {"json": {"name": "x"}} if method == "patch" else {}
+    res = getattr(client, method)(f"{URL}/999999", **kwargs)
+
+    assert res.status_code == 401
+    assert res.json()["code"] == "UNAUTHORIZED"
+
+
 # --- 수정 (PRJ-03) ---
 
 

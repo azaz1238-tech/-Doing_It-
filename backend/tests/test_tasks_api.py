@@ -4,7 +4,9 @@
 DONE 전환 시 completed_at 기록·해제, 삭제 후 이력 task_id NULL 유지, 비멤버 업무 조회 403,
 MEMBER의 타인 업무 수정·삭제 403, 담당자 상태 변경 성공·다른 필드 403,
 작성자도 담당자도 아닌 MEMBER의 상태 변경 403, 토큰 없이 잘못된 본문 401,
-비멤버 담당자 400(ASSIGNEE_NOT_MEMBER, 맨 아래).
+비멤버 담당자 400(ASSIGNEE_NOT_MEMBER).
+D8-02 보강(맨 아래): 비멤버 삭제 403, 없는 업무·프로젝트 404가 403보다 먼저,
+비멤버의 잘못된 본문 422가 403보다 먼저, 비활성 계정 403, OWNER의 남의 업무 수정·삭제.
 
 API가 쓴 데이터를 db 픽스처로 읽기 전에는 db.rollback()으로 트랜잭션을 끝낸다
 (REPEATABLE READ라 열린 트랜잭션은 새 행을 못 본다).
@@ -499,3 +501,82 @@ def test_create_description_2000_emoji_saved_201(client, team):
     assert res.status_code == 201
     saved = client.get(_task_url(res.json()["id"]), headers=_auth(team["owner"]))
     assert saved.json()["description"] == description
+
+
+# --- D8-02 권한·예외 보강 (§1.5 검사 순서, §10 권한 행) ---
+
+
+def test_delete_non_member_403_and_task_kept(client, team, db):
+    res = client.delete(_task_url(team["task_id"]), headers=_auth(team["outsider"]))
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "NOT_PROJECT_MEMBER"
+    assert [a for a in _activities(db) if a.action == "DELETED"] == []  # rollback 포함
+    assert db.get(Task, team["task_id"]) is not None
+
+
+@pytest.mark.parametrize("method", ["patch", "delete"])
+def test_missing_task_404_even_for_outsider(client, team, method):
+    """없는 업무는 멤버 검사(403)보다 먼저 404 (§1.5 3단계 → 4단계).
+
+    GET은 test_detail_not_found_404가 이미 확인한다.
+    """
+    kwargs = {"json": {"status": "DONE"}} if method == "patch" else {}
+
+    res = getattr(client, method)(
+        _task_url(999_999), headers=_auth(team["outsider"]), **kwargs
+    )
+
+    assert res.status_code == 404
+    assert res.json()["code"] == "TASK_NOT_FOUND"
+
+
+def test_list_missing_project_404(client, db):
+    res = client.get(_tasks_url(999_999), headers=_auth(make_user(db)))
+
+    assert res.status_code == 404
+    assert res.json()["code"] == "PROJECT_NOT_FOUND"
+
+
+@pytest.mark.parametrize("method", ["post", "patch"])
+def test_non_member_bad_body_422_before_403(client, team, method):
+    """본문 검증(422)이 멤버 검사(403)보다 먼저 (§1.5 2단계 → 4단계)."""
+    url = (
+        _tasks_url(team["project_id"])
+        if method == "post"
+        else _task_url(team["task_id"])
+    )
+
+    res = getattr(client, method)(
+        url, headers=_auth(team["outsider"]), json={"title": "가" * 31}
+    )
+
+    assert res.status_code == 422
+    assert res.json()["code"] == "VALIDATION_ERROR"
+
+
+def test_disabled_account_403_on_task_api(client, team, db):
+    """토큰이 유효해도 비활성 계정이면 업무 API에서도 403 ACCOUNT_DISABLED (§1.2)."""
+    team["author"].is_active = False
+    db.commit()
+
+    res = client.get(_task_url(team["task_id"]), headers=_auth(team["author"]))
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "ACCOUNT_DISABLED"
+
+
+def test_owner_edits_and_deletes_others_task(client, team, db):
+    """OWNER는 작성자가 아니어도 모든 업무를 수정·삭제한다 (§5.4 권한 표)."""
+    url = _task_url(team["task_id"])
+
+    patched = client.patch(url, headers=_auth(team["owner"]), json={"title": "새 제목"})
+    deleted = client.delete(url, headers=_auth(team["owner"]))
+
+    assert patched.status_code == 200
+    assert patched.json()["title"] == "새 제목"
+    assert deleted.status_code == 204
+    assert client.get(url, headers=_auth(team["owner"])).status_code == 404
+    # 제목은 이력 대상이 아니므로(LOG-01) 삭제 1행만, 변경자는 OWNER, 값은 바뀐 제목
+    rows = [(a.action, a.user_id, a.old_value) for a in _activities(db)]
+    assert rows == [("DELETED", team["owner"].id, "새 제목")]

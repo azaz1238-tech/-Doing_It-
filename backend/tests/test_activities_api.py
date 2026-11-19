@@ -9,12 +9,16 @@
 이력은 실제 API(등록·수정·삭제·멤버 제거)로 쌓는다.
 """
 
-import pytest
-from sqlalchemy import event
+from datetime import datetime, timedelta
 
-from app.models import Project
+import pytest
+from sqlalchemy import event, update
+
+from app.models import Project, TaskActivity
 from core.security import create_access_token
 from tests.factories import add_member, make_project, make_user
+
+SAME_SECOND = datetime(2026, 11, 19, 1, 0, 0)  # UTC, 시각이 같은 이력을 만들 때
 
 
 def _auth(user) -> dict:
@@ -78,19 +82,49 @@ def _get(client, url, user, **params) -> dict:
 # --- 업무 이력 (LOG-03-a) ---
 
 
-def test_task_activities_newest_first(client, team):
-    """같은 초에 생긴 이력도 id 역순으로 흔들림 없이 최신순."""
+def _set_created_at(db, values: dict[int, datetime]) -> None:
+    """이력 시각을 직접 정한다(같은 초·시각 역전을 실행 속도와 관계없이 만들기 위해)."""
+    for activity_id, created_at in values.items():
+        db.execute(
+            update(TaskActivity)
+            .where(TaskActivity.id == activity_id)
+            .values(created_at=created_at)
+        )
+    db.commit()
+
+
+def test_task_activities_same_second_by_id_desc(client, team, db):
+    """같은 초에 생긴 이력은 id 역순 (DATABASE-DESIGN §7: created_at DESC, id DESC)."""
     task_id = _create_task(client, team)
     _patch(client, team, task_id, status="DONE")
     _patch(client, team, task_id, priority="HIGH")
+    ids = [
+        i["id"] for i in _get(client, _task_acts_url(task_id), team["owner"])["items"]
+    ]
+    _set_created_at(db, dict.fromkeys(ids, SAME_SECOND))
 
     body = _get(client, _task_acts_url(task_id), team["owner"])
 
     rows = [(i["action"], i["field"]) for i in body["items"]]
     assert rows == [("UPDATED", "priority"), ("UPDATED", "status"), ("CREATED", None)]
-    ids = [i["id"] for i in body["items"]]
-    assert ids == sorted(ids, reverse=True)
+    assert [i["id"] for i in body["items"]] == sorted(ids, reverse=True)
     assert body["total"] == 3 and body["page"] == 1 and body["size"] == 20
+
+
+def test_task_activities_created_at_first(client, team, db):
+    """시각이 먼저, id는 같은 시각일 때만: id가 작아도 시각이 늦으면 앞."""
+    task_id = _create_task(client, team)
+    _patch(client, team, task_id, status="DONE")
+    created, updated = sorted(
+        i["id"] for i in _get(client, _task_acts_url(task_id), team["owner"])["items"]
+    )
+    _set_created_at(
+        db, {created: SAME_SECOND + timedelta(seconds=5), updated: SAME_SECOND}
+    )
+
+    body = _get(client, _task_acts_url(task_id), team["owner"])
+
+    assert [i["id"] for i in body["items"]] == [created, updated]
 
 
 def test_activity_shape(client, team):

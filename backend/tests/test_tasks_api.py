@@ -499,3 +499,59 @@ def test_create_description_2000_emoji_saved_201(client, team):
     assert res.status_code == 201
     saved = client.get(_task_url(res.json()["id"]), headers=_auth(team["owner"]))
     assert saved.json()["description"] == description
+
+
+# --- D8-02 권한·예외 보강 (§1.5 검사 순서, §10 권한 행) ---
+
+
+def test_delete_non_member_403_and_task_kept(client, team, db):
+    res = client.delete(_task_url(team["task_id"]), headers=_auth(team["outsider"]))
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "NOT_PROJECT_MEMBER"
+    kept = client.get(_task_url(team["task_id"]), headers=_auth(team["owner"]))
+    assert kept.status_code == 200
+    assert [a for a in _activities(db) if a.action == "DELETED"] == []
+
+
+@pytest.mark.parametrize("method", ["get", "patch", "delete"])
+def test_missing_task_404_even_for_outsider(client, team, method):
+    """없는 업무는 멤버 검사(403)보다 먼저 404 (§1.5 3단계 → 4단계)."""
+    kwargs = {"json": {"status": "DONE"}} if method == "patch" else {}
+
+    res = getattr(client, method)(
+        _task_url(999999), headers=_auth(team["outsider"]), **kwargs
+    )
+
+    assert res.status_code == 404
+    assert res.json()["code"] == "TASK_NOT_FOUND"
+
+
+def test_list_missing_project_404(client, team):
+    res = client.get(_tasks_url(999999), headers=_auth(team["outsider"]))
+
+    assert res.status_code == 404
+    assert res.json()["code"] == "PROJECT_NOT_FOUND"
+
+
+def test_disabled_account_403_on_task_api(client, team, db):
+    """토큰이 유효해도 비활성 계정이면 업무 API에서도 403 ACCOUNT_DISABLED (§1.2)."""
+    team["author"].is_active = False
+    db.commit()
+
+    res = client.get(_task_url(team["task_id"]), headers=_auth(team["author"]))
+
+    assert res.status_code == 403
+    assert res.json()["code"] == "ACCOUNT_DISABLED"
+
+
+def test_owner_edits_and_deletes_others_task(client, team):
+    """OWNER는 작성자가 아니어도 모든 업무를 수정·삭제한다 (§5.4 권한 표)."""
+    url = _task_url(team["task_id"])
+
+    patched = client.patch(url, headers=_auth(team["owner"]), json={"title": "새 제목"})
+    deleted = client.delete(url, headers=_auth(team["owner"]))
+
+    assert patched.status_code == 200
+    assert patched.json()["title"] == "새 제목"
+    assert deleted.status_code == 204

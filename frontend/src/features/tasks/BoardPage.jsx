@@ -182,7 +182,12 @@ function Board({ projectId }) {
       },
       { replace: true },
     );
-  const resetFilters = () => setSearchParams({}, { replace: true });
+  // 초기화 횟수 — 검색칸을 비우고 대기 중인 검색어를 취소하는 신호(FilterBar resetKey)
+  const [resetKey, setResetKey] = useState(0);
+  const resetFilters = () => {
+    setResetKey((k) => k + 1);
+    setSearchParams({}, { replace: true });
+  };
 
   // 등록 중 400 ASSIGNEE_NOT_MEMBER(그 사이 멤버가 빠짐) → 멤버 목록을 새로 받는다(UI-DESIGN S5).
   const reloadMembers = () =>
@@ -286,6 +291,7 @@ function Board({ projectId }) {
         members={members}
         onChange={changeFilters}
         onReset={resetFilters}
+        resetKey={resetKey}
         active={filterActive}
       />
 

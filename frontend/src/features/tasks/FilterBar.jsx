@@ -18,6 +18,7 @@ const SEARCH_DELAY_MS = 300;
  * @param {(patch: object) => void} onChange 바뀐 필터만 넘긴다(빈 문자열 = 조건 없음)
  * @param {() => void} onReset 필터 초기화
  * @param {boolean} active 조건이 하나라도 있으면 true → `필터 초기화` 버튼 표시
+ * @param {number} resetKey 필터 초기화할 때마다 바뀌는 값 → 검색칸을 비우고, 대기 중인 검색어를 취소
  */
 export default function FilterBar({
   filters,
@@ -25,10 +26,13 @@ export default function FilterBar({
   onChange,
   onReset,
   active,
+  resetKey,
 }) {
   // 검색어는 칠 때마다 요청하지 않도록 잠깐 기다렸다가 넘긴다.
   const timer = useRef(null);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  // 초기화(resetKey 변경)·화면을 떠날 때는 아직 반영 안 된 검색어를 버린다
+  // (안 그러면 초기화 직후 0.3초 뒤 옛 검색어가 다시 들어간다).
+  useEffect(() => () => clearTimeout(timer.current), [resetKey]);
   const changeSearch = (value) => {
     clearTimeout(timer.current);
     timer.current = setTimeout(
@@ -43,12 +47,15 @@ export default function FilterBar({
       aria-label="업무 검색·필터"
       className="flex flex-wrap items-end gap-2 rounded-lg border border-neutral-200 bg-white p-3"
     >
-      {/* 초기화하면 입력칸도 비워야 해서, 바깥 값(q)이 바뀌면 다시 그린다 */}
+      {/* 검색칸은 초기화할 때만 새로 그려 비운다. q로 key를 주면 0.3초 뒤 q가 바뀔 때마다
+          입력칸이 새로 만들어져 커서가 빠지고, 이어 치는 글자가 사라진다(#86 리뷰). */}
       <Input
-        key={filters.q}
+        key={resetKey}
         aria-label="제목 검색"
         placeholder="제목 검색"
-        defaultValue={filters.q}
+        // 처음에는 주소의 q로 채우고, 초기화로 새로 그릴 때는 빈 칸으로 시작한다.
+        // (초기화 순간에는 주소 갱신이 한 박자 늦어 filters.q가 아직 옛 값이다)
+        defaultValue={resetKey === 0 ? filters.q : ""}
         onChange={(e) => changeSearch(e.target.value)}
         className="min-w-44 flex-1"
       />

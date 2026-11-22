@@ -135,6 +135,12 @@ function ProjectCard({ project }) {
           {project.my_role}
         </span>
       </div>
+      {/* 설명 (11/22 팀장 결정) — 길면 2줄에서 자른다. 필수지만 이전 데이터 대비로 없으면 줄을 그리지 않는다 */}
+      {project.description && (
+        <p className="line-clamp-2 text-sm text-neutral-600">
+          {project.description}
+        </p>
+      )}
       <p className="flex items-center gap-1.5 text-sm text-neutral-500">
         <CalendarIcon />
         {period || "기간 없음"}

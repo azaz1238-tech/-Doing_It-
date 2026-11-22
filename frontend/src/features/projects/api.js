@@ -36,7 +36,7 @@ export async function listMembers(projectId, { page = 1, size = 100 } = {}) {
 }
 
 // 프로젝트 수정 (PRJ-03, OWNER). 바꿀 필드만 snake_case로 보낸다.
-// description·날짜는 null로 비울 수 있고 name은 비울 수 없다. MEMBER 403 FORBIDDEN, 422 errors[]
+// 날짜는 null로 비울 수 있고 name·description은 비울 수 없다. MEMBER 403 FORBIDDEN, 422 errors[]
 export async function updateProject(projectId, patch) {
   const { data } = await client.patch(`/projects/${projectId}`, patch);
   return data; // Project

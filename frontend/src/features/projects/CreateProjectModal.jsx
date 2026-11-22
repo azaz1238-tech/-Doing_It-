@@ -4,7 +4,14 @@ import Input from "../../core/ui/Input";
 import Modal from "../../core/ui/Modal";
 import { useToast } from "../../core/ui/useToast";
 import { createProject } from "./api";
-import { countChars, NAME_ERROR, NAME_MAX, PERIOD_ERROR } from "./projectRules";
+import { cn } from "../../core/utils/cn";
+import {
+  countChars,
+  DESCRIPTION_ERROR,
+  NAME_ERROR,
+  NAME_MAX,
+  PERIOD_ERROR,
+} from "./projectRules";
 
 // S3 새 프로젝트 모달 — PRJ-01 · UI-DESIGN S3 · 시안2 "새 프로젝트 모달"
 
@@ -31,6 +38,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
 
   const nameLength = countChars(form.name.trim());
   const nameValid = nameLength >= 1 && nameLength <= NAME_MAX;
+  const descValid = form.description.trim() !== "";
   // "YYYY-MM-DD" 문자열은 그대로 비교해도 날짜 순서와 같다
   const periodValid =
     !form.startDate || !form.endDate || form.endDate >= form.startDate;
@@ -41,6 +49,8 @@ export default function CreateProjectModal({ onClose, onCreated }) {
     (nameTouched || nameLength > NAME_MAX) && !nameValid
       ? NAME_ERROR
       : serverErrors.name;
+  // 설명 오류: 비어 있는 동안(= 만들기 버튼이 꺼진 이유) 처음부터 보인다 (11/22 팀장 결정)
+  const descError = descValid ? serverErrors.description : DESCRIPTION_ERROR;
   const endDateError = periodValid ? serverErrors.end_date : PERIOD_ERROR;
 
   // key = 폼 상태 이름, field = 서버 422 errors의 field 이름
@@ -52,7 +62,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
   const submit = async (e) => {
     e.preventDefault();
     if (submittingRef.current) return;
-    if (!nameValid || !periodValid) {
+    if (!nameValid || !descValid || !periodValid) {
       setNameTouched(true);
       return;
     }
@@ -98,7 +108,7 @@ export default function CreateProjectModal({ onClose, onCreated }) {
             type="submit"
             form={formId}
             loading={submitting}
-            disabled={!nameValid || !periodValid}
+            disabled={!nameValid || !descValid || !periodValid}
           >
             만들기
           </Button>
@@ -122,17 +132,28 @@ export default function CreateProjectModal({ onClose, onCreated }) {
             className="font-semibold text-neutral-900"
           >
             설명
+            <span className="ml-0.5 text-danger">*</span>
           </label>
           <textarea
             id={`${formId}-desc`}
             rows={3}
+            required
             value={form.description}
             onChange={set("description", "description")}
-            placeholder="어떤 목표의 프로젝트인지 적어 주세요 (선택)"
-            className="w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-2 focus:-outline-offset-1 focus:outline-primary"
+            placeholder="어떤 목표의 프로젝트인지 적어 주세요 (필수)"
+            aria-invalid={descError ? true : undefined}
+            aria-describedby={descError ? `${formId}-desc-error` : undefined}
+            className={cn(
+              "w-full resize-y rounded-lg border bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-2 focus:-outline-offset-1",
+              descError
+                ? "border-danger focus:outline-danger"
+                : "border-neutral-300 focus:outline-primary",
+            )}
           />
-          {serverErrors.description && (
-            <p className="text-xs text-danger">{serverErrors.description}</p>
+          {descError && (
+            <p id={`${formId}-desc-error`} className="text-xs text-danger">
+              {descError}
+            </p>
           )}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">

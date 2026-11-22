@@ -15,6 +15,10 @@ class Project(TimestampMixin, Base):
     __tablename__ = "projects"
     __table_args__ = (
         CheckConstraint("CHAR_LENGTH(TRIM(name)) > 0", name="name_not_blank"),
+        # 설명 필수 (11/22 팀장 결정, 0002 마이그레이션)
+        CheckConstraint(
+            "CHAR_LENGTH(TRIM(description)) > 0", name="description_not_blank"
+        ),
         # 둘 중 하나라도 비어 있으면 통과. 둘 다 있으면 종료일 >= 시작일.
         CheckConstraint(
             "start_date IS NULL OR end_date IS NULL OR end_date >= start_date",
@@ -25,7 +29,8 @@ class Project(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     # 앞뒤 공백 제거 후 1~30자 (PRJ-01). 한글도 1자.
     name: Mapped[str] = mapped_column(String(30))
-    description: Mapped[str | None] = mapped_column(Text)
+    # 앞뒤 공백 제거 후 1~2000자. 필수.
+    description: Mapped[str] = mapped_column(Text)
     start_date: Mapped[date | None] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date)
     # 사용자 행은 지우지 않는다. 실수로 지우려 하면 오류가 나야 한다 (§5 RESTRICT).

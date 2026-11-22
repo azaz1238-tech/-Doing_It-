@@ -16,6 +16,8 @@ from tests.factories import add_member, make_project, make_task, make_user
 URL = "/api/projects"
 NAME_MESSAGE = "프로젝트 이름은 1~30자로 입력해 주세요"
 PERIOD_MESSAGE = "종료일은 시작일 이후여야 합니다"
+DESCRIPTION_MESSAGE = "프로젝트 설명을 입력해 주세요"
+DESC = "설명"  # 설명은 필수 (0002) — 다른 항목을 검사하는 테스트에서 채워 넣는 값
 
 
 def _auth(user) -> dict:
@@ -64,12 +66,16 @@ def test_create_201_creator_is_owner(client, db):  # PRJ-01-a
     assert (member.user_id, member.role) == (user.id, "OWNER")
 
 
-def test_create_name_only_201(client, db):
-    res = client.post(URL, headers=_auth(make_user(db)), json={"name": "가" * 30})
+def test_create_without_period_201(client, db):
+    res = client.post(
+        URL,
+        headers=_auth(make_user(db)),
+        json={"name": "가" * 30, "description": "  설명  "},
+    )
 
     assert res.status_code == 201
     body = res.json()
-    assert body["description"] is None
+    assert body["description"] == "설명"  # 앞뒤 공백 제거
     assert body["start_date"] is None
     assert body["end_date"] is None
 
@@ -78,24 +84,56 @@ def test_create_same_start_and_end_201(client, db):
     res = client.post(
         URL,
         headers=_auth(make_user(db)),
-        json={"name": "p", "start_date": "2026-11-26", "end_date": "2026-11-26"},
+        json={
+            "name": "p",
+            "description": DESC,
+            "start_date": "2026-11-26",
+            "end_date": "2026-11-26",
+        },
     )
     assert res.status_code == 201
 
 
 @pytest.mark.parametrize("name", ["", "   ", "가" * 31])
 def test_create_name_length_422(client, db, name):  # PRJ-01-b
-    res = client.post(URL, headers=_auth(make_user(db)), json={"name": name})
+    res = client.post(
+        URL, headers=_auth(make_user(db)), json={"name": name, "description": DESC}
+    )
 
     assert res.status_code == 422
     assert res.json()["errors"] == [{"field": "name", "message": NAME_MESSAGE}]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"name": "p"},
+        {"name": "p", "description": None},
+        {"name": "p", "description": "   "},
+    ],
+    ids=["missing", "null", "blank"],
+)
+def test_create_description_required_422(client, db, body):
+    """설명 필수 (11/22 결정): 빠뜨림·null·공백만 모두 같은 문구로 422, 저장 안 됨."""
+    res = client.post(URL, headers=_auth(make_user(db)), json=body)
+
+    assert res.status_code == 422
+    assert res.json()["errors"] == [
+        {"field": "description", "message": DESCRIPTION_MESSAGE}
+    ]
+    assert db.scalar(select(func.count()).select_from(Project)) == 0
 
 
 def test_create_period_reversed_422(client, db):  # PRJ-01-c
     res = client.post(
         URL,
         headers=_auth(make_user(db)),
-        json={"name": "p", "start_date": "2026-11-26", "end_date": "2026-11-10"},
+        json={
+            "name": "p",
+            "description": DESC,
+            "start_date": "2026-11-26",
+            "end_date": "2026-11-10",
+        },
     )
 
     assert res.status_code == 422
@@ -241,14 +279,31 @@ def test_update_null_clears_optional_fields(client, db):
     owner, project = _project_with_period(db)
 
     res = client.patch(
-        f"{URL}/{project.id}",
-        headers=_auth(owner),
-        json={"description": None, "start_date": None},
+        f"{URL}/{project.id}", headers=_auth(owner), json={"start_date": None}
     )
 
     assert res.status_code == 200
-    assert res.json()["description"] is None
     assert res.json()["start_date"] is None
+    assert res.json()["description"] == "11월"  # 안 보낸 설명은 그대로
+
+
+@pytest.mark.parametrize("description", [None, "", "   "])
+def test_update_description_cannot_be_cleared_422(client, db, description):
+    """설명 필수 (11/22 결정): 수정으로도 비울 수 없다. 기존 값 유지."""
+    owner, project = _project_with_period(db)
+
+    res = client.patch(
+        f"{URL}/{project.id}",
+        headers=_auth(owner),
+        json={"description": description},
+    )
+
+    assert res.status_code == 422
+    assert res.json()["errors"] == [
+        {"field": "description", "message": DESCRIPTION_MESSAGE}
+    ]
+    db.expire_all()
+    assert db.get(Project, project.id).description == "11월"
 
 
 def test_update_empty_body_200(client, db):
@@ -449,7 +504,9 @@ def test_progress_counts_each_project_separately(client, db):
 
 
 def test_create_returns_zero_progress(client, db):
-    res = client.post(URL, headers=_auth(make_user(db)), json={"name": "p"})
+    res = client.post(
+        URL, headers=_auth(make_user(db)), json={"name": "p", "description": DESC}
+    )
 
     assert res.json()["progress"] == {"total": 0, "done": 0, "percent": 0}
 

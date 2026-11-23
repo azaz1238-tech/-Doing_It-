@@ -39,12 +39,17 @@ export function formatPeriod(start, end) {
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
+const JUST_NOW_MS = 60 * 1000;
+
 /**
  * 서버 시각(UTC `Z`)을 한국 시간으로 — UI-DESIGN §6.4
- * 오늘이면 "오늘 09:41", 어제면 "어제 18:22", 그 밖은 "11/10 14:20"
+ * 1분 미만이면 "방금 전"(SPEC LOG-03-a), 오늘이면 "오늘 09:41", 어제면 "어제 18:22", 그 밖은 "11/10 14:20"
  */
 export function formatDateTime(isoString, now = Date.now()) {
-  const kst = new Date(new Date(isoString).getTime() + KST_OFFSET_MS);
+  const timeMs = new Date(isoString).getTime();
+  // PC 시계가 서버보다 조금 늦으면 차이가 음수가 된다. 그때도 "방금 전"으로 본다.
+  if (now - timeMs < JUST_NOW_MS) return "방금 전";
+  const kst = new Date(timeMs + KST_OFFSET_MS);
   const day = kst.toISOString().slice(0, 10);
   const time = kst.toISOString().slice(11, 16);
   const diff = daysBetween(day, todayKst(now));

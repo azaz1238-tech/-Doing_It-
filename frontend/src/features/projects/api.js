@@ -48,6 +48,15 @@ export async function deleteProject(projectId) {
   await client.delete(`/projects/${projectId}`);
 }
 
+// 프로젝트 최근 활동 (LOG-03-b, API-SPEC §6). 최신순, 삭제된 업무 이력 포함. 통계 화면은 20건.
+// 비멤버 403 NOT_PROJECT_MEMBER, 없으면 404 PROJECT_NOT_FOUND
+export async function listProjectActivities(projectId, { size = 20 } = {}) {
+  const { data } = await client.get(`/projects/${projectId}/activities`, {
+    params: { page: 1, size },
+  });
+  return data; // { items: Activity[], total, page, size }
+}
+
 // 멤버 추가 (PRJ-04, OWNER). login_id는 서버가 소문자로 바꿔 찾는다.
 // 404 USER_NOT_FOUND "해당 아이디의 회원이 없습니다", 409 ALREADY_MEMBER "이미 프로젝트 멤버입니다", MEMBER 403 FORBIDDEN
 export async function addMember(projectId, { loginId, role }) {

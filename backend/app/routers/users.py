@@ -1,4 +1,4 @@
-"""사용자 API (API-SPEC §5.1 GET /users/me, §6 GET /users/me/tasks). 모든 엔드포인트에 인증이 필요하다."""
+"""사용자 API (API-SPEC §5.1 GET /users/me, §6 PATCH /users/me·GET /users/me/tasks). 모든 엔드포인트에 인증이 필요하다."""
 
 from datetime import date
 from typing import Annotated
@@ -7,10 +7,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.models import User
-from app.schemas.auth import UserOut
+from app.schemas.auth import UpdateMeRequest, UserOut
 from app.schemas.stats import MyTaskOut, ProjectBrief
 from app.schemas.task import TaskOut
-from app.services import stats_service
+from app.services import auth_service, stats_service
 from app.services.auth_service import get_current_user
 from core.clock import get_today
 from core.db import get_db
@@ -25,6 +25,16 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 def get_me(user: CurrentUser) -> User:
     """내 정보 조회 (AUTH-04). 새로고침 시 로그인 상태 복원에 쓴다."""
     return user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(
+    user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    data: UpdateMeRequest,
+) -> User:
+    """내 이름 수정 (AUTH-06). 이름은 앞뒤 공백 제거 후 1~50자(아니면 422)."""
+    return auth_service.update_my_name(db, user, data.name)
 
 
 @router.get("/me/tasks", response_model=Page[MyTaskOut])

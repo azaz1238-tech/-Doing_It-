@@ -3,6 +3,7 @@
 - signup: 회원가입 (T-F1-01)
 - login: 로그인 (T-F1-02)
 - get_current_user: 인증 필요 API의 공통 의존성 (T-F1-03)
+- update_my_name: 내 이름 수정 (T-F1-06)
 """
 
 from typing import Annotated
@@ -75,6 +76,14 @@ def get_current_user(
         raise Unauthorized()
     if not user.is_active:
         raise _account_disabled()
+    return user
+
+
+def update_my_name(db: Session, user: User, name: str) -> User:
+    """내 이름 수정 (T-F1-06). 업무·댓글 응답은 users를 조회해 이름을 넣으므로 바로 반영된다."""
+    user.name = name
+    db.commit()
+    db.refresh(user)
     return user
 
 

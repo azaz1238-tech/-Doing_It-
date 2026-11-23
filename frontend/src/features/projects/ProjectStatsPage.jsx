@@ -47,6 +47,9 @@ function Stats({ projectId }) {
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState(null);
   const [pageError, setPageError] = useState(null); // "403" | "404" | null
+  // 403·404가 아닌 실패(500·서버 꺼짐·네트워크)는 "다시 시도"를 보인다(D9-04)
+  const [projectFailed, setProjectFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0); // 다시 시도하면 1 늘려 effect를 다시 돌린다
 
   useEffect(() => {
     let ignore = false;
@@ -55,11 +58,14 @@ function Stats({ projectId }) {
       .catch((error) => {
         if (ignore) return;
         const kind = pageErrorOf(error);
-        if (kind) setPageError(kind);
-        else
-          toast.error(
-            error.response?.data?.message ?? "프로젝트를 불러오지 못했습니다",
-          );
+        if (kind) {
+          setPageError(kind);
+          return;
+        }
+        setProjectFailed(true);
+        toast.error(
+          error.response?.data?.message ?? "프로젝트를 불러오지 못했습니다",
+        );
       });
     // 헤더 아바타용. 실패하면 아바타만 그리지 않는다(권한·없음 안내는 getProject 쪽이 맡는다).
     listMembers(projectId)
@@ -68,7 +74,12 @@ function Stats({ projectId }) {
     return () => {
       ignore = true;
     };
-  }, [projectId, toast]);
+  }, [projectId, toast, attempt]);
+
+  const retryProject = () => {
+    setProjectFailed(false);
+    setAttempt((n) => n + 1);
+  };
 
   if (pageError === "403") return <ErrorPage type="403" />;
   if (pageError === "404")
@@ -88,6 +99,13 @@ function Stats({ projectId }) {
           )}
           <Deadlines projectId={project.id} onPageError={setPageError} />
           <RecentActivities projectId={project.id} onPageError={setPageError} />
+        </div>
+      ) : projectFailed ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-sm text-neutral-500">
+          <p>프로젝트를 불러오지 못했습니다</p>
+          <Button variant="secondary" onClick={retryProject}>
+            다시 시도
+          </Button>
         </div>
       ) : (
         <div aria-hidden="true" className="flex flex-col gap-3">

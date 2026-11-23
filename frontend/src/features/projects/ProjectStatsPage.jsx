@@ -12,7 +12,9 @@ import { formatDateTime } from "../../core/utils/date";
 import { activityTaskTitle, describeActivity } from "../tasks/activityText";
 import DueLabel from "../tasks/DueLabel";
 import PriorityBadge from "../tasks/PriorityBadge";
+import { STATUSES } from "../tasks/taskDisplay";
 import {
+  getAssigneeStats,
   getDeadlines,
   getProject,
   listMembers,
@@ -23,7 +25,6 @@ import ProjectHeader from "./ProjectHeader";
 
 // 프로젝트 통계 (P1) — REQUIREMENTS §6 `/projects/:id/stats`, UI-DESIGN §3.2(탭은 보드와 설정 사이)
 // 범위: 진행률(DASH-01) · 담당자별 현황(DASH-02) · 마감 임박·지연(DASH-03) · 최근 활동 20건(LOG-03)
-// 지금은 진행률 · 마감 임박·지연(T-F5-06) · 최근 활동(T-F4-07). 담당자별(T-F5-10)은 API가 나오면 구역을 더한다.
 // 구역마다 따로 불러오고, 한 구역이 실패해도 다른 구역은 그대로 보인다.
 
 const RECENT_SIZE = 20; // LOG-03-b
@@ -97,6 +98,7 @@ function Stats({ projectId }) {
               <ProgressBar progress={project.progress} />
             </Section>
           )}
+          <AssigneeStats projectId={project.id} onPageError={setPageError} />
           <Deadlines projectId={project.id} onPageError={setPageError} />
           <RecentActivities projectId={project.id} onPageError={setPageError} />
         </div>
@@ -121,7 +123,7 @@ function Section({ title, className, children }) {
   return (
     <section
       className={cn(
-        "rounded-xl border border-neutral-200 bg-white p-6",
+        "rounded-xl border border-neutral-200 bg-white p-4 sm:p-6",
         className,
       )}
     >
@@ -129,6 +131,169 @@ function Section({ title, className, children }) {
       <h2 className="mb-4 text-lg font-bold text-neutral-900">{title}</h2>
       {children}
     </section>
+  );
+}
+
+// 담당자별 현황 (DASH-02, US-21). 담당자 × 상태 표 + 화면에서 더한 합계.
+// 순서는 서버 순서 그대로, "담당자 없음"(assignee null)만 맨 아래로 옮긴다(DASH-02-a).
+// 숫자 칸은 너비를 정해 두고(표 table-fixed) 남는 폭을 이름 칸이 쓴다.
+// 모바일은 색 점을 숨기고 칸을 좁혀(카드 여백도 p-4), 360px 폰에서도 숫자 네 칸이 스크롤 없이 보이게 한다.
+const STAT_COLUMNS = [
+  { key: "todo", status: "TODO", width: "w-12 sm:w-24" },
+  { key: "in_progress", status: "IN_PROGRESS", width: "w-14 sm:w-24" },
+  { key: "done", status: "DONE", width: "w-12 sm:w-24" },
+];
+
+function AssigneeStats({ projectId, onPageError }) {
+  const toast = useToast();
+  const [rows, setRows] = useState(null); // null = 불러오는 중
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  // 마감 임박·지연과 같은 방식: effect 안에서는 응답만 기다린다.
+  const fetchStats = useCallback(
+    () =>
+      getAssigneeStats(projectId)
+        .then((items) =>
+          setRows([
+            ...items.filter((r) => r.assignee),
+            ...items.filter((r) => !r.assignee),
+          ]),
+        )
+        .catch((error) => {
+          const kind = pageErrorOf(error);
+          if (kind) {
+            onPageError(kind);
+            return;
+          }
+          setLoadFailed(true);
+          toast.error(
+            error.response?.data?.message ?? "잠시 후 다시 시도해 주세요",
+          );
+        }),
+    [projectId, onPageError, toast],
+  );
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const retry = () => {
+    setLoadFailed(false);
+    setRows(null);
+    fetchStats();
+  };
+
+  return (
+    <Section title="담당자별 현황">
+      {loadFailed ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-sm text-neutral-500">
+          {/* TODO(Figma): 실패·빈 상태 문구는 시안 확정 전 추정값 */}
+          <p>담당자별 현황을 불러오지 못했습니다</p>
+          <Button variant="secondary" onClick={retry}>
+            다시 시도
+          </Button>
+        </div>
+      ) : rows === null ? (
+        <div role="status" aria-live="polite" className="flex flex-col gap-2">
+          <span className="sr-only">불러오는 중입니다</span>
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : rows.length === 0 ? (
+        <EmptyState variant="column" title="아직 업무가 없습니다" />
+      ) : (
+        // 아주 좁은 창(약 300px 미만)에서만 이 상자 안에서 가로로 스크롤한다
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed text-sm">
+            <thead>
+              <tr className="border-b border-neutral-200 text-xs text-neutral-500">
+                <th
+                  scope="col"
+                  className="w-20 py-2 pr-2 text-left font-semibold sm:w-auto"
+                >
+                  담당자
+                </th>
+                {STAT_COLUMNS.map(({ key, status, width }) => (
+                  <th
+                    key={key}
+                    scope="col"
+                    className={cn(
+                      "px-2 py-2 text-right font-semibold whitespace-nowrap sm:px-3",
+                      width,
+                    )}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "hidden size-2 rounded-full sm:inline-block",
+                          STATUSES[status].dot,
+                        )}
+                      />
+                      {STATUSES[status].label}
+                    </span>
+                  </th>
+                ))}
+                <th
+                  scope="col"
+                  className="w-10 py-2 pl-2 text-right font-semibold whitespace-nowrap sm:w-20 sm:pl-3"
+                >
+                  합계
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-200">
+              {rows.map((row) => (
+                <AssigneeStatRow key={row.assignee?.id ?? "none"} row={row} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function AssigneeStatRow({ row }) {
+  const total = STAT_COLUMNS.reduce((sum, { key }) => sum + row[key], 0);
+  // 0은 흐리게 해서 업무가 몰린 칸이 눈에 띄게 한다
+  const countClass = (n) =>
+    cn("tabular-nums", n === 0 ? "text-neutral-300" : "text-neutral-900");
+
+  return (
+    <tr>
+      <th scope="row" className="py-2.5 pr-2 text-left font-normal">
+        <span className="flex min-w-0 items-center gap-2">
+          {/* 담당자 없음은 Avatar가 `?` 회색으로 그린다. 이름은 JSX 글자로만 넣는다 */}
+          <Avatar user={row.assignee} size="sm" className="shrink-0" />
+          <span
+            className={cn(
+              "truncate", // 칸 너비가 정해져 있어 긴 이름(최대 50자)은 말줄임
+              row.assignee ? "text-neutral-900" : "text-neutral-500",
+            )}
+          >
+            {row.assignee?.name ?? "담당자 없음"}
+          </span>
+        </span>
+      </th>
+      {STAT_COLUMNS.map(({ key }) => (
+        <td
+          key={key}
+          className={cn("px-2 py-2.5 text-right sm:px-3", countClass(row[key]))}
+        >
+          {row[key]}
+        </td>
+      ))}
+      <td
+        className={cn(
+          "py-2.5 pl-2 text-right font-bold sm:pl-3",
+          countClass(total),
+        )}
+      >
+        {total}
+      </td>
+    </tr>
   );
 }
 

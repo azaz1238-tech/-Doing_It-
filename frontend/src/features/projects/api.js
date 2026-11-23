@@ -65,6 +65,13 @@ export async function getDeadlines(projectId) {
   return data; // { overdue: Task[], due_soon: Task[] }
 }
 
+// 담당자별 상태별 업무 수 (DASH-02, API-SPEC §6). assignee null = 담당자 없음. 페이지네이션 없음.
+// 비멤버 403 NOT_PROJECT_MEMBER, 없으면 404 PROJECT_NOT_FOUND
+export async function getAssigneeStats(projectId) {
+  const { data } = await client.get(`/projects/${projectId}/stats/assignees`);
+  return data.items; // [{ assignee: UserBrief|null, todo, in_progress, done }]
+}
+
 // 멤버 추가 (PRJ-04, OWNER). login_id는 서버가 소문자로 바꿔 찾는다.
 // 404 USER_NOT_FOUND "해당 아이디의 회원이 없습니다", 409 ALREADY_MEMBER "이미 프로젝트 멤버입니다", MEMBER 403 FORBIDDEN
 export async function addMember(projectId, { loginId, role }) {

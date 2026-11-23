@@ -1,12 +1,27 @@
-"""프로젝트 통계·내 대시보드 응답 스키마 (API-SPEC §6, DASH-03·04)."""
+"""프로젝트 통계·내 대시보드 응답 스키마 (API-SPEC §6, DASH-02·03·04)."""
 
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.task import TaskOut
+from app.schemas.task import TaskOut, UserBrief
 
 Alert = Literal["OVERDUE", "DUE_SOON"]
+
+
+class AssigneeStatOut(BaseModel):
+    """담당자 1명(또는 담당자 없음)의 상태별 업무 수 (DASH-02)."""
+
+    assignee: UserBrief | None  # null = 담당자 없음
+    todo: int
+    in_progress: int
+    done: int
+
+
+class AssigneeStatsOut(BaseModel):
+    """담당자별 현황 (DASH-02). 집계 결과라 페이지네이션하지 않는다 (API-SPEC §1.3)."""
+
+    items: list[AssigneeStatOut]
 
 
 class DeadlinesOut(BaseModel):

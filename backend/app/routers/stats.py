@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.models import User
-from app.schemas.stats import DeadlinesOut
+from app.schemas.stats import AssigneeStatsOut, DeadlinesOut
 from app.schemas.task import TaskOut
 from app.services import stats_service
 from app.services.auth_service import get_current_user
@@ -23,6 +23,16 @@ router = APIRouter(tags=["stats"])
 CurrentUser = Annotated[User, Depends(get_current_user)]
 DbSession = Annotated[Session, Depends(get_db)]
 Today = Annotated[date, Depends(get_today)]  # 한국 날짜, 테스트에서 교체
+
+
+@router.get("/projects/{project_id}/stats/assignees", response_model=AssigneeStatsOut)
+def get_assignee_stats(
+    project_id: int, user: CurrentUser, db: DbSession
+) -> AssigneeStatsOut:
+    """담당자별 상태별 업무 수 (DASH-02). 멤버 누구나. 페이지네이션 없음."""
+    return AssigneeStatsOut(
+        items=stats_service.list_assignee_stats(db, user, project_id)
+    )
 
 
 @router.get("/projects/{project_id}/stats/deadlines", response_model=DeadlinesOut)

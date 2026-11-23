@@ -1,20 +1,69 @@
-"""프로젝트 통계·내 대시보드 (P1: DASH-03·04, 이후 DASH-02도 여기). 읽기만 하고 커밋하지 않는다.
+"""프로젝트 통계·내 대시보드 (P1: DASH-02·03·04). 읽기만 하고 커밋하지 않는다.
 
 검사 순서는 API-SPEC §1.5: 프로젝트 없음 404 → 비멤버 403 (require_project_role).
 """
 
 from datetime import date, timedelta
 
-from sqlalchemy import case, func, select
+from sqlalchemy import ColumnElement, case, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Project, ProjectMember, Task, User
 from app.models.enums import TaskStatus
+from app.schemas.stats import AssigneeStatOut
+from app.schemas.task import UserBrief
 from app.services.permissions import ANY_MEMBER, require_project_role
 from core.pagination import PageParams
 
 # 마감 임박 = 오늘 ~ 오늘 + 3일 (REQUIREMENTS DASH-03, SPEC Q1). DASH-03·04가 같이 쓴다.
 DUE_SOON_DAYS = 3
+
+
+def _count_status(status: TaskStatus) -> ColumnElement[int]:
+    """상태가 status인 업무 수. MariaDB에서도 그대로 동작하는 SUM(CASE ...)을 쓴다."""
+    return func.sum(case((Task.status == status, 1), else_=0))
+
+
+def list_assignee_stats(
+    db: Session, user: User, project_id: int
+) -> list[AssigneeStatOut]:
+    """담당자별 상태별 업무 수 (DASH-02). 멤버 누구나. 쿼리 1번.
+
+    담당자 없음(assignee_id IS NULL)도 한 줄로 센다 — 그래서 JOIN이 아니라 LEFT JOIN
+    (DATABASE-DESIGN DASH-02 쿼리, 점검표 #10). 업무가 없는 멤버는 줄이 생기지 않는다.
+    정렬: 이름 순 → id 순, 담당자 없음은 맨 뒤.
+    """
+    require_project_role(db, project_id, user, ANY_MEMBER)
+
+    rows = db.execute(
+        select(
+            Task.assignee_id,
+            User.login_id,
+            User.name,
+            _count_status(TaskStatus.TODO),
+            _count_status(TaskStatus.IN_PROGRESS),
+            _count_status(TaskStatus.DONE),
+        )
+        .outerjoin(User, User.id == Task.assignee_id)
+        .where(Task.project_id == project_id)
+        .group_by(Task.assignee_id, User.login_id, User.name)
+        .order_by(Task.assignee_id.is_(None), User.name, Task.assignee_id)
+    ).all()
+
+    # MariaDB SUM은 Decimal을 돌려주므로 int로 바꾼다
+    return [
+        AssigneeStatOut(
+            assignee=(
+                None
+                if assignee_id is None
+                else UserBrief(id=assignee_id, login_id=login_id, name=name)
+            ),
+            todo=int(todo),
+            in_progress=int(in_progress),
+            done=int(done),
+        )
+        for assignee_id, login_id, name, todo, in_progress, done in rows
+    ]
 
 
 def alert_of(due_date: date | None, today: date) -> str | None:

@@ -57,6 +57,14 @@ export async function listProjectActivities(projectId, { size = 20 } = {}) {
   return data; // { items: Activity[], total, page, size }
 }
 
+// 마감 임박·지연 (DASH-03, API-SPEC §6). 미완료이고 마감일이 있는 업무만, 마감일 → id 순.
+// 지연 = 마감일 < 오늘, 임박 = 오늘 ~ 오늘+3일("오늘"은 서버가 한국 날짜로 계산). 페이지네이션 없음.
+// 비멤버 403 NOT_PROJECT_MEMBER, 없으면 404 PROJECT_NOT_FOUND
+export async function getDeadlines(projectId) {
+  const { data } = await client.get(`/projects/${projectId}/stats/deadlines`);
+  return data; // { overdue: Task[], due_soon: Task[] }
+}
+
 // 멤버 추가 (PRJ-04, OWNER). login_id는 서버가 소문자로 바꿔 찾는다.
 // 404 USER_NOT_FOUND "해당 아이디의 회원이 없습니다", 409 ALREADY_MEMBER "이미 프로젝트 멤버입니다", MEMBER 403 FORBIDDEN
 export async function addMember(projectId, { loginId, role }) {

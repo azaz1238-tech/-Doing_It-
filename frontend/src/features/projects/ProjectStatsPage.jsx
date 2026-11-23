@@ -4,19 +4,27 @@ import Avatar from "../../core/ui/Avatar";
 import Button from "../../core/ui/Button";
 import ErrorPage from "../../core/ui/ErrorPage";
 import Skeleton from "../../core/ui/Skeleton";
-import { ClockIcon } from "../../core/ui/icons";
+import { ClockIcon, TriangleAlertIcon } from "../../core/ui/icons";
 import EmptyState from "../../core/ui/EmptyState";
 import { useToast } from "../../core/ui/useToast";
 import { cn } from "../../core/utils/cn";
 import { formatDateTime } from "../../core/utils/date";
 import { activityTaskTitle, describeActivity } from "../tasks/activityText";
-import { getProject, listMembers, listProjectActivities } from "./api";
+import DueLabel from "../tasks/DueLabel";
+import PriorityBadge from "../tasks/PriorityBadge";
+import {
+  getDeadlines,
+  getProject,
+  listMembers,
+  listProjectActivities,
+} from "./api";
 import ProgressBar from "./ProgressBar";
 import ProjectHeader from "./ProjectHeader";
 
 // 프로젝트 통계 (P1) — REQUIREMENTS §6 `/projects/:id/stats`, UI-DESIGN §3.2(탭은 보드와 설정 사이)
 // 범위: 진행률(DASH-01) · 담당자별 현황(DASH-02) · 마감 임박·지연(DASH-03) · 최근 활동 20건(LOG-03)
-// 지금은 진행률 · 최근 활동(T-F4-07). 임박·지연(T-F5-06)·담당자별(T-F5-10)은 API가 나오면 구역을 더한다.
+// 지금은 진행률 · 마감 임박·지연(T-F5-06) · 최근 활동(T-F4-07). 담당자별(T-F5-10)은 API가 나오면 구역을 더한다.
+// 구역마다 따로 불러오고, 한 구역이 실패해도 다른 구역은 그대로 보인다.
 
 const RECENT_SIZE = 20; // LOG-03-b
 
@@ -78,6 +86,7 @@ function Stats({ projectId }) {
               <ProgressBar progress={project.progress} />
             </Section>
           )}
+          <Deadlines projectId={project.id} onPageError={setPageError} />
           <RecentActivities projectId={project.id} onPageError={setPageError} />
         </div>
       ) : (
@@ -102,6 +111,139 @@ function Section({ title, className, children }) {
       <h2 className="mb-4 text-lg font-bold text-neutral-900">{title}</h2>
       {children}
     </section>
+  );
+}
+
+// 마감 임박·지연 (DASH-03, US-22). 지연 · 임박 두 목록, 순서는 서버 순서(마감일 → id) 그대로.
+// 데스크톱은 두 칸 나란히, 모바일은 지연 → 임박 순으로 쌓는다. 목록마다 빈 상태를 보인다(T-F5-06 완료 기준).
+function Deadlines({ projectId, onPageError }) {
+  const toast = useToast();
+  const [data, setData] = useState(null); // null = 불러오는 중
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  // 최근 활동과 같은 방식: effect 안에서는 응답만 기다린다.
+  const fetchDeadlines = useCallback(
+    () =>
+      getDeadlines(projectId)
+        .then(setData)
+        .catch((error) => {
+          const kind = pageErrorOf(error);
+          if (kind) {
+            onPageError(kind);
+            return;
+          }
+          setLoadFailed(true);
+          toast.error(
+            error.response?.data?.message ?? "잠시 후 다시 시도해 주세요",
+          );
+        }),
+    [projectId, onPageError, toast],
+  );
+
+  useEffect(() => {
+    fetchDeadlines();
+  }, [fetchDeadlines]);
+
+  const retry = () => {
+    setLoadFailed(false);
+    setData(null);
+    fetchDeadlines();
+  };
+
+  return (
+    <Section title="마감 임박·지연">
+      {loadFailed ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-sm text-neutral-500">
+          <p>마감 현황을 불러오지 못했습니다</p>
+          <Button variant="secondary" onClick={retry}>
+            다시 시도
+          </Button>
+        </div>
+      ) : data === null ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="grid gap-4 md:grid-cols-2"
+        >
+          <span className="sr-only">불러오는 중입니다</span>
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* TODO(Figma): 목록 제목·빈 상태 문구는 시안 확정 전 추정값 */}
+          <DeadlineList
+            projectId={projectId}
+            title="지연"
+            icon={TriangleAlertIcon}
+            titleClass="text-danger"
+            tasks={data.overdue}
+            emptyText="지연된 업무가 없습니다"
+          />
+          <DeadlineList
+            projectId={projectId}
+            title="임박"
+            icon={ClockIcon}
+            titleClass="text-warning"
+            tasks={data.due_soon}
+            emptyText="마감 임박 업무가 없습니다"
+          />
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function DeadlineList({
+  projectId,
+  title,
+  icon: Icon,
+  titleClass,
+  tasks,
+  emptyText,
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <h3
+        className={cn(
+          "flex items-center gap-1.5 text-sm font-bold",
+          titleClass,
+        )}
+      >
+        <Icon size={14} />
+        {title}
+        <span className="rounded-md bg-neutral-100 px-1.5 text-xs font-semibold text-neutral-600">
+          {tasks.length}
+        </span>
+      </h3>
+      {tasks.length === 0 ? (
+        <EmptyState variant="column" title={emptyText} />
+      ) : (
+        <ul className="divide-y divide-neutral-200">
+          {tasks.map((task) => (
+            <li key={task.id}>
+              <Link
+                to={`/projects/${projectId}/tasks/${task.id}`}
+                className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                <PriorityBadge priority={task.priority} className="shrink-0" />
+                {/* 제목은 JSX 글자로만 넣는다 */}
+                <span className="min-w-0 flex-1 truncate text-sm text-neutral-900">
+                  {task.title}
+                </span>
+                {/* 담당자 없음은 Avatar가 `?` 회색으로 그린다 */}
+                <Avatar user={task.assignee} size="sm" />
+                <DueLabel
+                  dueDate={task.due_date}
+                  status={task.status}
+                  className="shrink-0"
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

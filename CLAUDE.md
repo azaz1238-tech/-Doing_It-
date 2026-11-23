@@ -42,7 +42,6 @@ docs/            명세 문서 (PROPOSAL, CONSTITUTION, REQUIREMENTS, SPEC, USER
                  · devlog/<한국이름>.md(일일 개발 로그) · daily/YYYY-MM-DD.md(팀 일일 보고) · verify.md(기능 검증표) · reports/(보고서) · USER-MANUAL.md
 docker-compose.yml  MariaDB만 · docker/mariadb/init.sql(doing_it·doing_it_test 생성)
 requirements.txt    백엔드 패키지(실행용+개발용 한 파일, 저장소 루트) · .env.example
-.github/         PR 템플릿
 postman/         Postman 컬렉션
 backend/app/     routers/ · services/ · models/ · schemas/ · main.py
 backend/core/    ★ 스타터킷: config, DB 세션, 보안(bcrypt·JWT), 인증 의존성, 공통 예외 처리, clock(한국 날짜), 페이지네이션

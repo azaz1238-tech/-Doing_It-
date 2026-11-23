@@ -6,7 +6,16 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import activities, auth, members, projects, stats, tasks, users
+from app.routers import (
+    activities,
+    auth,
+    comments,
+    members,
+    projects,
+    stats,
+    tasks,
+    users,
+)
 from core.config import get_settings
 from core.exceptions import register_exception_handlers
 
@@ -48,6 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(members.router, prefix=API_PREFIX)
     app.include_router(tasks.router, prefix=API_PREFIX)
     app.include_router(activities.router, prefix=API_PREFIX)
+    app.include_router(comments.router, prefix=API_PREFIX)
     app.include_router(stats.router, prefix=API_PREFIX)
 
     return app

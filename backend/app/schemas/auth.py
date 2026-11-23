@@ -66,6 +66,15 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class UpdateMeRequest(BaseModel):
+    """내 이름 수정 (AUTH-06, API-SPEC §6). 이름 규칙은 회원가입과 같다(§5.1).
+    이름 말고 다른 필드(login_id·system_role 등)는 받지 않는다 → 422."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: UserName
+
+
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"

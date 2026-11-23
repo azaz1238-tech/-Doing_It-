@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.models import User
-from app.schemas.member import MemberAdd, MemberOut
+from app.schemas.member import MemberAdd, MemberOut, MemberRoleUpdate
 from app.services import member_service
 from app.services.auth_service import get_current_user
 from core.db import get_db
@@ -38,6 +38,18 @@ def add_member(
 ) -> MemberOut:
     """멤버 추가 (PRJ-04). OWNER만. 알림·수락 절차 없이 바로 멤버가 된다."""
     return member_service.add_member(db, user, project_id, body)
+
+
+@router.patch("/{user_id}", response_model=MemberOut)
+def change_member_role(
+    project_id: int,
+    user_id: int,
+    body: MemberRoleUpdate,
+    user: CurrentUser,
+    db: DbSession,
+) -> MemberOut:
+    """멤버 역할 변경 (PRJ-08). OWNER만. 마지막 OWNER를 MEMBER로 내리면 400 LAST_OWNER."""
+    return member_service.change_role(db, user, project_id, user_id, body)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

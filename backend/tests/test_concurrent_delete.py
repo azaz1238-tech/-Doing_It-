@@ -14,8 +14,9 @@ from functools import partial
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.models import User
+from app.models import ProjectMember, User
 from app.models.enums import ProjectRole, TaskStatus
+from app.schemas.member import MemberRoleUpdate
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services import member_service, project_service, task_service
 from core.exceptions import AppError
@@ -141,3 +142,56 @@ def test_delete_project_vs_delete_task(engine, db):
 
         assert delete == "ok"
         assert delete_task in {"ok", "TASK_NOT_FOUND"}, delete_task
+
+
+# --- 역할 변경 (PRJ-08, T-F3-06) ---
+
+
+def _change_role(project_id: int, target_user_id: int, role: ProjectRole) -> Action:
+    return partial(
+        member_service.change_role,
+        project_id=project_id,
+        target_user_id=target_user_id,
+        data=MemberRoleUpdate(role=role),
+    )
+
+
+def test_delete_project_vs_change_role(engine, db):
+    for _ in range(ROUNDS):
+        jisu, minho, project, _ = _setup(db)
+        pid, minho_id = project.id, minho.id
+
+        delete, change = _race(
+            engine,
+            (jisu.id, _delete_project(pid)),
+            (jisu.id, _change_role(pid, minho_id, ProjectRole.OWNER)),
+        )
+
+        assert delete == "ok"
+        assert change in {"ok", "PROJECT_NOT_FOUND", "MEMBER_NOT_FOUND"}, change
+
+
+def test_two_owners_demote_each_other_keeps_one_owner(engine, db):
+    """OWNER 2명이 동시에 서로를 MEMBER로 바꿔도 OWNER가 0명이 되지 않는다 (DATABASE-DESIGN §6.1)."""
+    for _ in range(ROUNDS):
+        jisu, minho = make_user(db), make_user(db)
+        project = make_project(db, jisu)
+        add_member(db, project, minho, ProjectRole.OWNER)
+        pid = project.id
+
+        results = _race(
+            engine,
+            (jisu.id, _change_role(pid, minho.id, ProjectRole.MEMBER)),
+            (minho.id, _change_role(pid, jisu.id, ProjectRole.MEMBER)),
+        )
+
+        # 먼저 끝난 쪽은 성공, 늦은 쪽은 이미 자신이 MEMBER라 403 또는 마지막 OWNER라 400
+        assert "ok" in results, results
+        assert set(results) <= {"ok", "LAST_OWNER", "FORBIDDEN"}, results
+        db.rollback()  # 이전 스냅샷이 아니라 두 요청이 커밋한 최신 값을 읽는다
+        owners = (
+            db.query(ProjectMember)
+            .filter_by(project_id=pid, role=ProjectRole.OWNER.value)
+            .count()
+        )
+        assert owners == 1

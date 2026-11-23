@@ -141,7 +141,8 @@ def test_update_me_invalid_name_422(client, db, name):
     assert client.get(URL, headers=headers).json()["name"] == "지수"
 
 
-def test_update_me_missing_body_422(client, db):
+def test_update_me_empty_object_422(client, db):
+    """빈 객체 {} → name이 빠짐 → 422 (field = name)"""
     user = make_user(db)
 
     res = client.patch(URL, headers=_auth(create_access_token(user.id)), json={})

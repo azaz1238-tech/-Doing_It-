@@ -27,12 +27,13 @@ import { getTaskPermissions } from "./permissions";
 import PriorityBadge from "./PriorityBadge";
 import StatusSelect from "./StatusSelect";
 import { charCount, PRIORITIES, STATUSES } from "./taskDisplay";
+import TaskDetailTabs from "./TaskDetailTabs";
 
 // S6 업무 상세 모달 — UI-DESIGN §4 S6, TASK-02·03·06, SPEC TASK-06-a~e
 // 주소 /projects/:id/tasks/:taskId — 보드(S4) 위에 열리고, 새로고침·공유해도 같은 창이 열린다(TASK-06-a).
 // - 속성(상태·우선순위·담당자·마감일)은 고르는 즉시 그 필드 1개만 PATCH → 이력도 1행
 // - 제목·설명은 눌러서 수정 → 저장/취소 (이력 대상 아님, LOG-01)
-// - 댓글·변경 이력 탭은 P1이라 P0에서는 비워 둔다
+// - 왼쪽 아래 `[댓글 | 변경 이력 n]` 탭(P1)은 TaskDetailTabs가 그린다(T-F4-06·T-F4-04)
 
 const TITLE_MAX = 30;
 const TITLE_ERROR = "업무 제목은 1~30자로 입력해 주세요"; // SPEC TASK-01-b
@@ -60,6 +61,8 @@ function TaskDetail({ taskId }) {
   const [deleting, setDeleting] = useState(false);
   // 삭제 확인을 빠르게 두 번 누르면 두 번째 DELETE가 404로 돌아온다 → ref로 바로 막는다(D7-01).
   const deletingRef = useRef(false);
+  // 저장에 성공할 때마다 1 늘린다 → 변경 이력 탭이 다시 불러온다(LOG-03-a "방금 전")
+  const [historyVersion, setHistoryVersion] = useState(0);
 
   // 닫아도 보드의 검색·필터(주소 쿼리)는 그대로 둔다(TASK-07).
   const { search } = useLocation();
@@ -104,6 +107,7 @@ function TaskDetail({ taskId }) {
     try {
       const updated = await updateTask(task.id, patch);
       setTask(updated);
+      setHistoryVersion((v) => v + 1);
       onTaskChanged();
       toast.success(successMessage);
       return true;
@@ -323,6 +327,8 @@ function TaskDetail({ taskId }) {
               </EditableText>
             )}
           </section>
+
+          <TaskDetailTabs taskId={task.id} historyVersion={historyVersion} />
         </div>
 
         {/* 오른쪽: 속성 — 고르는 즉시 저장 */}

@@ -28,6 +28,17 @@ export async function listMyTasks({ page = 1, size = 100 } = {}) {
   return data; // { items: MyTask[], total, page, size }
 }
 
+/**
+ * 업무 변경 이력 (LOG-03-a, API-SPEC §6). 최신순(created_at DESC, id DESC).
+ * 한 업무의 이력은 많지 않아 상세 탭은 최대 100건을 한 번에 받는다. 비멤버 403, 업무 없음 404
+ */
+export async function listTaskActivities(taskId, { size = 100 } = {}) {
+  const { data } = await client.get(`/tasks/${taskId}/activities`, {
+    params: { page: 1, size },
+  });
+  return data; // { items: Activity[], total, page, size }
+}
+
 /** 업무 등록 — status는 보내지 않는다(항상 TODO). 비어 있는 선택 필드는 빼고 보낸다 */
 export async function createTask(projectId, body) {
   const { data } = await client.post(`/projects/${projectId}/tasks`, body);

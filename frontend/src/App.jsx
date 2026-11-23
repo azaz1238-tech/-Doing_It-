@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Route, Routes } from "react-router";
 import ProtectedRoute from "./core/auth/ProtectedRoute";
 import AppLayout from "./core/layout/AppLayout";
 import ErrorPage from "./core/ui/ErrorPage";
@@ -9,6 +9,7 @@ import ProjectListPage from "./features/projects/ProjectListPage";
 import ProjectSettingsPage from "./features/projects/ProjectSettingsPage";
 import ProjectStatsPage from "./features/projects/ProjectStatsPage";
 import BoardPage from "./features/tasks/BoardPage";
+import MyDashboardPage from "./features/tasks/MyDashboardPage";
 import TaskDetailModal from "./features/tasks/TaskDetailModal";
 
 // 개발 서버에서만 쓰는 공통 컴포넌트 미리보기. 배포 빌드에서는 경로와 코드가 모두 빠진다.
@@ -43,7 +44,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Navigate to="/projects" replace />} />
+        <Route path="/" element={<MyDashboardPage />} />
         <Route path="/projects" element={<ProjectListPage />} />
         <Route path="/projects/:id" element={<BoardPage />}>
           <Route path="tasks/:taskId" element={<TaskDetailModal />} />

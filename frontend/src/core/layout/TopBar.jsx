@@ -5,10 +5,17 @@ import Avatar from "../ui/Avatar";
 import { ChevronDownIcon, LogOutIcon } from "../ui/icons";
 import { cn } from "../utils/cn";
 
+// 주 메뉴 (UI-DESIGN §3.1). 첫 화면인 내 대시보드(`/`, DASH-04)를 앞에 둔다.
+// `/`는 end로 정확히 같을 때만 선택한다(그렇지 않으면 모든 주소에서 선택됨).
+const MENU = [
+  { to: "/", label: "내 대시보드", end: true },
+  { to: "/projects", label: "프로젝트" },
+];
+
 /**
  * TopBar — UI-DESIGN §3.1 (S3~S8)
- * 왼쪽: 로고 `동잇` → /projects · 메뉴: `프로젝트` · 오른쪽: 아바타 + 이름 ▾ → `로그아웃`
- * P1에서 `내 대시보드` 메뉴, `내 정보 수정`(AUTH-06) 메뉴가 추가된다.
+ * 왼쪽: 로고 `동잇` → /projects · 메뉴: `내 대시보드` · `프로젝트` · 오른쪽: 아바타 + 이름 ▾ → `로그아웃`
+ * P1에서 `내 정보 수정`(AUTH-06) 메뉴가 추가된다.
  */
 export default function TopBar() {
   const { user, logout } = useAuth();
@@ -51,20 +58,27 @@ export default function TopBar() {
         </Link>
 
         {/* 현재 메뉴: 시안 v0.3 — 굵은 본문색 글자 + 아래 밑줄 (헤더 아래 테두리에 붙는다) */}
-        <nav aria-label="주 메뉴" className="flex items-stretch self-stretch">
-          <NavLink
-            to="/projects"
-            className={({ isActive }) =>
-              cn(
-                "-mb-px flex items-center whitespace-nowrap border-b-2 px-1 font-semibold",
-                isActive
-                  ? "border-neutral-900 text-neutral-900"
-                  : "border-transparent text-neutral-500 hover:text-neutral-900",
-              )
-            }
-          >
-            프로젝트
-          </NavLink>
+        <nav
+          aria-label="주 메뉴"
+          className="flex items-stretch gap-4 self-stretch sm:gap-6"
+        >
+          {MENU.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                cn(
+                  "-mb-px flex items-center whitespace-nowrap border-b-2 px-1 font-semibold",
+                  isActive
+                    ? "border-neutral-900 text-neutral-900"
+                    : "border-transparent text-neutral-500 hover:text-neutral-900",
+                )
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
 
         {user && (

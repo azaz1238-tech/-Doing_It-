@@ -18,6 +18,7 @@ from app.schemas.task import TaskCreate, TaskFilter, TaskUpdate
 from app.services import activity_service
 from app.services.permissions import (
     ANY_MEMBER,
+    lock_project_shared,
     require_project_role,
     require_task_delete,
     require_task_edit,
@@ -67,9 +68,21 @@ def _task_with_member(
     return task, member
 
 
+def _lock_project(db: Session, project_id: int, not_found: NotFound) -> None:
+    """업무 행을 바꾸기 전에 프로젝트 행부터 공유 잠금 (이슈 #72, permissions.lock_project_shared).
+
+    권한 검사 뒤에 다른 요청이 프로젝트를 삭제했으면 not_found(404)를 던진다.
+    """
+    if not lock_project_shared(db, project_id):
+        raise not_found
+
+
 def create_task(db: Session, user: User, project_id: int, data: TaskCreate) -> Task:
     """업무 등록 + CREATED 이력 (TASK-01, LOG-01). 상태는 항상 TODO. 멤버 누구나."""
     require_project_role(db, project_id, user, ANY_MEMBER)
+    _lock_project(
+        db, project_id, NotFound("PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다")
+    )
     _require_assignee_member(db, project_id, data.assignee_id)  # 403 다음 400
     task = Task(
         project_id=project_id,
@@ -155,6 +168,9 @@ def update_task(db: Session, user: User, task_id: int, data: TaskUpdate) -> Task
     task, member = _task_with_member(db, user, task_id)
     fields = data.model_fields_set
     require_task_edit(member, task, fields)  # 403이면 아무것도 바꾸지 않는다
+    _lock_project(
+        db, task.project_id, NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다")
+    )
     # 담당자를 보낸 경우만, 값 반영 전에 검사 → 400이면 아무것도 안 바뀜
     if "assignee_id" in fields:
         _require_assignee_member(db, task.project_id, data.assignee_id)
@@ -184,6 +200,9 @@ def delete_task(db: Session, user: User, task_id: int) -> None:
     """
     task, member = _task_with_member(db, user, task_id)
     require_task_delete(member, task)
+    _lock_project(
+        db, task.project_id, NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다")
+    )
     activity_service.record(
         db, task, user.id, ActivityAction.DELETED, old_value=task.title
     )

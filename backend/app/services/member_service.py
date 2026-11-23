@@ -15,6 +15,7 @@ from app.services.permissions import (
     ANY_MEMBER,
     OWNER_ONLY,
     lock_owners,
+    lock_project_shared,
     owner_first,
     require_not_last_owner,
     require_project_role,
@@ -123,10 +124,14 @@ def _remove_member_rows(
     2. 대상이 담당하던 업무의 담당자를 NULL로, 업무마다 이력 1행 (변경자 = actor)
     3. project_members 행 삭제
 
-    잠그는 순서: OWNER 행 → 대상 멤버 행 → 대상의 업무 행. 업무 담당자 지정은
+    잠그는 순서: 프로젝트 행(공유) → OWNER 행 → 대상 멤버 행 → 대상의 업무 행. 업무 담당자 지정은
     대상 멤버 행에 공유 잠금을 걸어(task_service._require_assignee_member) 이 순서와 맞춘다.
+    프로젝트 행을 먼저 잠그는 것은 프로젝트 삭제와의 교착을 막기 위해서다(이슈 #72).
     여러 프로젝트에서 반복해 부를 때(AUTH-08 탈퇴)는 project_id 오름차순으로 부른다.
     """
+    if not lock_project_shared(db, project_id):
+        # 권한 검사 뒤에 다른 요청이 프로젝트를 삭제함
+        raise NotFound("PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다")
     owners = lock_owners(db, project_id)
 
     # 일반 SELECT는 트랜잭션 시작 시점의 값을 보여 줘서, 방금 다른 요청이 지운 행이

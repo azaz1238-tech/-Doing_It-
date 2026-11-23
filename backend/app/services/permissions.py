@@ -55,6 +55,22 @@ def owner_first() -> ColumnElement[int]:
     return case((ProjectMember.role == ProjectRole.OWNER.value, 0), else_=1)
 
 
+def lock_project_shared(db: Session, project_id: int) -> bool:
+    """프로젝트 행에 공유 잠금을 건다. 행이 없으면(이미 삭제됨) False (이슈 #72).
+
+    프로젝트 삭제는 projects 행을 배타 잠금한 뒤 CASCADE로 멤버·업무·이력을 지운다.
+    하위 행(멤버·업무)을 바꾸는 요청이 하위 행부터 잠그면 순서가 엇갈려 교착(1213)이 난다.
+    그래서 하위 행을 바꾸는 서비스 함수는 맨 먼저 이 함수를 불러 "프로젝트 행 → 하위 행" 순서로 맞춘다.
+    - 이 요청이 먼저면: 삭제가 이 트랜잭션이 끝날 때까지 기다린다.
+    - 삭제가 먼저면: 이 요청이 기다렸다가 행이 없음을 보고 False → 부른 쪽이 404로 답한다.
+    잠그며 읽으므로 트랜잭션 시작 뒤에 커밋된 삭제도 보인다.
+    """
+    locked = db.scalar(
+        select(Project.id).where(Project.id == project_id).with_for_update(read=True)
+    )
+    return locked is not None
+
+
 def lock_owners(db: Session, project_id: int) -> list[ProjectMember]:
     """이 프로젝트의 OWNER 행을 모두 잠그고 돌려준다 (DATABASE-DESIGN §6.1).
 

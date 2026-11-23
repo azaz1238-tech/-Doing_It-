@@ -61,3 +61,32 @@ export async function getTask(taskId) {
 export async function deleteTask(taskId) {
   await client.delete(`/tasks/${taskId}`); // 204
 }
+
+// --- 댓글 (CMT-01·02, API-SPEC §6) ---
+// Comment: { id, task_id, user: { id, login_id, name }, content, created_at, updated_at }
+// 화면은 updated_at이 created_at과 다르면 "수정됨"을 표시한다(UI-DESIGN §9 #6).
+
+/** 댓글 목록 — 오래된 순. 멤버 누구나 */
+export async function listComments(taskId, { page = 1, size = 100 } = {}) {
+  const { data } = await client.get(`/tasks/${taskId}/comments`, {
+    params: { page, size },
+  });
+  return data; // { items: Comment[], total, page, size }
+}
+
+/** 댓글 작성 — 앞뒤 공백 제거 후 1~300자(아니면 422) */
+export async function createComment(taskId, content) {
+  const { data } = await client.post(`/tasks/${taskId}/comments`, { content });
+  return data; // Comment
+}
+
+/** 댓글 수정 — 작성자만(OWNER도 남의 댓글은 403 FORBIDDEN) */
+export async function updateComment(commentId, content) {
+  const { data } = await client.patch(`/comments/${commentId}`, { content });
+  return data; // Comment
+}
+
+/** 댓글 삭제 — 작성자만 */
+export async function deleteComment(commentId) {
+  await client.delete(`/comments/${commentId}`); // 204
+}

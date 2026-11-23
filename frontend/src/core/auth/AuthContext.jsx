@@ -83,9 +83,25 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  // 내 이름 수정 (AUTH-06, API-SPEC §6 `PATCH /users/me`). 응답 User로 바꿔 TopBar 이름이 바로 바뀐다.
+  // /users/me를 이미 여기서 다루므로 features가 아니라 여기에 둔다(core는 features를 import하지 않는다).
+  const updateName = useCallback(async (name) => {
+    const { data } = await client.patch("/users/me", { name });
+    setUser(data);
+    return data;
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, restoreFailed, retryRestore, login, logout }),
-    [user, loading, restoreFailed, retryRestore, login, logout],
+    () => ({
+      user,
+      loading,
+      restoreFailed,
+      retryRestore,
+      login,
+      logout,
+      updateName,
+    }),
+    [user, loading, restoreFailed, retryRestore, login, logout, updateName],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

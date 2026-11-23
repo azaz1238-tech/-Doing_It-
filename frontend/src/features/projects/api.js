@@ -80,3 +80,13 @@ export async function addMember(projectId, { loginId, role }) {
 export async function removeMember(projectId, userId) {
   await client.delete(`/projects/${projectId}/members/${userId}`);
 }
+
+// 멤버 역할 변경 (PRJ-08, OWNER, API-SPEC §6). 마지막 OWNER를 MEMBER로 바꾸면 400 LAST_OWNER.
+// 404 MEMBER_NOT_FOUND, MEMBER 403 FORBIDDEN
+export async function updateMemberRole(projectId, userId, role) {
+  const { data } = await client.patch(
+    `/projects/${projectId}/members/${userId}`,
+    { role },
+  );
+  return data; // Member
+}

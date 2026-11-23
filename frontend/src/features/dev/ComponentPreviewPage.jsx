@@ -334,7 +334,7 @@ export default function ComponentPreviewPage() {
 
         <ConfirmDialog
           open={confirm === "task"}
-          title="이 업무를 삭제하시겠습니까?"
+          title="이 업무를 삭제할까요?" // SPEC TASK-06-c 문구 그대로 (#76)
           message={
             "'업무 상태 변경 API' 업무가 삭제됩니다.\n변경 이력은 남습니다"
           }

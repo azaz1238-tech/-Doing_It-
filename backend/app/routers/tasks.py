@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.models import User
 from app.models.enums import TaskStatus
-from app.schemas.task import TaskCreate, TaskOut, TaskUpdate
+from app.schemas.task import TaskCreate, TaskFilter, TaskOut, TaskUpdate
 from app.services import task_service
 from app.services.auth_service import get_current_user
 from core.db import get_db
@@ -29,10 +29,16 @@ def list_tasks(
     user: CurrentUser,
     db: DbSession,
     params: Annotated[PageParams, Depends()],
+    filters: Annotated[TaskFilter, Depends()],
     task_status: Annotated[TaskStatus | None, Query(alias="status")] = None,
 ) -> Page[TaskOut]:
-    """업무 목록·칸반 (TASK-05). 칸반은 상태(컬럼)마다 1번씩 호출한다."""
-    tasks, total = task_service.list_tasks(db, user, project_id, task_status, params)
+    """업무 목록·칸반 (TASK-05). 칸반은 상태(컬럼)마다 1번씩 호출한다.
+
+    검색·필터(TASK-07): q · assignee_id(none = 담당자 없음) · priority · due_from·due_to.
+    """
+    tasks, total = task_service.list_tasks(
+        db, user, project_id, task_status, params, filters
+    )
     return Page(
         items=[TaskOut.model_validate(task) for task in tasks],
         total=total,

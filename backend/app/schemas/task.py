@@ -8,8 +8,9 @@
 """
 
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 
+from fastapi import Query
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -28,6 +29,35 @@ TaskTitle = Annotated[
 # 최대 2000자 (API-SPEC v1.3 §5.4, SPEC-CHANGELOG #15). 없으면 DB TEXT 한도 초과로 500.
 # 공백은 지우지 않는다(사용자가 쓴 줄바꿈·들여쓰기 유지).
 TaskDescription = Annotated[str, StringConstraints(max_length=2000)]
+
+
+class TaskFilter:
+    """업무 목록 검색·필터 쿼리 (TASK-07, API-SPEC §5.4). 라우터에서 Depends()로 받는다.
+
+    - q: 앞뒤 공백을 지우고, 비면 조건 없음(None).
+    - assignee_id: 숫자 또는 "none"(담당자 미지정만). 그 밖의 값은 422.
+    - due_from·due_to: 양 끝 포함. 하나라도 있으면 마감일 없는 업무는 빠진다.
+    """
+
+    def __init__(
+        self,
+        q: Annotated[str | None, Query()] = None,
+        # int | Literal["none"]로 받으면 422 오류의 field가 union 후보 이름("int")이 되어
+        # 패턴으로 검사한 뒤 숫자로 바꾼다.
+        assignee_id: Annotated[str | None, Query(pattern=r"^(none|[0-9]+)$")] = None,
+        priority: Annotated[TaskPriority | None, Query()] = None,
+        due_from: Annotated[date | None, Query()] = None,
+        due_to: Annotated[date | None, Query()] = None,
+    ) -> None:
+        self.q = (q or "").strip() or None
+        self.assignee_id: int | Literal["none"] | None = (
+            assignee_id
+            if assignee_id is None or assignee_id == "none"
+            else int(assignee_id)
+        )
+        self.priority = priority
+        self.due_from = due_from
+        self.due_to = due_to
 
 
 class TaskCreate(BaseModel):

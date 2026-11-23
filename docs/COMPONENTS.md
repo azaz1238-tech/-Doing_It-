@@ -333,7 +333,7 @@ UI-DESIGN §3.2. 데이터는 받아서 그리기만 한다. S4·S7이 `getProje
 | --- | --- |
 | `project` | Project 응답. `null`이면 스켈레톤 |
 | `members` | Member 목록(`listMembers(...).items`). 없거나 비면 아바타 묶음을 그리지 않는다 |
-| `active` | `"board"` \| `"settings"` — 선택된 탭 |
+| `active` | `"board"` \| `"stats"` \| `"settings"` — 선택된 탭 |
 | `actions` | 오른쪽 버튼 자리(선택). S4는 `+ 업무 추가` |
 
 ```jsx
@@ -347,8 +347,8 @@ UI-DESIGN §3.2. 데이터는 받아서 그리기만 한다. S4·S7이 `getProje
 
 - `프로젝트 ›`는 S3(`/projects`)로 간다. 기간이 없으면 `기간 없음`(S3 카드와 같음).
 - 멤버 아바타는 최대 4개 + `+n`, 누르면 S7로 간다. Member의 `user_id`를 Avatar의 `id`로 바꿔 넘긴다.
-- 탭은 `보드`·`설정` 2개이고 모든 멤버에게 보인다. 선택 탭은 `active`로 정한다(NavLink 자동 판단은 S6 주소 `/projects/:id/tasks/:taskId`에서 보드 탭이 꺼져서 쓰지 않는다).
-- 진행률 바(DASH-01)는 P1. 지금은 자리만 비워 둔다.
+- 탭은 `보드`·`통계`·`설정` 3개이고 모든 멤버에게 보인다(통계는 P1, 보드와 설정 사이 — T-F4-07). 선택 탭은 `active`로 정한다(NavLink 자동 판단은 S6 주소 `/projects/:id/tasks/:taskId`에서 보드 탭이 꺼져서 쓰지 않는다).
+- 진행률 바(DASH-01)는 `project.progress`가 있으면 그린다(T-F5-02).
 
 ### 3.15 ErrorPage — `core/ui/ErrorPage.jsx` (T-F0-14)
 

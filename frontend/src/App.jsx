@@ -7,6 +7,7 @@ import LoginPage from "./features/auth/LoginPage";
 import SignupPage from "./features/auth/SignupPage";
 import ProjectListPage from "./features/projects/ProjectListPage";
 import ProjectSettingsPage from "./features/projects/ProjectSettingsPage";
+import ProjectStatsPage from "./features/projects/ProjectStatsPage";
 import BoardPage from "./features/tasks/BoardPage";
 import TaskDetailModal from "./features/tasks/TaskDetailModal";
 
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/projects/:id" element={<BoardPage />}>
           <Route path="tasks/:taskId" element={<TaskDetailModal />} />
         </Route>
+        <Route path="/projects/:id/stats" element={<ProjectStatsPage />} />
         <Route
           path="/projects/:id/settings"
           element={<ProjectSettingsPage />}

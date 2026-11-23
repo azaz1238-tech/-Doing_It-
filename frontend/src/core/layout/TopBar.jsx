@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import { useAuth } from "../auth/useAuth";
 import Avatar from "../ui/Avatar";
-import { ChevronDownIcon, LogOutIcon } from "../ui/icons";
+import { ChevronDownIcon, LogOutIcon, UserPenIcon } from "../ui/icons";
 import { cn } from "../utils/cn";
+import EditNameModal from "./EditNameModal";
 
 // 주 메뉴 (UI-DESIGN §3.1). 첫 화면인 내 대시보드(`/`, DASH-04)를 앞에 둔다.
 // `/`는 end로 정확히 같을 때만 선택한다(그렇지 않으면 모든 주소에서 선택됨).
@@ -14,13 +15,14 @@ const MENU = [
 
 /**
  * TopBar — UI-DESIGN §3.1 (S3~S8)
- * 왼쪽: 로고 `동잇` → /projects · 메뉴: `내 대시보드` · `프로젝트` · 오른쪽: 아바타 + 이름 ▾ → `로그아웃`
- * P1에서 `내 정보 수정`(AUTH-06) 메뉴가 추가된다.
+ * 왼쪽: 로고 `동잇` → /projects · 메뉴: `내 대시보드` · `프로젝트`
+ * 오른쪽: 아바타 + 이름 ▾ → `내 정보 수정`(AUTH-06, P1) · `로그아웃`
  */
 export default function TopBar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingName, setEditingName] = useState(false);
   const menuRef = useRef(null);
 
   // 메뉴 바깥 클릭·ESC로 닫기
@@ -39,6 +41,11 @@ export default function TopBar() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [menuOpen]);
+
+  const handleEditName = () => {
+    setMenuOpen(false);
+    setEditingName(true);
+  };
 
   const handleLogout = () => {
     setMenuOpen(false);
@@ -106,6 +113,14 @@ export default function TopBar() {
                 <button
                   type="button"
                   role="menuitem"
+                  onClick={handleEditName}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-neutral-100"
+                >
+                  <UserPenIcon className="text-neutral-500" />내 정보 수정
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
                   onClick={handleLogout}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-neutral-100"
                 >
@@ -117,6 +132,7 @@ export default function TopBar() {
           </div>
         )}
       </div>
+      {editingName && <EditNameModal onClose={() => setEditingName(false)} />}
     </header>
   );
 }

@@ -91,7 +91,10 @@ export default function TopBar() {
               className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-neutral-100"
             >
               <Avatar user={user} size="sm" />
-              <span className="max-w-32 truncate font-medium">{user.name}</span>
+              {/* 좁은 화면에서는 아바타만 보인다. 이름은 화면 읽기 프로그램에는 항상 읽힌다 */}
+              <span className="sr-only sm:not-sr-only sm:max-w-32 sm:truncate sm:font-medium">
+                {user.name}
+              </span>
               <ChevronDownIcon className="text-neutral-500" />
             </button>
 

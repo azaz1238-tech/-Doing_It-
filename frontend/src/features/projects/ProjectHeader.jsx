@@ -44,10 +44,12 @@ export default function ProjectHeader({ project, members, active, actions }) {
                 <MemberStack projectId={project.id} members={members} />
               )}
               {/* 진행률 (DASH-01). 응답에 progress가 없으면(이전 API) 그리지 않는다 */}
+              {/* 데스크톱은 막대 260px(시안). 모바일은 한 줄을 따로 쓰고 막대가 남은 폭을 채운다(D9-04) */}
               {project.progress && (
                 <ProgressBar
                   progress={project.progress}
-                  barClassName="w-[260px]"
+                  className="w-full sm:w-auto"
+                  barClassName="flex-1 sm:w-[260px] sm:flex-none"
                 />
               )}
             </div>

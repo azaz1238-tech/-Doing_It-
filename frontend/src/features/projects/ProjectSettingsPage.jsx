@@ -61,6 +61,10 @@ function Settings({ projectId }) {
   const [project, setProject] = useState(null);
   const [members, setMembers] = useState(null);
   const [pageError, setPageError] = useState(null); // "403" | "404" | null
+  // 403·404가 아닌 실패(500·서버 꺼짐·네트워크)는 안내 화면 대신 "다시 시도"를 보인다(D9-04).
+  const [projectFailed, setProjectFailed] = useState(false);
+  const [membersFailed, setMembersFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0); // 다시 시도하면 1 늘려 effect를 다시 돌린다
 
   const handleError = (error, fallback) => {
     const kind = pageErrorOf(error);
@@ -76,26 +80,47 @@ function Settings({ projectId }) {
       .catch((error) => {
         if (ignore) return;
         const kind = pageErrorOf(error);
-        if (kind) setPageError(kind);
-        else
-          toast.error(
-            error.response?.data?.message ?? "프로젝트를 불러오지 못했습니다",
-          );
+        if (kind) {
+          setPageError(kind);
+          return;
+        }
+        setProjectFailed(true);
+        toast.error(
+          error.response?.data?.message ?? "프로젝트를 불러오지 못했습니다",
+        );
       });
     return () => {
       ignore = true;
     };
-  }, [projectId, toast]);
+  }, [projectId, toast, attempt]);
 
   // 멤버 목록 — 헤더 아바타와 멤버 구역이 같이 쓴다. 추가·제거 뒤 다시 부른다(T-F3-05 "목록 갱신").
-  // 실패하면 목록만 비워 둔다(권한·없음 안내는 getProject 쪽이 맡는다).
+  // 실패하면 이전 목록은 그대로 두고 실패만 표시한다(권한·없음 안내는 getProject 쪽이 맡는다).
+  // OWNER가 항상 1명 이상이라 정상 응답이 0명일 수는 없다 → 빈 목록과 실패를 따로 구분한다.
   const loadMembers = useCallback(
     () =>
       listMembers(projectId)
-        .then((data) => setMembers(data.items))
-        .catch(() => setMembers((prev) => prev ?? [])),
+        .then((data) => {
+          setMembers(data.items);
+          setMembersFailed(false);
+        })
+        .catch(() => setMembersFailed(true)),
     [projectId],
   );
+
+  const retryProject = () => {
+    setProjectFailed(false);
+    setAttempt((n) => n + 1);
+    if (membersFailed) {
+      setMembersFailed(false);
+      loadMembers();
+    }
+  };
+
+  const retryMembers = () => {
+    setMembersFailed(false);
+    loadMembers();
+  };
 
   useEffect(() => {
     loadMembers();
@@ -126,6 +151,8 @@ function Settings({ projectId }) {
           <MemberSection
             projectId={project.id}
             members={members}
+            loadFailed={membersFailed}
+            onRetry={retryMembers}
             editable={isOwner}
             myId={user?.id}
             onChanged={loadMembers}
@@ -134,12 +161,29 @@ function Settings({ projectId }) {
           {/* MEMBER에게는 삭제 구역을 숨긴다(UI-DESIGN S7) */}
           {isOwner && <DeleteSection project={project} onError={handleError} />}
         </>
+      ) : projectFailed ? (
+        <LoadFailed
+          message="프로젝트를 불러오지 못했습니다"
+          onRetry={retryProject}
+        />
       ) : (
         <div aria-hidden="true" className="flex flex-col gap-3">
           <Skeleton className="h-5 w-32" />
           <Skeleton className="h-40 w-full max-w-xl" />
         </div>
       )}
+    </div>
+  );
+}
+
+// 불러오기 실패 + 다시 시도 (S3 목록 실패와 같은 모양)
+function LoadFailed({ message, onRetry }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-12 text-sm text-neutral-500">
+      <p>{message}</p>
+      <Button variant="secondary" onClick={onRetry}>
+        다시 시도
+      </Button>
     </div>
   );
 }
@@ -417,6 +461,8 @@ const SELECT_CLASS =
 function MemberSection({
   projectId,
   members,
+  loadFailed,
+  onRetry,
   editable,
   myId,
   onChanged,
@@ -539,15 +585,25 @@ function MemberSection({
         </form>
       )}
 
-      {members == null ? (
+      {/* 처음 불러오기 실패 → 다시 시도. 목록이 있는데 새로고침이 실패하면 이전 목록 위에 알림만 */}
+      {loadFailed && members != null && (
+        <p className="mb-3 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
+          멤버 목록을 새로 불러오지 못했습니다
+          <Button variant="ghost" size="sm" onClick={onRetry}>
+            다시 시도
+          </Button>
+        </p>
+      )}
+      {members == null && loadFailed ? (
+        <LoadFailed
+          message="멤버 목록을 불러오지 못했습니다"
+          onRetry={onRetry}
+        />
+      ) : members == null ? (
         <div aria-hidden="true" className="flex flex-col gap-3">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </div>
-      ) : members.length === 0 ? (
-        <p className="text-sm text-neutral-500">
-          멤버 목록을 불러오지 못했습니다
-        </p>
       ) : (
         <ul className="divide-y divide-neutral-200">
           {members.map((m) => (

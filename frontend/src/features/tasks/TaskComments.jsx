@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "../../core/auth/useAuth";
 import Avatar from "../../core/ui/Avatar";
@@ -21,6 +21,8 @@ import { charCount } from "./taskDisplay";
 // - 입력칸에 글자 수 n/300. 비었거나 300자를 넘으면 등록하지 않는다(서버와 같게 앞뒤 공백을 빼고 셈)
 // - 내 댓글에만 수정·삭제 버튼. 버튼 숨김은 편의일 뿐이고 권한은 서버가 막는다(남의 댓글 403)
 // - 탭 제목의 숫자는 onCountChange(total)로 부모(탭 틀)에 알린다
+// - 쓰거나 고치는 중인 글이 있으면 onDirtyChange(true) → 상세 모달이 닫기 전에 묻는다(제목·설명과 같게)
+// - 두 번 누르기는 ref로 바로 막는다(D7-01: state는 다시 그려지기 전 두 번째 클릭을 못 막을 수 있음)
 // - 내용은 텍스트로만 그린다(React가 이스케이프). dangerouslySetInnerHTML 금지
 
 const MAX_LENGTH = 300;
@@ -29,8 +31,9 @@ const PAGE_SIZE = 100;
 /**
  * @param {number} taskId
  * @param {(total: number) => void} [onCountChange] 댓글 수가 정해지거나 바뀔 때마다 호출
+ * @param {(dirty: boolean) => void} [onDirtyChange] 쓰거나 고치는 중인 글이 있는지
  */
-export default function TaskComments({ taskId, onCountChange }) {
+export default function TaskComments({ taskId, onCountChange, onDirtyChange }) {
   const toast = useToast();
   // 내 댓글에만 수정·삭제 버튼 — 로그인한 사용자는 인증 Context에서 읽는다(탭 틀이 myId를 넘기지 않음)
   const myId = useAuth().user?.id;
@@ -41,6 +44,7 @@ export default function TaskComments({ taskId, onCountChange }) {
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0); // 다시 시도할 때 1 늘린다
 
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
@@ -52,6 +56,11 @@ export default function TaskComments({ taskId, onCountChange }) {
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const postingRef = useRef(false);
+  const savingRef = useRef(false);
+  const deletingRef = useRef(false);
+  const inputRef = useRef(null); // 삭제 뒤 포커스를 둘 곳(지운 줄의 버튼은 사라짐)
 
   useEffect(() => {
     let ignore = false;
@@ -67,11 +76,25 @@ export default function TaskComments({ taskId, onCountChange }) {
     return () => {
       ignore = true;
     };
-  }, [taskId]);
+  }, [taskId, reloadKey]);
 
   useEffect(() => {
     if (total !== null) onCountChange?.(total);
   }, [total, onCountChange]);
+
+  const editingComment = items.find((c) => c.id === editingId);
+  const dirty =
+    draft.trim() !== "" ||
+    (editingComment !== undefined && editDraft !== editingComment.content);
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+
+  const retry = () => {
+    setLoadFailed(false);
+    setLoading(true);
+    setReloadKey((k) => k + 1);
+  };
 
   const removeLocal = (commentId) => {
     setItems((prev) => prev.filter((c) => c.id !== commentId));
@@ -113,7 +136,8 @@ export default function TaskComments({ taskId, onCountChange }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!isValid(draft) || posting) return;
+    if (!isValid(draft) || postingRef.current) return;
+    postingRef.current = true;
     setPosting(true);
     setPostError(null);
     try {
@@ -132,6 +156,7 @@ export default function TaskComments({ taskId, onCountChange }) {
         toast.error(data?.message ?? "잠시 후 다시 시도해 주세요");
       }
     } finally {
+      postingRef.current = false;
       setPosting(false);
     }
   };
@@ -142,23 +167,28 @@ export default function TaskComments({ taskId, onCountChange }) {
   };
 
   const saveEdit = async (comment) => {
-    if (!isValid(editDraft) || savingId !== null) return;
+    if (!isValid(editDraft) || savingRef.current) return;
+    savingRef.current = true;
     setSavingId(comment.id);
+    // 그 사이 다른 편집이 열렸으면 그 편집은 닫지 않는다
+    const closeThisEdit = () =>
+      setEditingId((prev) => (prev === comment.id ? null : prev));
     try {
       const updated = await updateComment(comment.id, editDraft);
       setItems((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      setEditingId(null);
+      closeThisEdit();
     } catch (error) {
       handleActionError(error, comment.id);
-      if (error.response?.data?.code === "COMMENT_NOT_FOUND")
-        setEditingId(null);
+      if (error.response?.data?.code === "COMMENT_NOT_FOUND") closeThisEdit();
     } finally {
+      savingRef.current = false;
       setSavingId(null);
     }
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget || deleting) return;
+    if (!deleteTarget || deletingRef.current) return;
+    deletingRef.current = true;
     setDeleting(true);
     try {
       await deleteComment(deleteTarget.id);
@@ -166,8 +196,11 @@ export default function TaskComments({ taskId, onCountChange }) {
     } catch (error) {
       handleActionError(error, deleteTarget.id);
     } finally {
+      deletingRef.current = false;
       setDeleting(false);
       setDeleteTarget(null);
+      // 확인 창이 포커스를 돌려줄 버튼이 사라졌을 수 있어 입력칸으로 옮긴다(ESC로 모달 닫기 유지)
+      inputRef.current?.focus();
     }
   };
 
@@ -180,7 +213,12 @@ export default function TaskComments({ taskId, onCountChange }) {
           <span className="sr-only">불러오는 중입니다</span>
         </div>
       ) : loadFailed ? (
-        <p className="text-sm text-neutral-500">댓글을 불러오지 못했습니다</p>
+        <div className="flex flex-col items-center gap-3 py-6 text-sm text-neutral-500">
+          <p>댓글을 불러오지 못했습니다</p>
+          <Button variant="secondary" size="sm" onClick={retry}>
+            다시 시도
+          </Button>
+        </div>
       ) : items.length === 0 ? (
         <p className="text-sm text-neutral-500">아직 댓글이 없습니다</p>
       ) : (
@@ -202,7 +240,8 @@ export default function TaskComments({ taskId, onCountChange }) {
                     {comment.updated_at !== comment.created_at && (
                       <span className="text-neutral-400">수정됨</span>
                     )}
-                    {mine && !editing && (
+                    {/* 편집은 한 번에 하나만 — 편집 중에는 다른 댓글의 버튼을 숨긴다 */}
+                    {mine && editingId === null && (
                       <span className="ml-auto flex gap-1">
                         <Button
                           variant="ghost"
@@ -272,8 +311,14 @@ export default function TaskComments({ taskId, onCountChange }) {
         </Button>
       )}
 
-      <form onSubmit={submit} className="flex flex-col gap-2">
+      {/* 목록을 못 불러온 상태에서 쓰면 개수·목록이 틀어지므로 다시 시도 전에는 입력을 받지 않는다 */}
+      <form
+        onSubmit={submit}
+        className="flex flex-col gap-2"
+        hidden={loadFailed}
+      >
         <CountedTextarea
+          textareaRef={inputRef}
           label="댓글 입력"
           placeholder="댓글을 입력해 주세요"
           value={draft}
@@ -302,7 +347,8 @@ export default function TaskComments({ taskId, onCountChange }) {
         danger
         loading={deleting}
         onConfirm={confirmDelete}
-        onCancel={() => setDeleteTarget(null)}
+        // 삭제 요청 중에는 닫지 않는다(끝난 요청이 다음 확인 창을 닫아 버리는 것 방지)
+        onCancel={() => !deletingRef.current && setDeleteTarget(null)}
       />
     </div>
   );
@@ -316,6 +362,7 @@ const isValid = (value) => {
 };
 
 function CountedTextarea({
+  textareaRef,
   label,
   value,
   onChange,
@@ -328,6 +375,7 @@ function CountedTextarea({
   return (
     <div className="flex flex-col gap-1">
       <textarea
+        ref={textareaRef}
         aria-label={label}
         aria-invalid={over || Boolean(error)}
         autoFocus={autoFocus}

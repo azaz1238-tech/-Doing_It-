@@ -63,6 +63,8 @@ function TaskDetail({ taskId }) {
   const deletingRef = useRef(false);
   // 저장에 성공할 때마다 1 늘린다 → 변경 이력 탭이 다시 불러온다(LOG-03-a "방금 전")
   const [historyVersion, setHistoryVersion] = useState(0);
+  // 댓글을 쓰거나 고치는 중이면 닫기 전에 묻는다(T-F4-04, 제목·설명과 같게)
+  const [commentDirty, setCommentDirty] = useState(false);
 
   // 닫아도 보드의 검색·필터(주소 쿼리)는 그대로 둔다(TASK-07).
   const { search } = useLocation();
@@ -201,7 +203,8 @@ function TaskDetail({ taskId }) {
   const titleValid = titleLength >= 1 && titleLength <= TITLE_MAX;
   const isDirty =
     (titleDraft !== null && titleDraft !== task.title) ||
-    (descDraft !== null && descDraft !== (task.description ?? ""));
+    (descDraft !== null && descDraft !== (task.description ?? "")) ||
+    commentDirty;
 
   const saveTitle = async (e) => {
     e.preventDefault();
@@ -328,7 +331,11 @@ function TaskDetail({ taskId }) {
             )}
           </section>
 
-          <TaskDetailTabs taskId={task.id} historyVersion={historyVersion} />
+          <TaskDetailTabs
+            taskId={task.id}
+            historyVersion={historyVersion}
+            onCommentDirtyChange={setCommentDirty}
+          />
         </div>
 
         {/* 오른쪽: 속성 — 고르는 즉시 저장 */}

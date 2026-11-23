@@ -13,8 +13,13 @@ const DEFAULT_TAB = "comments";
 /**
  * @param {number} taskId
  * @param {number} historyVersion 상세에서 속성을 저장할 때마다 바뀌는 값 → 이력을 다시 불러온다
+ * @param {(dirty: boolean) => void} [onCommentDirtyChange] 댓글을 쓰거나 고치는 중인지 → 모달 닫기 확인
  */
-export default function TaskDetailTabs({ taskId, historyVersion }) {
+export default function TaskDetailTabs({
+  taskId,
+  historyVersion,
+  onCommentDirtyChange,
+}) {
   const baseId = useId();
   const [tab, setTab] = useState(DEFAULT_TAB);
   const [historyTotal, setHistoryTotal] = useState(null);
@@ -68,7 +73,11 @@ export default function TaskDetailTabs({ taskId, historyVersion }) {
         hidden={tab !== "comments"}
       >
         {/* 댓글 — T-F4-04. 탭을 바꿔도 입력 중인 글이 남도록 hidden으로만 숨긴다 */}
-        <TaskComments taskId={taskId} onCountChange={setCommentTotal} />
+        <TaskComments
+          taskId={taskId}
+          onCountChange={setCommentTotal}
+          onDirtyChange={onCommentDirtyChange}
+        />
       </div>
 
       {/* 변경 이력 — 탭을 바꿔도 목록을 유지하도록 hidden으로만 숨긴다 */}

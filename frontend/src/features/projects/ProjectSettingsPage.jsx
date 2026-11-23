@@ -17,6 +17,7 @@ import {
   getProject,
   listMembers,
   removeMember,
+  updateMemberRole,
   updateProject,
 } from "./api";
 import ProjectHeader from "./ProjectHeader";
@@ -29,7 +30,7 @@ import {
   ROLE_STYLES,
 } from "./projectRules";
 
-// S7 프로젝트 설정 — UI-DESIGN §4 S7 · PRJ-03(수정·삭제) · PRJ-04·05·07(멤버) · US-07·08·09
+// S7 프로젝트 설정 — UI-DESIGN §4 S7 · PRJ-03(수정·삭제) · PRJ-04·05·07·08(멤버) · US-07·08·09·26
 // 한 페이지에 세 구역(프로젝트 정보 · 멤버 · 프로젝트 삭제). 하위 주소나 탭은 만들지 않는다.
 // 버튼 숨김은 편의 기능이다. 권한 판단은 백엔드가 한다(MEMBER가 다른 방법으로 시도하면 403).
 
@@ -126,6 +127,13 @@ function Settings({ projectId }) {
     loadMembers();
   }, [loadMembers]);
 
+  // 역할 변경(PRJ-08) 뒤 — 바뀐 사람이 나면 my_role도 바뀌므로 프로젝트까지 다시 불러온다.
+  // (이전 프로젝트를 둔 채 attempt만 올려 다시 부른다 → 화면이 깜빡이지 않는다)
+  const handleRoleChanged = (userId) => {
+    if (userId === user?.id) setAttempt((n) => n + 1);
+    return loadMembers();
+  };
+
   // S8 안내 화면. PRJ-07-a: 비멤버에게는 프로젝트 이름도 보이지 않는다(헤더를 그리지 않음).
   if (pageError === "403") return <ErrorPage type="403" />;
   if (pageError === "404")
@@ -156,6 +164,7 @@ function Settings({ projectId }) {
             editable={isOwner}
             myId={user?.id}
             onChanged={loadMembers}
+            onRoleChanged={handleRoleChanged}
             onError={handleError}
           />
           {/* MEMBER에게는 삭제 구역을 숨긴다(UI-DESIGN S7) */}
@@ -455,9 +464,12 @@ const LAST_OWNER_ERROR = "OWNER는 최소 1명 있어야 합니다"; // PRJ-05-b
 
 const SELECT_CLASS =
   "h-10 rounded-lg border border-neutral-300 bg-white px-3 text-sm text-neutral-900 focus:outline-2 focus:-outline-offset-1 focus:outline-primary";
+// 멤버 행의 역할 드롭다운 — 행 높이에 맞춰 작게(제거 버튼 sm과 같은 높이)
+const ROLE_SELECT_CLASS =
+  "h-8 rounded-lg border border-neutral-300 bg-white px-2 text-xs font-semibold text-neutral-900 focus:outline-2 focus:-outline-offset-1 focus:outline-primary disabled:opacity-50";
 
 // 멤버 — 모든 멤버가 목록(이름·아이디·역할)을 본다(PRJ-07-b).
-// OWNER만 아이디 + 역할로 추가(PRJ-04), 행마다 제거(PRJ-05).
+// OWNER만 아이디 + 역할로 추가(PRJ-04), 행마다 역할 변경(PRJ-08)·제거(PRJ-05).
 function MemberSection({
   projectId,
   members,
@@ -466,6 +478,7 @@ function MemberSection({
   editable,
   myId,
   onChanged,
+  onRoleChanged,
   onError,
 }) {
   const navigate = useNavigate();
@@ -477,9 +490,12 @@ function MemberSection({
   const [adding, setAdding] = useState(false);
   const [target, setTarget] = useState(null); // 제거 확인 창에 띄운 Member
   const [removing, setRemoving] = useState(false);
+  const [changingId, setChangingId] = useState(null); // 역할 변경 요청 중인 행의 user_id
+  const [selfDemote, setSelfDemote] = useState(null); // 나를 MEMBER로 바꾸는 확인 창의 Member
   // 두 번 클릭 방지 — 상태보다 먼저 바뀌는 ref로 막는다
   const addingRef = useRef(false);
   const removingRef = useRef(false);
+  const changingRef = useRef(false);
 
   const submitAdd = async (e) => {
     e.preventDefault();
@@ -534,6 +550,40 @@ function MemberSection({
     }
     removingRef.current = false;
     setRemoving(false);
+  };
+
+  // 역할 변경 (PRJ-08). 드롭다운은 m.role을 그대로 보여 주므로 실패하면 저절로 원래 값으로 돌아간다.
+  const changeRole = async (member, role) => {
+    if (changingRef.current) return;
+    changingRef.current = true;
+    setChangingId(member.user_id);
+    try {
+      await updateMemberRole(projectId, member.user_id, role);
+      // 문구는 UI-DESIGN S7 (v1.10, SPEC-CHANGELOG #27)
+      toast.success(`${member.name}님의 역할을 ${role}로 바꿨습니다`);
+      setSelfDemote(null);
+      await onRoleChanged(member.user_id);
+    } catch (error) {
+      const code = error.response?.data?.code;
+      setSelfDemote(null);
+      // PRJ-08-a: 마지막 OWNER를 MEMBER로 → 멤버 제거와 같은 문구(UI-DESIGN S7)
+      if (code === "LAST_OWNER") toast.error(LAST_OWNER_ERROR);
+      else {
+        onError(error, "잠시 후 다시 시도해 주세요");
+        // 그 사이 다른 OWNER가 이 멤버를 제거했으면 목록을, 나를 MEMBER로 바꿨으면 내 역할까지 다시 맞춘다
+        if (code === "MEMBER_NOT_FOUND") onChanged();
+        if (code === "FORBIDDEN") onRoleChanged(myId);
+      }
+    }
+    changingRef.current = false;
+    setChangingId(null);
+  };
+
+  // 같은 역할이면 요청하지 않는다. 나를 MEMBER로 바꿀 때만 확인 창을 띄운다(관리 권한을 잃으므로).
+  const selectRole = (member, role) => {
+    if (role === member.role) return;
+    if (member.user_id === myId && role === "MEMBER") setSelfDemote(member);
+    else changeRole(member, role);
   };
 
   return (
@@ -617,14 +667,27 @@ function MemberSection({
                   {m.login_id}
                 </p>
               </div>
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-xs font-semibold",
-                  ROLE_STYLES[m.role],
-                )}
-              >
-                {m.role}
-              </span>
+              {editable ? (
+                <select
+                  aria-label={`${m.name}님 역할`}
+                  value={m.role}
+                  disabled={changingId != null}
+                  onChange={(e) => selectRole(m, e.target.value)}
+                  className={ROLE_SELECT_CLASS}
+                >
+                  <option value="OWNER">OWNER</option>
+                  <option value="MEMBER">MEMBER</option>
+                </select>
+              ) : (
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-xs font-semibold",
+                    ROLE_STYLES[m.role],
+                  )}
+                >
+                  {m.role}
+                </span>
+              )}
               {editable && (
                 <Button
                   variant="ghost"
@@ -657,6 +720,17 @@ function MemberSection({
         loading={removing}
         onConfirm={confirmRemove}
         onCancel={() => !removing && setTarget(null)}
+      />
+
+      {/* PRJ-08: 나를 MEMBER로 바꾸면 이 구역의 관리 기능이 사라진다 → 한 번 더 묻는다 */}
+      <ConfirmDialog
+        open={selfDemote != null}
+        title="내 역할을 MEMBER로 바꾸시겠습니까?"
+        message="MEMBER로 바꾸면 멤버 관리와 프로젝트 수정을 할 수 없습니다"
+        confirmLabel="변경"
+        loading={changingId != null}
+        onConfirm={() => changeRole(selfDemote, "MEMBER")}
+        onCancel={() => changingId == null && setSelfDemote(null)}
       />
     </Section>
   );

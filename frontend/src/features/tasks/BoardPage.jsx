@@ -51,14 +51,14 @@ const emptyColumn = () => ({
 const FILTER_KEYS = ["q", "assignee_id", "priority", "due_from", "due_to"];
 const readFilters = (params) =>
   Object.fromEntries(FILTER_KEYS.map((k) => [k, params.get(k) ?? ""]));
-// 빈 조건은 보내지 않는다
+// 조건을 한 문자열로 — useCallback 의존값으로 쓴다(필터가 실제로 바뀔 때만 컬럼을 다시 부른다).
+// 빈 조건은 넣지 않는다. 쿼리 문자열로 묶어 검색어에 `|`·`&` 같은 글자가 있어도 값이 밀리지 않는다(#125 리뷰).
+const filterKeyOf = (filters) =>
+  new URLSearchParams(
+    FILTER_KEYS.filter((k) => filters[k] !== "").map((k) => [k, filters[k]]),
+  ).toString();
 const queryOf = (filterKey) =>
-  Object.fromEntries(
-    filterKey
-      .split("|")
-      .map((v, i) => [FILTER_KEYS[i], v])
-      .filter(([, v]) => v !== ""),
-  );
+  Object.fromEntries(new URLSearchParams(filterKey));
 
 // 페이지 진입 오류는 안내 화면으로 바꾼다(UI-DESIGN S8). 그 밖의 오류는 null → 토스트.
 function pageErrorOf(error) {
@@ -86,8 +86,7 @@ function Board({ projectId }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = readFilters(searchParams);
   const filterActive = FILTER_KEYS.some((k) => filters[k] !== "");
-  // useCallback 의존값으로 쓰기 위한 문자열(필터가 실제로 바뀔 때만 컬럼을 다시 부른다)
-  const filterKey = FILTER_KEYS.map((k) => filters[k]).join("|");
+  const filterKey = filterKeyOf(filters);
 
   const [project, setProject] = useState(null);
   const [pageError, setPageError] = useState(null); // "403" | "404" | null

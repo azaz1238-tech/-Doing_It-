@@ -1976,6 +1976,187 @@
       ]
     },
     {
+      "name": "준비 - 칸반 전체 업무 수 (DASH-02 비교용)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/tasks?size=1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "tasks"
+          ],
+          "query": [
+            {
+              "key": "size",
+              "value": "1"
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{ownerToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200\", () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set(\"taskTotal\", pm.response.json().total);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "담당자별 현황 - 멤버 200, 합계 = 업무 수 (DASH-02-a)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/stats/assignees",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "stats",
+            "assignees"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{assigneeToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"200 { items } 집계, 페이지네이션 없음\", () => {",
+              "  pm.response.to.have.status(200);",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.all.keys(\"items\");",
+              "  body.items.forEach(i => {",
+              "    pm.expect(i).to.have.all.keys(\"assignee\", \"todo\", \"in_progress\", \"done\");",
+              "    if (i.assignee !== null) pm.expect(i.assignee).to.have.all.keys(\"id\", \"login_id\", \"name\");",
+              "  });",
+              "  const sum = body.items.reduce((s, i) => s + i.todo + i.in_progress + i.done, 0);",
+              "  pm.expect(sum).to.eql(Number(pm.collectionVariables.get(\"taskTotal\")));",
+              "});",
+              "pm.test(\"담당자 없음(null)은 있으면 맨 뒤 한 줄\", () => {",
+              "  const items = pm.response.json().items;",
+              "  const nullIdx = items.findIndex(i => i.assignee === null);",
+              "  pm.expect(items.filter(i => i.assignee === null).length).to.be.at.most(1);",
+              "  if (nullIdx !== -1) pm.expect(nullIdx).to.eql(items.length - 1);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "담당자별 현황 - 비멤버 403 (DASH-02)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/stats/assignees",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "stats",
+            "assignees"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{outsiderToken}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"403 NOT_PROJECT_MEMBER\", () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().code).to.eql(\"NOT_PROJECT_MEMBER\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "담당자별 현황 - 토큰 없음 401 (DASH-02)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/projects/{{projectId}}/stats/assignees",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "projects",
+            "{{projectId}}",
+            "stats",
+            "assignees"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"401 UNAUTHORIZED\", () => {",
+              "  pm.response.to.have.status(401);",
+              "  pm.expect(pm.response.json().code).to.eql(\"UNAUTHORIZED\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "정리 - 프로젝트 삭제",
       "request": {
         "method": "DELETE",
@@ -2075,6 +2256,10 @@
     },
     {
       "key": "ownerTaskId",
+      "value": ""
+    },
+    {
+      "key": "taskTotal",
       "value": ""
     }
   ]

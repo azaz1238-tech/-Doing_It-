@@ -9,12 +9,12 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import ProjectMember, Task, User
 from app.models.enums import ActivityAction, TaskStatus, priority_order
-from app.schemas.task import TaskCreate, TaskUpdate
+from app.schemas.task import TaskCreate, TaskFilter, TaskUpdate
 from app.services import activity_service
 from app.services.permissions import (
     ANY_MEMBER,
@@ -90,15 +90,19 @@ def list_tasks(
     project_id: int,
     status: TaskStatus | None,
     params: PageParams,
+    filters: TaskFilter | None = None,
 ) -> tuple[list[Task], int]:
     """칸반 목록 (TASK-05). (이번 페이지 업무, 전체 개수)를 돌려준다. 멤버 누구나.
 
     정렬: 우선순위 높은 순 → 마감일 빠른 순(없음은 뒤) → id (DATABASE-DESIGN §7).
+    검색·필터(TASK-07)는 권한 검사 뒤에 조건으로 더한다. 전체 개수도 같은 조건으로 센다.
     """
     require_project_role(db, project_id, user, ANY_MEMBER)
     conditions = [Task.project_id == project_id]
     if status is not None:
         conditions.append(Task.status == status)
+    if filters is not None:
+        conditions.extend(_filter_conditions(filters))
 
     total = db.scalar(select(func.count()).select_from(Task).where(*conditions))
     items = db.scalars(
@@ -116,6 +120,25 @@ def list_tasks(
         .options(selectinload(Task.assignee), selectinload(Task.creator))
     ).all()
     return list(items), total or 0
+
+
+def _filter_conditions(filters: TaskFilter) -> list[ColumnElement[bool]]:
+    """검색·필터 조건 (TASK-07). 값이 없는 항목은 조건을 만들지 않는다."""
+    conditions: list[ColumnElement[bool]] = []
+    if filters.q is not None:
+        # autoescape: q의 %·_를 와일드카드가 아니라 글자 그대로 찾는다
+        conditions.append(Task.title.contains(filters.q, autoescape=True))
+    if filters.assignee_id == "none":
+        conditions.append(Task.assignee_id.is_(None))
+    elif filters.assignee_id is not None:
+        conditions.append(Task.assignee_id == filters.assignee_id)
+    if filters.priority is not None:
+        conditions.append(Task.priority == filters.priority)
+    if filters.due_from is not None:
+        conditions.append(Task.due_date >= filters.due_from)
+    if filters.due_to is not None:
+        conditions.append(Task.due_date <= filters.due_to)
+    return conditions
 
 
 def get_task(db: Session, user: User, task_id: int) -> Task:

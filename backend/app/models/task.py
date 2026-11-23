@@ -38,6 +38,8 @@ class Task(TimestampMixin, Base):
         Index("ix_tasks_project_status", "project_id", "status"),
         # 멤버 제거 시 담당 업무 찾기, P1 내 업무·담당자별 현황
         Index("ix_tasks_assignee_status", "assignee_id", "status"),
+        # P1 마감 임박·지연 (DASH-03). 리비전 0003에서 만든다 (SPEC-CHANGELOG #21)
+        Index("ix_tasks_project_due", "project_id", "due_date"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)

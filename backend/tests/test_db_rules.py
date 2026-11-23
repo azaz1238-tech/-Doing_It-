@@ -6,10 +6,10 @@
 from datetime import date
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.exc import DBAPIError
 
-from app.models import ProjectMember, Task, TaskActivity, User
+from app.models import ProjectMember, Task, TaskActivity, TaskComment, User
 from app.models.enums import ActivityAction, TaskPriority, TaskStatus, priority_order
 from tests.factories import DEFAULT_PASSWORD_HASH, make_project, make_task, make_user
 
@@ -90,6 +90,46 @@ def test_updated_activity_without_field_rejected(db):
     )
     with pytest.raises(DBAPIError, match="ck_task_activities_field"):
         db.flush()
+
+
+def test_comment_blank_content_rejected_by_check(db):
+    """§4.6 댓글: 공백만 있는 내용은 앱 검증을 건너뛰어도 DB CHECK가 막는다 (CMT-01)."""
+    owner = make_user(db)
+    task = make_task(db, make_project(db, owner), owner)
+    db.add(TaskComment(task_id=task.id, user_id=owner.id, content="   "))
+    with pytest.raises(DBAPIError, match="ck_task_comments_content_not_blank"):
+        db.flush()
+
+
+def test_task_delete_cascades_comments(db):
+    """§5 업무를 지우면 댓글도 DB CASCADE로 지워진다."""
+    owner = make_user(db)
+    task = make_task(db, make_project(db, owner), owner)
+    db.add(TaskComment(task_id=task.id, user_id=owner.id, content="댓글"))
+    db.commit()
+
+    db.execute(delete(Task).where(Task.id == task.id))
+    db.commit()
+
+    assert db.scalar(select(func.count()).select_from(TaskComment)) == 0
+
+
+def test_p1_indexes_exist(db):
+    """§8.1 P1 인덱스가 리비전 0003으로 만들어졌는지 (SPEC-CHANGELOG #21)."""
+    rows = db.execute(
+        text(
+            "SELECT TABLE_NAME, INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX)"
+            " FROM information_schema.STATISTICS"
+            " WHERE TABLE_SCHEMA = DATABASE()"
+            " AND INDEX_NAME IN ('ix_tasks_project_due', 'ix_task_comments_task')"
+            " GROUP BY TABLE_NAME, INDEX_NAME"
+        )
+    ).all()
+
+    assert sorted(tuple(r) for r in rows) == [
+        ("task_comments", "ix_task_comments_task", "task_id,created_at"),
+        ("tasks", "ix_tasks_project_due", "project_id,due_date"),
+    ]
 
 
 def test_kanban_order_priority_then_due_date(db):

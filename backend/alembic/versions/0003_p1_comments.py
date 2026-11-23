@@ -1,6 +1,6 @@
 """p1_comments — 업무 댓글 테이블 + P1 마감 인덱스
 
-근거: DATABASE-DESIGN v1.3 §2·§4.6·§8.1, SPEC-CHANGELOG #21.
+근거: DATABASE-DESIGN v1.4 §2·§4.6·§8.1, SPEC-CHANGELOG #24.
 - task_comments (CMT-01·02): 내용 VARCHAR(300) + 공백만 있는 값 금지 CHECK,
   업무 삭제 시 CASCADE, 작성자는 RESTRICT(사용자 행은 지우지 않음).
 - ix_tasks_project_due (DASH-03 마감 임박·지연): §8.1에 있었지만 어느 리비전에도 없던 인덱스.

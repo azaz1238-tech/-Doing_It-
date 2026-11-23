@@ -1,6 +1,6 @@
 """DB 규칙 테스트 — API 없이 DB에 직접 넣어 제약이 동작하는지 확인한다.
 
-근거: DATABASE-DESIGN v1.2 §4·§7·§9. API를 통한 테스트(409·422 등)는 각 기능 테스트에서 한다.
+근거: DATABASE-DESIGN v1.4 §4·§7·§8.1·§9. API를 통한 테스트(409·422 등)는 각 기능 테스트에서 한다.
 """
 
 from datetime import date
@@ -115,7 +115,7 @@ def test_task_delete_cascades_comments(db):
 
 
 def test_p1_indexes_exist(db):
-    """§8.1 P1 인덱스가 리비전 0003으로 만들어졌는지 (SPEC-CHANGELOG #21)."""
+    """§8.1 P1 인덱스가 리비전 0003으로 만들어졌는지 (SPEC-CHANGELOG #24)."""
     rows = db.execute(
         text(
             "SELECT TABLE_NAME, INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX)"

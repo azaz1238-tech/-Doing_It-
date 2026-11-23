@@ -446,7 +446,7 @@ function DeleteSection({ project, onError }) {
 }
 
 // 멤버 구역 문구 — SPEC 따옴표 문구 = 백엔드 member_service 문구
-// (UI-DESIGN S7은 409를 "이미 멤버입니다"로 적었지만, 문서 순서상 SPEC PRJ-04-c를 따른다)
+// (409 문구는 SPEC PRJ-04-c — UI-DESIGN S7도 v1.9에서 같은 문구로 맞춤, #75)
 const ADD_ERRORS = {
   USER_NOT_FOUND: "해당 아이디의 회원이 없습니다", // PRJ-04-b
   ALREADY_MEMBER: "이미 프로젝트 멤버입니다", // PRJ-04-c

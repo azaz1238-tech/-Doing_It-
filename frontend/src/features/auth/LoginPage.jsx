@@ -59,7 +59,7 @@ export default function LoginPage() {
         password: form.password, // 공백을 지우지 않는다 (API-SPEC §5.1)
       });
       await login(accessToken); // 토큰 저장 + /users/me (AuthContext)
-      navigate("/projects", { replace: true }); // AUTH-02-a
+      navigate("/", { replace: true }); // AUTH-02-a: 내 대시보드(DASH-04)
     } catch (error) {
       const body = error.response?.data;
       if (FORM_ERRORS[body?.code]) {

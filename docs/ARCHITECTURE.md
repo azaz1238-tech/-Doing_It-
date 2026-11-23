@@ -203,7 +203,7 @@ frontend/src/
 └─ features/                   동잇 기능
    ├─ auth/                    LoginPage · SignupPage · api.js
    ├─ projects/                ProjectListPage · ProjectCreateModal · ProjectHeader · SettingsPage · MemberSelect · api.js
-   └─ tasks/                   BoardPage · TaskCard · StatusSelect · PriorityBadge · DueLabel · TaskFormModal · TaskDetailModal · permissions.js · api.js
+   └─ tasks/                   BoardPage · TaskCard · StatusSelect · PriorityBadge · DueLabel · TaskFormModal · TaskDetailModal · MyDashboardPage(P1) · permissions.js · api.js
 ```
 
 - 기능 API 호출은 각 `features/*/api.js`에만 둔다. 화면 컴포넌트에서 `axios`를 직접 부르지 않는다.
@@ -215,11 +215,12 @@ frontend/src/
 <Route path="/login" element={<LoginPage/>} />
 <Route path="/signup" element={<SignupPage/>} />
 <Route element={<ProtectedRoute><AppLayout/></ProtectedRoute>}>   {/* TopBar 포함 */}
-  <Route path="/" element={<Navigate to="/projects" replace/>} />  {/* P1에서 내 대시보드로 */}
+  <Route path="/" element={<MyDashboardPage/>} />                 {/* P1 내 대시보드(DASH-04). P0에는 /projects로 보냈음 */}
   <Route path="/projects" element={<ProjectListPage/>} />
   <Route path="/projects/:id" element={<BoardPage/>}>
     <Route path="tasks/:taskId" element={<TaskDetailModal/>} />   {/* 보드 위에 모달, 주소 유지 */}
   </Route>
+  <Route path="/projects/:id/stats" element={<ProjectStatsPage/>} />   {/* P1 통계 */}
   <Route path="/projects/:id/settings" element={<SettingsPage/>} />
   <Route path="*" element={<ErrorPage type="404"/>} />
 </Route>

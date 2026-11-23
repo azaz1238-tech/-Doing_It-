@@ -16,6 +16,18 @@ export async function listTasks(
   return data; // { items: Task[], total, page, size }
 }
 
+/**
+ * 내 업무 대시보드 (DASH-04, API-SPEC §6 `GET /users/me/tasks`).
+ * 모든 프로젝트에서 나에게 할당된 미완료 업무. 정렬은 서버가 한다: 지연 → 임박 → 나머지, 마감일 순(없음은 뒤) → id.
+ * 각 항목에 project { id, name }, alert("OVERDUE" | "DUE_SOON" | null)가 붙는다. 화면은 최대 100건을 한 번에 받는다.
+ */
+export async function listMyTasks({ page = 1, size = 100 } = {}) {
+  const { data } = await client.get("/users/me/tasks", {
+    params: { page, size },
+  });
+  return data; // { items: MyTask[], total, page, size }
+}
+
 /** 업무 등록 — status는 보내지 않는다(항상 TODO). 비어 있는 선택 필드는 빼고 보낸다 */
 export async function createTask(projectId, body) {
   const { data } = await client.post(`/projects/${projectId}/tasks`, body);

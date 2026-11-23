@@ -22,6 +22,7 @@ import {
 import ProjectHeader from "./ProjectHeader";
 import {
   countChars,
+  DESCRIPTION_ERROR,
   NAME_ERROR,
   NAME_MAX,
   PERIOD_ERROR,
@@ -189,15 +190,16 @@ function InfoSection({ project, editable, onSaved, onError }) {
   const trimmedName = form.name.trim();
   const nameLength = countChars(trimmedName);
   const nameValid = nameLength >= 1 && nameLength <= NAME_MAX;
+  const trimmedDesc = form.description.trim();
+  const descValid = trimmedDesc !== "";
   // "YYYY-MM-DD" 문자열은 그대로 비교해도 날짜 순서와 같다
   const periodValid =
     !form.startDate || !form.endDate || form.endDate >= form.startDate;
 
-  // 바뀐 필드만 보낸다(API-SPEC PATCH). 비운 설명·날짜는 null로 지운다.
+  // 바뀐 필드만 보낸다(API-SPEC PATCH). 비운 날짜는 null로 지운다. 설명은 비울 수 없다.
   const patch = {};
   if (trimmedName !== project.name) patch.name = trimmedName;
-  if (form.description.trim() !== initial.description)
-    patch.description = form.description.trim() || null;
+  if (trimmedDesc !== initial.description) patch.description = trimmedDesc;
   if (form.startDate !== initial.startDate)
     patch.start_date = form.startDate || null;
   if (form.endDate !== initial.endDate) patch.end_date = form.endDate || null;
@@ -205,6 +207,7 @@ function InfoSection({ project, editable, onSaved, onError }) {
 
   // 이름은 처음부터 채워져 있으므로 틀린 순간 바로 보여 준다
   const nameError = nameValid ? serverErrors.name : NAME_ERROR;
+  const descError = descValid ? serverErrors.description : DESCRIPTION_ERROR;
   const endDateError = periodValid ? serverErrors.end_date : PERIOD_ERROR;
 
   // key = 폼 상태 이름, field = 서버 422 errors의 field 이름
@@ -215,7 +218,8 @@ function InfoSection({ project, editable, onSaved, onError }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!isDirty || !nameValid || !periodValid || savingRef.current) return;
+    if (!isDirty || !nameValid || !descValid || !periodValid) return;
+    if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
     try {
@@ -249,17 +253,28 @@ function InfoSection({ project, editable, onSaved, onError }) {
             className="font-semibold text-neutral-900"
           >
             설명
+            <span className="ml-0.5 text-danger">*</span>
           </label>
           <textarea
             id={`${formId}-desc`}
             rows={3}
+            required
             value={form.description}
             onChange={set("description", "description")}
-            placeholder="어떤 목표의 프로젝트인지 적어 주세요 (선택)"
-            className="w-full resize-y rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-2 focus:-outline-offset-1 focus:outline-primary"
+            placeholder="어떤 목표의 프로젝트인지 적어 주세요 (필수)"
+            aria-invalid={descError ? true : undefined}
+            aria-describedby={descError ? `${formId}-desc-error` : undefined}
+            className={cn(
+              "w-full resize-y rounded-lg border bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-2 focus:-outline-offset-1",
+              descError
+                ? "border-danger focus:outline-danger"
+                : "border-neutral-300 focus:outline-primary",
+            )}
           />
-          {serverErrors.description && (
-            <p className="text-xs text-danger">{serverErrors.description}</p>
+          {descError && (
+            <p id={`${formId}-desc-error`} className="text-xs text-danger">
+              {descError}
+            </p>
           )}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -282,7 +297,7 @@ function InfoSection({ project, editable, onSaved, onError }) {
           <Button
             type="submit"
             loading={saving}
-            disabled={!isDirty || !nameValid || !periodValid}
+            disabled={!isDirty || !nameValid || !descValid || !periodValid}
           >
             저장
           </Button>

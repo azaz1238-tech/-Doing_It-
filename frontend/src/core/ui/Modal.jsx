@@ -12,7 +12,7 @@ const SIZES = {
 };
 
 /**
- * Modal — UI-DESIGN §5: ESC·바깥 클릭으로 닫기 (입력 중이면 확인)
+ * Modal — ESC·✕로 닫기 (입력 중이면 확인). 바깥 클릭으로는 닫지 않는다.
  * 사용처: S3 생성 모달, S5 업무 등록, S6 업무 상세, S7 삭제 확인
  * 모양은 동잇 UI 시안 v0.3: 제목·본문·버튼 사이 구분선 없음, 제목 아래 흐린 부제.
  *
@@ -74,13 +74,8 @@ export default function Modal({
   if (!open) return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-neutral-900/40 p-4"
-      // 바깥(어두운 배경)을 눌렀을 때만 닫는다. 모달 안에서 드래그하다 바깥에서 놓는 경우는 제외.
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) requestClose();
-      }}
-    >
+    // 바깥(어두운 배경)을 눌러도 닫지 않는다 — 입력 중 실수로 닫히는 것을 막는다. ESC·✕로만 닫는다.
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-neutral-900/40 p-4">
       <div
         ref={dialogRef}
         role="dialog"

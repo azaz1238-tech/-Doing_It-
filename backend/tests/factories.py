@@ -42,6 +42,7 @@ def make_project(db: Session, owner: User, **fields: Any) -> Project:
     """프로젝트 + 만든 사람을 OWNER 멤버로 추가 (PRJ-01 규칙과 같게)."""
     project = Project(
         name=fields.pop("name", f"프로젝트{next(_seq)}"),
+        description=fields.pop("description", "테스트 프로젝트"),  # 필수 (0002)
         created_by=owner.id,
         **fields,
     )

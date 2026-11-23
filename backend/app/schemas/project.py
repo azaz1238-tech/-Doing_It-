@@ -8,6 +8,7 @@ from pydantic import (
     AfterValidator,
     BaseModel,
     ConfigDict,
+    Field,
     StringConstraints,
     ValidationInfo,
     field_validator,
@@ -20,9 +21,31 @@ from app.schemas.common import UtcDatetime
 NAME_MAX = 30
 NAME_MESSAGE = "프로젝트 이름은 1~30자로 입력해 주세요"  # SPEC PRJ-01-b
 PERIOD_MESSAGE = "종료일은 시작일 이후여야 합니다"  # SPEC PRJ-01-c
+DESCRIPTION_MAX = 2000
+# 설명 필수 (11/22 팀장 결정 — 명세 반영 예정)
+DESCRIPTION_MESSAGE = "프로젝트 설명을 입력해 주세요"
 
-# 최대 2000자 (API-SPEC v1.3 §5.2, SPEC-CHANGELOG #15). 없으면 DB TEXT 한도 초과로 500.
-ProjectDescription = Annotated[str, StringConstraints(max_length=2000)]
+
+def _check_description_not_blank(value: str) -> str:
+    if not value:
+        raise ValueError(DESCRIPTION_MESSAGE)
+    return value
+
+
+def _description_not_null(value: object) -> object:
+    """빠뜨렸거나 null을 보낸 경우도 '필수 항목입니다' 대신 설명 전용 문구를 쓴다."""
+    if value is None:
+        raise ValueError(DESCRIPTION_MESSAGE)
+    return value
+
+
+# 앞뒤 공백 제거 후 1~2000자 (API-SPEC v1.3 §5.2, SPEC-CHANGELOG #15).
+# 최대가 없으면 DB TEXT 한도 초과로 500.
+ProjectDescription = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, max_length=DESCRIPTION_MAX),
+    AfterValidator(_check_description_not_blank),
+]
 
 
 def _check_name_length(value: str) -> str:
@@ -69,13 +92,18 @@ class ProjectCreate(_PeriodCheck):
     model_config = ConfigDict(extra="forbid")
 
     name: ProjectName
-    description: ProjectDescription | None = None
+    # 필수. 빠뜨려도 검증하도록 기본값 None을 검사한다 (_description_not_null에서 422)
+    description: ProjectDescription = Field(default=None, validate_default=True)
     start_date: date | None = None
     end_date: date | None = None
 
+    _check_description_null = field_validator("description", mode="before")(
+        _description_not_null
+    )
+
 
 class ProjectUpdate(_PeriodCheck):
-    """바꿀 필드만 보낸다. description·날짜는 null로 비울 수 있고, name은 비울 수 없다."""
+    """바꿀 필드만 보낸다. 날짜는 null로 비울 수 있고, name·description은 비울 수 없다."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -91,6 +119,11 @@ class ProjectUpdate(_PeriodCheck):
         if value is None:
             raise ValueError(NAME_MESSAGE)
         return value
+
+    # 명시적으로 null을 보낸 경우만 걸린다 (안 보내면 기존 설명 유지)
+    _check_description_null = field_validator("description", mode="before")(
+        _description_not_null
+    )
 
 
 class ProgressOut(BaseModel):
@@ -112,7 +145,7 @@ class ProjectOut(BaseModel):
 
     id: int
     name: str
-    description: str | None
+    description: str
     start_date: date | None
     end_date: date | None
     my_role: ProjectRole

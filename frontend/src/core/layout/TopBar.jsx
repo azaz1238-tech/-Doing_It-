@@ -6,16 +6,16 @@ import { ChevronDownIcon, LogOutIcon, UserPenIcon } from "../ui/icons";
 import { cn } from "../utils/cn";
 import EditNameModal from "./EditNameModal";
 
-// 주 메뉴 (UI-DESIGN §3.1). 첫 화면인 내 대시보드(`/`, DASH-04)를 앞에 둔다.
+// 주 메뉴 (UI-DESIGN §3.1). P0 메뉴 `프로젝트` 뒤에 P1 `내 대시보드`(`/`, DASH-04)를 더한다.
 // `/`는 end로 정확히 같을 때만 선택한다(그렇지 않으면 모든 주소에서 선택됨).
 const MENU = [
-  { to: "/", label: "내 대시보드", end: true },
   { to: "/projects", label: "프로젝트" },
+  { to: "/", label: "내 대시보드", end: true },
 ];
 
 /**
  * TopBar — UI-DESIGN §3.1 (S3~S8)
- * 왼쪽: 로고 `동잇` → /projects · 메뉴: `내 대시보드` · `프로젝트`
+ * 왼쪽: 로고 `동잇` → /projects · 메뉴: `프로젝트` · `내 대시보드`
  * 오른쪽: 아바타 + 이름 ▾ → `내 정보 수정`(AUTH-06, P1) · `로그아웃`
  */
 export default function TopBar() {

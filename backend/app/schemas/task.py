@@ -43,8 +43,11 @@ class TaskFilter:
         self,
         q: Annotated[str | None, Query()] = None,
         # int | Literal["none"]로 받으면 422 오류의 field가 union 후보 이름("int")이 되어
-        # 패턴으로 검사한 뒤 숫자로 바꾼다.
-        assignee_id: Annotated[str | None, Query(pattern=r"^(none|[0-9]+)$")] = None,
+        # 패턴으로 검사한 뒤 숫자로 바꾼다. 19자리 제한: BIGINT 범위이고, 아주 긴 숫자가
+        # int() 자릿수 한도에 걸려 500이 나는 것을 422로 막는다.
+        assignee_id: Annotated[
+            str | None, Query(pattern=r"^(none|[0-9]{1,19})$")
+        ] = None,
         priority: Annotated[TaskPriority | None, Query()] = None,
         due_from: Annotated[date | None, Query()] = None,
         due_to: Annotated[date | None, Query()] = None,

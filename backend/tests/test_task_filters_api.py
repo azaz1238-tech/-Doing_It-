@@ -155,7 +155,12 @@ def test_non_member_assignee_id_is_empty_not_400(client, db, team):
 
 @pytest.mark.parametrize(
     ("param", "value"),
-    [("assignee_id", "abc"), ("priority", "urgent"), ("due_from", "2026-13-01")],
+    [
+        ("assignee_id", "abc"),
+        ("assignee_id", "9" * 5000),  # int() 자릿수 한도를 넘는 숫자도 500이 아니라 422
+        ("priority", "urgent"),
+        ("due_from", "2026-13-01"),
+    ],
 )
 def test_bad_filter_values_422(client, team, param, value):
     res = client.get(

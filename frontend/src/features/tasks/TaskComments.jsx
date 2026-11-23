@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { useAuth } from "../../core/auth/useAuth";
 import Avatar from "../../core/ui/Avatar";
 import Button from "../../core/ui/Button";
 import ConfirmDialog from "../../core/ui/ConfirmDialog";
@@ -27,11 +28,12 @@ const PAGE_SIZE = 100;
 
 /**
  * @param {number} taskId
- * @param {number} myId 로그인한 사용자 id — 내 댓글에만 수정·삭제 버튼
  * @param {(total: number) => void} [onCountChange] 댓글 수가 정해지거나 바뀔 때마다 호출
  */
-export default function TaskComments({ taskId, myId, onCountChange }) {
+export default function TaskComments({ taskId, onCountChange }) {
   const toast = useToast();
+  // 내 댓글에만 수정·삭제 버튼 — 로그인한 사용자는 인증 Context에서 읽는다(탭 틀이 myId를 넘기지 않음)
+  const myId = useAuth().user?.id;
 
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(null); // null = 아직 모름

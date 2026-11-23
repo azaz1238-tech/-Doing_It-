@@ -2,7 +2,7 @@
 
 > 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템
 > DB: MariaDB 10.11 LTS(Docker) | ORM: SQLAlchemy 2.x · Alembic · PyMySQL | 담당: 백엔드 B
-> 버전: v1.3 (2026-11-23 `projects.description` NOT NULL + `ck_projects_description_not_blank`, 리비전 `0002_project_description_required` 추가로 댓글은 `0003`, SPEC-CHANGELOG #21) · v1.2 (2026-11-16 상태·역할 컬럼 6개(`system_role`, `role`, `status`, `priority`, `action`, `field`)를 `utf8mb4_bin`으로 — `_ci`에서는 `'todo'`가 CHECK를 통과함, §1-7·§4) · v1.1 (2026-11-16 §4.5 `ck_task_activities_field`에 `field IS NOT NULL` 추가 — UPDATED인데 field가 NULL인 행이 통과하던 빈틈 수정) · v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
+> 버전: v1.4 (2026-11-23 §2 `0003_p1_comments`에 P1 인덱스 `ix_tasks_project_due`(§8.1, DASH-03) 추가, §4.6·§4.7 제목의 리비전 번호를 `0003`·`0004`로 맞춤 — SPEC-CHANGELOG #25) · v1.3 (2026-11-23 `projects.description` NOT NULL + `ck_projects_description_not_blank`, 리비전 `0002_project_description_required` 추가로 댓글은 `0003`, SPEC-CHANGELOG #21) · v1.2 (2026-11-16 상태·역할 컬럼 6개(`system_role`, `role`, `status`, `priority`, `action`, `field`)를 `utf8mb4_bin`으로 — `_ci`에서는 `'todo'`가 CHECK를 통과함, §1-7·§4) · v1.1 (2026-11-16 §4.5 `ck_task_activities_field`에 `field IS NOT NULL` 추가 — UPDATED인데 field가 NULL인 행이 통과하던 빈틈 수정) · v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
 > 근거: PROPOSAL → CONSTITUTION §4·§6·§8 → REQUIREMENTS v1.0 → API-SPEC v1.0. 문서끼리 다르면 앞쪽 문서를 따른다.
 
 ## 1. 설계 원칙
@@ -24,7 +24,7 @@
 | --- | --- | --- | --- |
 | `0001_p0_initial` | 스프린트 1 첫날 | `users`, `projects`, `project_members`, `tasks`, `task_activities` | AUTH-01~04, PRJ-01~05·07, TASK-01~06, LOG-01·02 |
 | `0002_project_description_required` | 11/22 (P1 중) | `projects.description` NOT NULL + `ck_projects_description_not_blank` (빈 설명은 `설명 없음`으로 채운 뒤 제약) | PRJ-01 (SPEC-CHANGELOG #21) |
-| `0003_p1_comments` | P0 게이트(11/19) 이후 | `task_comments` | CMT-01·02 |
+| `0003_p1_comments` | P0 게이트(11/19) 이후 | `task_comments`, 인덱스 `ix_tasks_project_due`(§8.1) | CMT-01·02, DASH-03 |
 | `0004_p2_*` | P1 완료 후, 기능마다 1개 | `task_checklist_items`, `users.deleted_at`, `projects.is_archived`, `tasks.position` | TASK-08·09·10, AUTH-08, 보관 |
 
 - **P0 테이블 5개를 스프린트 1 첫 리비전에 모두 만든다.** 멤버 제거(PRJ-05)가 스프린트 1에 있고, 제거할 때 담당 업무를 해제하고 이력을 남겨야 하므로 `tasks`·`task_activities`가 처음부터 필요하다.
@@ -273,7 +273,7 @@ CONSTRAINT ck_task_activities_field  CHECK (
 - 제목·설명 변경과 체크리스트 변경은 기록하지 않는다(LOG-01 범위).
 - 담당자 값은 사용자 id 문자열로 저장한다. 조회 응답에서 이름으로 바꾸는 방법은 API-SPEC §6을 따른다(§12).
 
-### 4.6 task_comments — 댓글 (P1, `0002`)
+### 4.6 task_comments — 댓글 (P1, `0003`)
 
 | 컬럼 | 타입 | NULL | 기본값 | 제약 | 설명 |
 | --- | --- | :-: | --- | --- | --- |
@@ -287,7 +287,7 @@ CONSTRAINT ck_task_activities_field  CHECK (
 CONSTRAINT ck_task_comments_content_not_blank CHECK (CHAR_LENGTH(TRIM(content)) > 0)
 ```
 
-### 4.7 task_checklist_items — 업무 체크리스트 (P2, `0003`)
+### 4.7 task_checklist_items — 업무 체크리스트 (P2, `0004`)
 
 TASK-09·10용.
 

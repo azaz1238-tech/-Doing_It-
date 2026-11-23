@@ -24,7 +24,7 @@ if config.config_file_name is not None and config.attributes.get(
     # disable_existing_loggers=False: 이미 만들어진 앱 로거를 끄지 않는다.
     fileConfig(config.config_file_name, disable_existing_loggers=False)
 
-# autogenerate가 비교할 대상: app/models/__init__.py에 등록된 테이블 5개
+# autogenerate가 비교할 대상: app/models/__init__.py에 등록된 모든 테이블
 target_metadata = Base.metadata
 
 

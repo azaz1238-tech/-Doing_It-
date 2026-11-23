@@ -115,7 +115,7 @@ def test_task_delete_cascades_comments(db):
 
 
 def test_p1_indexes_exist(db):
-    """§8.1 P1 인덱스가 리비전 0003으로 만들어졌는지 (SPEC-CHANGELOG #24)."""
+    """§8.1 P1 인덱스가 리비전 0003으로 만들어졌는지 (SPEC-CHANGELOG #25)."""
     rows = db.execute(
         text(
             "SELECT TABLE_NAME, INDEX_NAME, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX)"

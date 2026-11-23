@@ -38,7 +38,14 @@ const EMPTY_TEXT = {
 // 토스트 조사: 할 일·완료 → "로", 진행 중 → "으로"
 const TO_PARTICLE = { TODO: "로", IN_PROGRESS: "으로", DONE: "로" };
 
-const emptyColumn = () => ({ items: [], total: 0, page: 0, loading: true });
+// failed: 첫 페이지를 못 받음(500·서버 꺼짐·네트워크) → 빈 컬럼 대신 "다시 시도"를 보인다(D9-04)
+const emptyColumn = () => ({
+  items: [],
+  total: 0,
+  page: 0,
+  loading: true,
+  failed: false,
+});
 
 // 검색·필터(TASK-07) — URL 쿼리 이름은 API 쿼리와 같다(API-SPEC §5.4). 새로고침·링크 공유해도 같은 화면.
 const FILTER_KEYS = ["q", "assignee_id", "priority", "due_from", "due_to"];
@@ -84,6 +91,9 @@ function Board({ projectId }) {
 
   const [project, setProject] = useState(null);
   const [pageError, setPageError] = useState(null); // "403" | "404" | null
+  // 403·404가 아닌 실패(500·서버 꺼짐·네트워크)는 "다시 시도"를 보인다(D9-04, #104와 같은 방식)
+  const [projectFailed, setProjectFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0); // 다시 시도하면 1 늘려 effect를 다시 돌린다
   const [columns, setColumns] = useState(() =>
     Object.fromEntries(COLUMN_ORDER.map((s) => [s, emptyColumn()])),
   );
@@ -91,9 +101,13 @@ function Board({ projectId }) {
   const [formOpen, setFormOpen] = useState(false);
   // 컬럼마다 마지막 요청 번호. 늦게 도착한 옛 응답이 새 응답을 덮지 않게 한다.
   const requestSeq = useRef({});
+  // 컬럼마다 한 번이라도 받았는지 — 실패를 컬럼 안 안내로 보일지 토스트로 알릴지 가른다.
+  const loadedRef = useRef({});
 
   // 멤버 목록 — 헤더 아바타 묶음(§3.2)과 담당자 선택지(S5·S6)가 같이 쓴다. 보드에서 한 번 받아 넘긴다.
   const [members, setMembers] = useState([]);
+  // 멤버 목록을 못 받았으면 업무 추가를 열 때 한 번 더 받는다(담당자 선택지가 비지 않게).
+  const membersFailed = useRef(false);
 
   const showError = useCallback(
     (error, fallback) => {
@@ -120,7 +134,7 @@ function Board({ projectId }) {
   const loadColumn = useCallback(
     async (status) => {
       const seq = nextSeq(status);
-      patchColumn(status, { loading: true });
+      patchColumn(status, { loading: true, failed: false });
       try {
         const data = await listTasks(projectId, {
           ...queryOf(filterKey),
@@ -129,6 +143,7 @@ function Board({ projectId }) {
           size: PAGE_SIZE,
         });
         if (requestSeq.current[status] !== seq) return;
+        loadedRef.current[status] = true;
         patchColumn(status, {
           items: data.items,
           total: data.total,
@@ -137,11 +152,19 @@ function Board({ projectId }) {
         });
       } catch (error) {
         if (requestSeq.current[status] !== seq) return;
-        patchColumn(status, { loading: false });
-        showError(error, "업무 목록을 불러오지 못했습니다");
+        const kind = pageErrorOf(error);
+        if (kind) return setPageError(kind);
+        // 처음 불러오기 실패 → 컬럼 안에 "불러오지 못했습니다 + 다시 시도". 세 컬럼이 같이 실패해도 토스트가 쌓이지 않는다.
+        // 이미 받은 카드가 있으면(상태 변경 뒤 다시 부르기 실패) 카드를 그대로 두고 토스트로만 알린다.
+        const loaded = loadedRef.current[status];
+        patchColumn(status, { loading: false, failed: !loaded });
+        if (loaded)
+          toast.error(
+            error.response?.data?.message ?? "업무 목록을 불러오지 못했습니다",
+          );
       }
     },
-    [projectId, showError, filterKey],
+    [projectId, filterKey, toast],
   );
 
   // 프로젝트·멤버는 처음 한 번, 컬럼은 필터가 바뀔 때마다 다시 부른다.
@@ -149,24 +172,42 @@ function Board({ projectId }) {
     let ignore = false;
     getProject(projectId)
       .then((data) => !ignore && setProject(data))
-      .catch(
-        (error) =>
-          !ignore && showError(error, "프로젝트를 불러오지 못했습니다"),
-      );
+      .catch((error) => {
+        if (ignore) return;
+        const kind = pageErrorOf(error);
+        if (kind) return setPageError(kind);
+        setProjectFailed(true);
+        toast.error(
+          error.response?.data?.message ?? "프로젝트를 불러오지 못했습니다",
+        );
+      });
+    // 실패해도 토스트는 띄우지 않는다(프로젝트 실패 토스트와 겹침). 업무 추가를 열 때 다시 받는다.
     listMembers(projectId)
-      .then((data) => !ignore && setMembers(data.items))
-      .catch(
-        (error) =>
-          !ignore && showError(error, "멤버 목록을 불러오지 못했습니다"),
-      );
+      .then((data) => {
+        if (ignore) return;
+        membersFailed.current = false;
+        setMembers(data.items);
+      })
+      .catch((error) => {
+        if (ignore) return;
+        const kind = pageErrorOf(error);
+        if (kind) return setPageError(kind);
+        membersFailed.current = true;
+      });
     return () => {
       ignore = true;
     };
-  }, [projectId, showError]);
+  }, [projectId, toast, attempt]);
 
   useEffect(() => {
     COLUMN_ORDER.forEach(loadColumn);
-  }, [loadColumn]);
+  }, [loadColumn, attempt]);
+
+  // 프로젝트 "다시 시도" — 프로젝트·멤버·세 컬럼을 모두 다시 부른다.
+  const retryProject = () => {
+    setProjectFailed(false);
+    setAttempt((n) => n + 1);
+  };
 
   // 필터 바꾸기 — 빈 값은 주소에서 지운다. 상세 모달 주소(tasks/:id)는 그대로 둔다.
   const changeFilters = (patch) =>
@@ -192,7 +233,10 @@ function Board({ projectId }) {
   // 등록 중 400 ASSIGNEE_NOT_MEMBER(그 사이 멤버가 빠짐) → 멤버 목록을 새로 받는다(UI-DESIGN S5).
   const reloadMembers = () =>
     listMembers(projectId).then(
-      (data) => setMembers(data.items),
+      (data) => {
+        membersFailed.current = false;
+        setMembers(data.items);
+      },
       () => {},
     );
 
@@ -279,102 +323,141 @@ function Board({ projectId }) {
         active="board"
         actions={
           // + 업무 추가는 헤더 오른쪽 버튼 1개만 (UI-DESIGN §8-1)
-          <Button onClick={() => setFormOpen(true)} disabled={!project}>
+          <Button
+            onClick={() => {
+              if (membersFailed.current) reloadMembers();
+              setFormOpen(true);
+            }}
+            disabled={!project}
+          >
             <PlusIcon />
             업무 추가
           </Button>
         }
       />
 
-      <FilterBar
-        filters={filters}
-        members={members}
-        onChange={changeFilters}
-        onReset={resetFilters}
-        resetKey={resetKey}
-        active={filterActive}
-      />
-
-      {/* TASK-07-c: 조건에 맞는 업무가 하나도 없으면 컬럼 대신 안내 + 초기화 */}
-      {filterActive &&
-      COLUMN_ORDER.every(
-        (s) => !columns[s].loading && columns[s].total === 0,
-      ) ? (
-        <EmptyState
-          title="조건에 맞는 업무가 없습니다"
-          action={<Button onClick={resetFilters}>필터 초기화</Button>}
-        />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-3">
-          {COLUMN_ORDER.map((status) => {
-            const col = columns[status];
-            const remaining = col.total - col.items.length;
-            const firstLoad = col.loading && col.page === 0;
-
-            return (
-              <section
-                key={status}
-                aria-label={STATUSES[status].label}
-                className="flex flex-col gap-3 rounded-lg bg-neutral-100 p-3"
-              >
-                <h2 className="flex items-center gap-2 px-1 font-semibold">
-                  <span
-                    className={`size-2 rounded-full ${STATUSES[status].dot}`}
-                  />
-                  {STATUSES[status].label}
-                  <span className="text-neutral-400">{col.total}</span>
-                </h2>
-
-                {firstLoad ? (
-                  <SkeletonList count={2} />
-                ) : col.items.length === 0 ? (
-                  <EmptyState
-                    variant="column"
-                    title={EMPTY_TEXT[status]}
-                    description="카드의 상태를 바꾸면 여기로 옮겨집니다"
-                  />
-                ) : (
-                  <ul className="flex flex-col gap-2">
-                    {col.items.map((task) => (
-                      <li key={task.id}>
-                        <TaskCard
-                          task={task}
-                          // 프로젝트(내 역할)를 받기 전에는 잠가 둔다.
-                          canChangeStatus={
-                            !!project &&
-                            !!user &&
-                            canChangeStatus(task, project.my_role, user.id)
-                          }
-                          updating={updatingId === task.id}
-                          onStatusChange={(next) => changeStatus(task, next)}
-                          // 상세를 열어도 필터(주소 쿼리)는 그대로 둔다
-                          onOpen={() =>
-                            navigate({
-                              pathname: `tasks/${task.id}`,
-                              search: location.search,
-                            })
-                          }
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {remaining > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    loading={col.loading}
-                    onClick={() => loadMore(status)}
-                  >
-                    {remaining}개 더 보기
-                    <ChevronDownIcon />
-                  </Button>
-                )}
-              </section>
-            );
-          })}
+      {projectFailed ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-sm text-neutral-500">
+          <p>프로젝트를 불러오지 못했습니다</p>
+          <Button variant="secondary" onClick={retryProject}>
+            다시 시도
+          </Button>
         </div>
+      ) : (
+        <>
+          <FilterBar
+            filters={filters}
+            members={members}
+            onChange={changeFilters}
+            onReset={resetFilters}
+            resetKey={resetKey}
+            active={filterActive}
+          />
+
+          {/* TASK-07-c: 조건에 맞는 업무가 하나도 없으면 컬럼 대신 안내 + 초기화 */}
+          {filterActive &&
+          COLUMN_ORDER.every(
+            (s) =>
+              !columns[s].loading &&
+              !columns[s].failed &&
+              columns[s].total === 0,
+          ) ? (
+            <EmptyState
+              title="조건에 맞는 업무가 없습니다"
+              action={<Button onClick={resetFilters}>필터 초기화</Button>}
+            />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-3">
+              {COLUMN_ORDER.map((status) => {
+                const col = columns[status];
+                const remaining = col.total - col.items.length;
+                const firstLoad = col.loading && col.page === 0;
+
+                return (
+                  <section
+                    key={status}
+                    aria-label={STATUSES[status].label}
+                    className="flex flex-col gap-3 rounded-lg bg-neutral-100 p-3"
+                  >
+                    <h2 className="flex items-center gap-2 px-1 font-semibold">
+                      <span
+                        className={`size-2 rounded-full ${STATUSES[status].dot}`}
+                      />
+                      {STATUSES[status].label}
+                      <span className="text-neutral-400">{col.total}</span>
+                    </h2>
+
+                    {firstLoad ? (
+                      <SkeletonList count={2} />
+                    ) : col.failed ? (
+                      // 못 받은 것을 "업무가 없습니다"로 보이지 않게 한다(D9-04)
+                      <div
+                        role="alert"
+                        className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-neutral-300 px-4 py-6 text-center"
+                      >
+                        <p className="text-neutral-600">
+                          업무를 불러오지 못했습니다
+                        </p>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => loadColumn(status)}
+                        >
+                          다시 시도
+                        </Button>
+                      </div>
+                    ) : col.items.length === 0 ? (
+                      <EmptyState
+                        variant="column"
+                        title={EMPTY_TEXT[status]}
+                        description="카드의 상태를 바꾸면 여기로 옮겨집니다"
+                      />
+                    ) : (
+                      <ul className="flex flex-col gap-2">
+                        {col.items.map((task) => (
+                          <li key={task.id}>
+                            <TaskCard
+                              task={task}
+                              // 프로젝트(내 역할)를 받기 전에는 잠가 둔다.
+                              canChangeStatus={
+                                !!project &&
+                                !!user &&
+                                canChangeStatus(task, project.my_role, user.id)
+                              }
+                              updating={updatingId === task.id}
+                              onStatusChange={(next) =>
+                                changeStatus(task, next)
+                              }
+                              // 상세를 열어도 필터(주소 쿼리)는 그대로 둔다
+                              onOpen={() =>
+                                navigate({
+                                  pathname: `tasks/${task.id}`,
+                                  search: location.search,
+                                })
+                              }
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {remaining > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        loading={col.loading}
+                        onClick={() => loadMore(status)}
+                      >
+                        {remaining}개 더 보기
+                        <ChevronDownIcon />
+                      </Button>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* 새 업무는 항상 TODO로 만들어지므로 '할 일' 컬럼만 다시 불러온다. */}

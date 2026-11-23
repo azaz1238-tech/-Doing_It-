@@ -54,6 +54,9 @@ function TaskDetail({ taskId }) {
     useOutletContext();
 
   const [task, setTask] = useState(null);
+  // 500·서버 꺼짐·네트워크로 못 받으면 닫지 않고 "다시 시도"를 보인다(D9-04)
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [saving, setSaving] = useState(null); // 저장 중인 필드 이름
   const [titleDraft, setTitleDraft] = useState(null); // null = 보기 모드
   const [descDraft, setDescDraft] = useState(null);
@@ -74,12 +77,16 @@ function TaskDetail({ taskId }) {
   );
 
   // 업무 없음(삭제됐거나 잘못된 주소) → 안내 후 보드로. 비멤버 403은 보드가 안내 화면을 띄운다.
+  // 그 밖의 실패(500·서버 꺼짐·네트워크)는 모달 안에서 "다시 시도"(D9-04).
   const handleLoadError = useCallback(
     (error) => {
-      const data = error.response?.data;
-      if (data?.code === "NOT_PROJECT_MEMBER") return close();
-      toast.error(data?.message ?? "업무를 불러오지 못했습니다");
-      close();
+      const res = error.response;
+      if (res?.data?.code === "NOT_PROJECT_MEMBER") return close();
+      if (res && res.status < 500) {
+        toast.error(res.data?.message ?? "업무를 찾을 수 없습니다");
+        return close();
+      }
+      setLoadFailed(true);
     },
     [close, toast],
   );
@@ -101,7 +108,7 @@ function TaskDetail({ taskId }) {
     return () => {
       ignore = true;
     };
-  }, [taskId, handleLoadError, toast, close]);
+  }, [taskId, handleLoadError, toast, close, attempt]);
 
   // 바꾼 필드만 보낸다. 성공하면 응답(Task)으로 화면을 바꾸고 보드도 다시 불러온다.
   const save = async (field, patch, successMessage = "저장했습니다") => {
@@ -165,6 +172,28 @@ function TaskDetail({ taskId }) {
   };
 
   const modalTitle = project ? `${project.name} › 업무 상세` : "업무 상세";
+
+  if (!task && loadFailed) {
+    return (
+      <Modal open onClose={close} title={modalTitle} size="lg">
+        <div
+          role="alert"
+          className="flex flex-col items-center gap-3 py-8 text-sm text-neutral-500"
+        >
+          <p>업무를 불러오지 못했습니다</p>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setLoadFailed(false);
+              setAttempt((n) => n + 1);
+            }}
+          >
+            다시 시도
+          </Button>
+        </div>
+      </Modal>
+    );
+  }
 
   if (!task) {
     return (

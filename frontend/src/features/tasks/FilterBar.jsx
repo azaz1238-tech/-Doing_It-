@@ -57,7 +57,8 @@ export default function FilterBar({
         // (초기화 순간에는 주소 갱신이 한 박자 늦어 filters.q가 아직 옛 값이다)
         defaultValue={resetKey === 0 ? filters.q : ""}
         onChange={(e) => changeSearch(e.target.value)}
-        className="min-w-44 flex-1"
+        // 모바일: 한 줄 전체 / sm 이상: 남는 폭 (D9-04)
+        className="min-w-44 basis-full sm:basis-0 sm:flex-1"
       />
       <FilterSelect
         label="담당자"
@@ -84,19 +85,22 @@ export default function FilterBar({
           </option>
         ))}
       </FilterSelect>
-      <DateField
-        label="마감일 시작"
-        value={filters.due_from}
-        onChange={(v) => onChange({ due_from: v })}
-      />
-      <span className="self-center text-neutral-400" aria-hidden="true">
-        ~
+      {/* 기간은 "시작 ~ 끝"이 한 묶음 — 좁은 화면에서 줄이 갈려 ~만 남지 않게 한다(D9-04) */}
+      <span className="flex w-full items-center gap-2 sm:w-auto">
+        <DateField
+          label="마감일 시작"
+          value={filters.due_from}
+          onChange={(v) => onChange({ due_from: v })}
+        />
+        <span className="text-neutral-400" aria-hidden="true">
+          ~
+        </span>
+        <DateField
+          label="마감일 끝"
+          value={filters.due_to}
+          onChange={(v) => onChange({ due_to: v })}
+        />
       </span>
-      <DateField
-        label="마감일 끝"
-        value={filters.due_to}
-        onChange={(v) => onChange({ due_to: v })}
-      />
       {active && (
         <Button variant="ghost" onClick={onReset} className="h-10">
           필터 초기화
@@ -108,13 +112,14 @@ export default function FilterBar({
 
 function FilterSelect({ label, value, onChange, children }) {
   return (
-    <span className="relative flex">
+    // 모바일: 담당자·우선순위가 한 줄에 반씩 / sm 이상: 내용 폭
+    <span className="relative flex min-w-0 flex-1 sm:flex-none">
       <select
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          "h-10 appearance-none rounded-lg border bg-white pr-9 pl-3 text-sm focus:outline-2 focus:-outline-offset-1 focus:outline-primary",
+          "h-10 w-full min-w-0 appearance-none truncate rounded-lg border bg-white pr-9 pl-3 text-sm focus:outline-2 focus:-outline-offset-1 focus:outline-primary",
           // 조건이 걸린 칸은 테두리로 표시한다
           value
             ? "border-primary text-neutral-900"
@@ -136,7 +141,7 @@ function DateField({ label, value, onChange }) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
-        "h-10 rounded-lg border bg-white px-3 text-sm focus:outline-2 focus:-outline-offset-1 focus:outline-primary",
+        "h-10 min-w-0 flex-1 rounded-lg border bg-white px-3 text-sm sm:flex-none focus:outline-2 focus:-outline-offset-1 focus:outline-primary",
         value
           ? "border-primary text-neutral-900"
           : "border-neutral-300 text-neutral-600",

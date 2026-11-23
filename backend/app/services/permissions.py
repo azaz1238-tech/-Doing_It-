@@ -100,6 +100,17 @@ def require_not_last_owner(owners: list[ProjectMember], target: ProjectMember) -
         raise BusinessRuleError("LAST_OWNER", "OWNER는 최소 1명 있어야 합니다")
 
 
+def require_role_change_allowed(
+    owners: list[ProjectMember], target: ProjectMember, new_role: ProjectRole
+) -> None:
+    """역할 변경 가능 여부 (PRJ-08). OWNER를 MEMBER로 내릴 때만 마지막 OWNER인지 본다.
+
+    owners는 lock_owners()의 결과. OWNER로 올리거나 같은 역할로 바꾸는 것은 항상 허용.
+    """
+    if new_role not in OWNER_ONLY:
+        require_not_last_owner(owners, target)
+
+
 # ---------- 업무 권한 (TASK-06 권한 매트릭스, API-SPEC §5.4) — 서승범 추가 ----------
 # require_project_role로 멤버 확인을 마친 뒤 부른다. 업무 작성자 판정도 여기서 한다.
 

@@ -28,3 +28,11 @@ class MemberAdd(BaseModel):
 
     login_id: LoginIdInput
     role: ProjectRole
+
+
+class MemberRoleUpdate(BaseModel):
+    """역할 변경 요청 (PRJ-08). OWNER | MEMBER 외의 값·다른 필드는 422."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    role: ProjectRole

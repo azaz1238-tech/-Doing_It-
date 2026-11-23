@@ -1,6 +1,6 @@
 """멤버 서비스 (ARCHITECTURE §4.4, API-SPEC §5.3).
 
-멤버 추가(PRJ-04)·제거(PRJ-05)도 이 파일에 둔다.
+멤버 추가(PRJ-04)·제거(PRJ-05)·역할 변경(PRJ-08)도 이 파일에 둔다.
 """
 
 from sqlalchemy import func, select
@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ProjectMember, Task, User
 from app.models.enums import ActivityAction, ActivityField
-from app.schemas.member import MemberAdd, MemberOut
+from app.schemas.member import MemberAdd, MemberOut, MemberRoleUpdate
 from app.services import activity_service
 from app.services.permissions import (
     ANY_MEMBER,
@@ -19,6 +19,7 @@ from app.services.permissions import (
     owner_first,
     require_not_last_owner,
     require_project_role,
+    require_role_change_allowed,
 )
 from core.exceptions import Conflict, NotFound
 
@@ -115,19 +116,44 @@ def remove_member(
     db.commit()
 
 
-def _remove_member_rows(
-    db: Session, project_id: int, target_user_id: int, actor_id: int
-) -> None:
-    """멤버 1명을 제거하는 DB 작업. 커밋하지 않는다 (ARCHITECTURE §4.3).
+def change_role(
+    db: Session,
+    user: User,
+    project_id: int,
+    target_user_id: int,
+    data: MemberRoleUpdate,
+) -> MemberOut:
+    """역할 변경 (PRJ-08). OWNER만. 마지막 OWNER를 MEMBER로 내리면 400. 커밋 1번.
 
-    1. OWNER 행 잠금 → 대상이 마지막 OWNER면 400
-    2. 대상이 담당하던 업무의 담당자를 NULL로, 업무마다 이력 1행 (변경자 = actor)
-    3. project_members 행 삭제
+    같은 역할로 바꾸면 아무것도 바뀌지 않고 200. 업무 변경이 아니므로 task_activities에 남기지 않는다.
+    OWNER 수를 바꾸므로 멤버 제거와 같은 순서로 잠근다(_lock_target).
+    """
+    require_project_role(db, project_id, user, OWNER_ONLY)
+    owners, target = _lock_target(db, project_id, target_user_id)
+    require_role_change_allowed(owners, target, data.role)
 
-    잠그는 순서: 프로젝트 행(공유) → OWNER 행 → 대상 멤버 행 → 대상의 업무 행. 업무 담당자 지정은
-    대상 멤버 행에 공유 잠금을 걸어(task_service._require_assignee_member) 이 순서와 맞춘다.
-    프로젝트 행을 먼저 잠그는 것은 프로젝트 삭제와의 교착을 막기 위해서다(이슈 #72).
-    여러 프로젝트에서 반복해 부를 때(AUTH-08 탈퇴)는 project_id 오름차순으로 부른다.
+    target.role = data.role
+    member_user = db.get(User, target_user_id)
+    # 응답은 커밋 전에 만든다. 커밋 뒤에 읽으면 그 사이 프로젝트가 삭제됐을 때
+    # 지워진 행을 다시 읽다가 ObjectDeletedError(500)가 난다.
+    out = MemberOut(
+        user_id=member_user.id,
+        login_id=member_user.login_id,
+        name=member_user.name,
+        role=target.role,
+        joined_at=target.joined_at,
+    )
+    db.commit()
+    return out
+
+
+def _lock_target(
+    db: Session, project_id: int, target_user_id: int
+) -> tuple[list[ProjectMember], ProjectMember]:
+    """OWNER 수를 바꿀 수 있는 작업(제거·역할 변경)의 공통 잠금. 커밋하지 않는다.
+
+    잠그는 순서: 프로젝트 행(공유) → OWNER 행 → 대상 멤버 행 (이슈 #72, DATABASE-DESIGN §6.1).
+    프로젝트 삭제·다른 OWNER 변경과 동시에 일어나도 교착(1213) 없이 한쪽이 기다린다.
     """
     if not lock_project_shared(db, project_id):
         # 권한 검사 뒤에 다른 요청이 프로젝트를 삭제함
@@ -148,6 +174,24 @@ def _remove_member_rows(
         raise NotFound(
             "MEMBER_NOT_FOUND", "해당 사용자는 이 프로젝트의 멤버가 아닙니다"
         )
+    return owners, target
+
+
+def _remove_member_rows(
+    db: Session, project_id: int, target_user_id: int, actor_id: int
+) -> None:
+    """멤버 1명을 제거하는 DB 작업. 커밋하지 않는다 (ARCHITECTURE §4.3).
+
+    1. OWNER 행 잠금 → 대상이 마지막 OWNER면 400
+    2. 대상이 담당하던 업무의 담당자를 NULL로, 업무마다 이력 1행 (변경자 = actor)
+    3. project_members 행 삭제
+
+    잠그는 순서: 프로젝트 행(공유) → OWNER 행 → 대상 멤버 행 → 대상의 업무 행. 업무 담당자 지정은
+    대상 멤버 행에 공유 잠금을 걸어(task_service._require_assignee_member) 이 순서와 맞춘다.
+    프로젝트 행을 먼저 잠그는 것은 프로젝트 삭제와의 교착을 막기 위해서다(이슈 #72).
+    여러 프로젝트에서 반복해 부를 때(AUTH-08 탈퇴)는 project_id 오름차순으로 부른다.
+    """
+    owners, target = _lock_target(db, project_id, target_user_id)
     require_not_last_owner(owners, target)
 
     tasks = db.scalars(

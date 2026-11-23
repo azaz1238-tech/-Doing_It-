@@ -2,7 +2,7 @@
 
 > 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템
 > DB: MariaDB 10.11 LTS(Docker) | ORM: SQLAlchemy 2.x · Alembic · PyMySQL | 담당: 백엔드 B
-> 버전: v1.2 (2026-11-16 상태·역할 컬럼 6개(`system_role`, `role`, `status`, `priority`, `action`, `field`)를 `utf8mb4_bin`으로 — `_ci`에서는 `'todo'`가 CHECK를 통과함, §1-7·§4) · v1.1 (2026-11-16 §4.5 `ck_task_activities_field`에 `field IS NOT NULL` 추가 — UPDATED인데 field가 NULL인 행이 통과하던 빈틈 수정) · v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
+> 버전: v1.3 (2026-11-23 `projects.description` NOT NULL + `ck_projects_description_not_blank`, 리비전 `0002_project_description_required` 추가로 댓글은 `0003`, SPEC-CHANGELOG #21) · v1.2 (2026-11-16 상태·역할 컬럼 6개(`system_role`, `role`, `status`, `priority`, `action`, `field`)를 `utf8mb4_bin`으로 — `_ci`에서는 `'todo'`가 CHECK를 통과함, §1-7·§4) · v1.1 (2026-11-16 §4.5 `ck_task_activities_field`에 `field IS NOT NULL` 추가 — UPDATED인데 field가 NULL인 행이 통과하던 빈틈 수정) · v1.0 (2026-11-16 스펙 동결, 내용 변경 없음) · v0.6 (DATABASE.md v0.5 + 구현 설계 초안 통합: 단계별 마이그레이션, P2 컬럼 분리, `users` 참조 FK RESTRICT, `login_id` 소문자 강제, 이력 행 CHECK, 정렬 기준 통일, OWNER 행 잠금) · v0.5 (users.deleted_at(P2 탈퇴), 댓글 300자, 체크리스트 업무당 10개) · v0.4 (이름·제목 30자, 체크리스트(P2)) · v0.3 (email → login_id)
 > 근거: PROPOSAL → CONSTITUTION §4·§6·§8 → REQUIREMENTS v1.0 → API-SPEC v1.0. 문서끼리 다르면 앞쪽 문서를 따른다.
 
 ## 1. 설계 원칙
@@ -23,8 +23,9 @@
 | 리비전 | 시점 | 내용 | 기능 ID |
 | --- | --- | --- | --- |
 | `0001_p0_initial` | 스프린트 1 첫날 | `users`, `projects`, `project_members`, `tasks`, `task_activities` | AUTH-01~04, PRJ-01~05·07, TASK-01~06, LOG-01·02 |
-| `0002_p1_comments` | P0 게이트(11/19) 이후 | `task_comments` | CMT-01·02 |
-| `0003_p2_*` | P1 완료 후, 기능마다 1개 | `task_checklist_items`, `users.deleted_at`, `projects.is_archived`, `tasks.position` | TASK-08·09·10, AUTH-08, 보관 |
+| `0002_project_description_required` | 11/22 (P1 중) | `projects.description` NOT NULL + `ck_projects_description_not_blank` (빈 설명은 `설명 없음`으로 채운 뒤 제약) | PRJ-01 (SPEC-CHANGELOG #21) |
+| `0003_p1_comments` | P0 게이트(11/19) 이후 | `task_comments` | CMT-01·02 |
+| `0004_p2_*` | P1 완료 후, 기능마다 1개 | `task_checklist_items`, `users.deleted_at`, `projects.is_archived`, `tasks.position` | TASK-08·09·10, AUTH-08, 보관 |
 
 - **P0 테이블 5개를 스프린트 1 첫 리비전에 모두 만든다.** 멤버 제거(PRJ-05)가 스프린트 1에 있고, 제거할 때 담당 업무를 해제하고 이력을 남겨야 하므로 `tasks`·`task_activities`가 처음부터 필요하다.
 - 리비전은 백엔드 B만 만들고, 다른 사람은 `alembic upgrade head`만 실행한다. PR 전에 `alembic heads`가 1개인지 확인한다(브랜치마다 리비전을 만들면 head가 갈라진다).
@@ -176,15 +177,16 @@ CONSTRAINT ck_users_name_not_blank  CHECK (CHAR_LENGTH(TRIM(name)) > 0)
 | --- | --- | :-: | --- | --- | --- |
 | id | BIGINT | N | AI | PK | |
 | name | VARCHAR(30) | N | | `ck_projects_name_not_blank` | 앞뒤 공백 제거 후 1~30자 (PRJ-01). 한글도 1자 |
-| description | TEXT | Y | | | |
+| description | TEXT | N | | `ck_projects_description_not_blank` | 앞뒤 공백 제거 후 1~2000자 (PRJ-01). 최대 길이는 API에서 검사 |
 | start_date | DATE | Y | | | |
 | end_date | DATE | Y | | `ck_projects_period` | |
 | created_by | BIGINT | N | | FK → users.id `RESTRICT` | |
 | created_at / updated_at | DATETIME | N | now | | |
 
 ```sql
-CONSTRAINT ck_projects_name_not_blank CHECK (CHAR_LENGTH(TRIM(name)) > 0)
-CONSTRAINT ck_projects_period         CHECK (start_date IS NULL OR end_date IS NULL OR end_date >= start_date)
+CONSTRAINT ck_projects_name_not_blank        CHECK (CHAR_LENGTH(TRIM(name)) > 0)
+CONSTRAINT ck_projects_description_not_blank CHECK (CHAR_LENGTH(TRIM(description)) > 0)  -- 0002
+CONSTRAINT ck_projects_period                CHECK (start_date IS NULL OR end_date IS NULL OR end_date >= start_date)
 ```
 
 **P2 추가 컬럼:** `is_archived TINYINT(1) NOT NULL DEFAULT 0` — 프로젝트 보관. P0·P1을 모두 마친 뒤에만 쓴다(CONSTITUTION 8-3).

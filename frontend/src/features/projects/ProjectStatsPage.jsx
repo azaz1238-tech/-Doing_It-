@@ -98,7 +98,11 @@ function Stats({ projectId }) {
               <ProgressBar progress={project.progress} />
             </Section>
           )}
-          <AssigneeStats projectId={project.id} onPageError={setPageError} />
+          <AssigneeStats
+            projectId={project.id}
+            members={members}
+            onPageError={setPageError}
+          />
           <Deadlines projectId={project.id} onPageError={setPageError} />
           <RecentActivities projectId={project.id} onPageError={setPageError} />
         </div>
@@ -136,6 +140,8 @@ function Section({ title, className, children }) {
 
 // 담당자별 현황 (DASH-02, US-21). 담당자 × 상태 표 + 화면에서 더한 합계.
 // 순서는 서버 순서 그대로, "담당자 없음"(assignee null)만 맨 아래로 옮긴다(DASH-02-a).
+// 업무가 없는 멤버도 0으로 보여 준다 — 일을 나눌 사람을 찾는 표라서(11/23 팀장 결정).
+// API는 업무가 있는 담당자만 주므로, 헤더용으로 받은 멤버 목록에서 빠진 사람을 0행으로 채운다.
 // 숫자 칸은 너비를 정해 두고(표 table-fixed) 남는 폭을 이름 칸이 쓴다.
 // 모바일은 색 점을 숨기고 칸을 좁혀(카드 여백도 p-4), 360px 폰에서도 숫자 네 칸이 스크롤 없이 보이게 한다.
 const STAT_COLUMNS = [
@@ -144,7 +150,24 @@ const STAT_COLUMNS = [
   { key: "done", status: "DONE", width: "w-12 sm:w-24" },
 ];
 
-function AssigneeStats({ projectId, onPageError }) {
+function withZeroMembers(rows, members) {
+  const counted = new Set(rows.map((r) => r.assignee?.id));
+  const zeroRows = (members ?? [])
+    .filter((m) => !counted.has(m.user_id))
+    .map((m) => ({
+      assignee: { id: m.user_id, login_id: m.login_id, name: m.name },
+      todo: 0,
+      in_progress: 0,
+      done: 0,
+    }));
+  return [
+    ...rows.filter((r) => r.assignee),
+    ...zeroRows,
+    ...rows.filter((r) => !r.assignee),
+  ];
+}
+
+function AssigneeStats({ projectId, members, onPageError }) {
   const toast = useToast();
   const [rows, setRows] = useState(null); // null = 불러오는 중
   const [loadFailed, setLoadFailed] = useState(false);
@@ -153,12 +176,7 @@ function AssigneeStats({ projectId, onPageError }) {
   const fetchStats = useCallback(
     () =>
       getAssigneeStats(projectId)
-        .then((items) =>
-          setRows([
-            ...items.filter((r) => r.assignee),
-            ...items.filter((r) => !r.assignee),
-          ]),
-        )
+        .then((items) => setRows(items))
         .catch((error) => {
           const kind = pageErrorOf(error);
           if (kind) {
@@ -205,12 +223,14 @@ function AssigneeStats({ projectId, onPageError }) {
       ) : (
         // 아주 좁은 창(약 300px 미만)에서만 이 상자 안에서 가로로 스크롤한다
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-sm">
+          {/* 최소 18rem — 이보다 좁으면(약 330px 미만 화면) 이름이 모두 잘리는 대신 이 상자 안에서 가로로 스크롤한다 */}
+          <table className="w-full min-w-72 table-fixed text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-xs text-neutral-500">
                 <th
                   scope="col"
-                  className="w-20 py-2 pr-2 text-left font-semibold sm:w-auto"
+                  // 너비를 정하지 않아 숫자 칸을 뺀 남는 폭을 쓴다 → 375px에서 "담당자 없음"이 잘리지 않음
+                  className="py-2 pr-2 text-left font-semibold"
                 >
                   담당자
                 </th>
@@ -244,7 +264,7 @@ function AssigneeStats({ projectId, onPageError }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
-              {rows.map((row) => (
+              {withZeroMembers(rows, members).map((row) => (
                 <AssigneeStatRow key={row.assignee?.id ?? "none"} row={row} />
               ))}
             </tbody>
@@ -266,8 +286,12 @@ function AssigneeStatRow({ row }) {
       <th scope="row" className="py-2.5 pr-2 text-left font-normal">
         <span className="flex min-w-0 items-center gap-2">
           {/* 담당자 없음은 Avatar가 `?` 회색으로 그린다. 이름은 JSX 글자로만 넣는다 */}
-          <Avatar user={row.assignee} size="sm" className="shrink-0" />
+          {/* 모바일은 아바타를 숨겨 이름 칸을 넓힌다(색 점을 숨기는 것과 같은 이유) → 360px에서도 "담당자 없음"이 다 보인다 */}
+          <span className="hidden shrink-0 sm:block">
+            <Avatar user={row.assignee} size="sm" />
+          </span>
           <span
+            title={row.assignee?.name ?? "담당자 없음"} // 말줄임된 긴 이름은 마우스를 올리면 전체가 보인다
             className={cn(
               "truncate", // 칸 너비가 정해져 있어 긴 이름(최대 50자)은 말줄임
               row.assignee ? "text-neutral-900" : "text-neutral-500",

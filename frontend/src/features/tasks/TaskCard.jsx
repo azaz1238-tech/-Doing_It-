@@ -13,6 +13,10 @@ import StatusSelect from "./StatusSelect";
  * @param {boolean} updating 상태 변경 요청 중
  * @param {(status: string) => void} onStatusChange
  * @param {() => void} onOpen 카드 본문 클릭 → 업무 상세(S6)
+ * @param {boolean} draggable 끌어서 상태 변경 가능 여부 (TASK-08). 권한 없음·요청 중이면 false
+ * @param {boolean} dragging 지금 끌고 있는 카드 → 흐리게
+ * @param {(e: DragEvent) => void} onDragStart
+ * @param {() => void} onDragEnd
  */
 export default function TaskCard({
   task,
@@ -20,11 +24,25 @@ export default function TaskCard({
   updating = false,
   onStatusChange,
   onOpen,
+  draggable = false,
+  dragging = false,
+  onDragStart,
+  onDragEnd,
 }) {
   const done = task.status === "DONE";
 
   return (
-    <article className="rounded-lg border border-neutral-200 bg-white p-3 shadow-xs transition hover:border-neutral-300 hover:shadow-sm">
+    <article
+      draggable={draggable}
+      onDragStart={draggable ? onDragStart : undefined}
+      onDragEnd={draggable ? onDragEnd : undefined}
+      aria-grabbed={draggable ? dragging : undefined}
+      className={cn(
+        "rounded-lg border border-neutral-200 bg-white p-3 shadow-xs transition hover:border-neutral-300 hover:shadow-sm",
+        draggable && "cursor-grab active:cursor-grabbing",
+        dragging && "opacity-50",
+      )}
+    >
       <div className="flex items-center gap-2">
         <PriorityBadge priority={task.priority} />
         <DueLabel dueDate={task.due_date} status={task.status} />

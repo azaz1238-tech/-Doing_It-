@@ -13,6 +13,7 @@ import ErrorPage from "../../core/ui/ErrorPage";
 import { ChevronDownIcon, PlusIcon } from "../../core/ui/icons";
 import { SkeletonList } from "../../core/ui/Skeleton";
 import { useToast } from "../../core/ui/useToast";
+import { cn } from "../../core/utils/cn";
 import { getProject, listMembers } from "../projects/api";
 import ProjectHeader from "../projects/ProjectHeader";
 import { listTasks, updateTask } from "./api";
@@ -97,6 +98,9 @@ function Board({ projectId }) {
     Object.fromEntries(COLUMN_ORDER.map((s) => [s, emptyColumn()])),
   );
   const [updatingId, setUpdatingId] = useState(null);
+  // 드래그 앤 드롭(TASK-08, A안): 끌고 있는 업무와 지금 위에 있는 컬럼
+  const [dragTask, setDragTask] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null); // "TODO" | "IN_PROGRESS" | "DONE" | null
   const [formOpen, setFormOpen] = useState(false);
   // 컬럼마다 마지막 요청 번호. 늦게 도착한 옛 응답이 새 응답을 덮지 않게 한다.
   const requestSeq = useRef({});
@@ -308,6 +312,40 @@ function Board({ projectId }) {
     }
   };
 
+  // 카드를 다른 컬럼에 놓으면 상태 변경과 같은 처리(changeStatus)를 탄다 (TASK-08, A안).
+  // index는 B안(열 안 순서, tasks.position)을 위해 받아 두기만 한다 — A안에서는 쓰지 않는다.
+  const moveTask = (task, toStatus, index = null) => {
+    if (toStatus === task.status) return; // 같은 열: 순서 저장은 B안
+    void index;
+    changeStatus(task, toStatus);
+  };
+
+  const endDrag = () => {
+    setDragTask(null);
+    setDropTarget(null);
+  };
+
+  // 컬럼(section)에 붙이는 드롭 처리
+  const dropZoneProps = (status) => ({
+    onDragOver: (e) => {
+      // 놓을 수 없는 곳(같은 열·끌고 있는 카드 없음)은 기본 동작 그대로 → 금지 표시
+      if (!dragTask || dragTask.status === status) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (dropTarget !== status) setDropTarget(status);
+    },
+    onDragLeave: (e) => {
+      // 컬럼 안의 카드 위로 옮겨 갈 때도 leave가 나므로, 컬럼 밖으로 나갔을 때만 해제
+      if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null);
+    },
+    onDrop: (e) => {
+      e.preventDefault();
+      const task = dragTask;
+      endDrag();
+      if (task) moveTask(task, status);
+    },
+  });
+
   // S8 안내 화면. PRJ-07-a: 비멤버에게는 프로젝트 이름도 보이지 않는다(헤더를 그리지 않음).
   if (pageError === "403") return <ErrorPage type="403" />;
   if (pageError === "404")
@@ -376,7 +414,12 @@ function Board({ projectId }) {
                   <section
                     key={status}
                     aria-label={STATUSES[status].label}
-                    className="flex flex-col gap-3 rounded-lg bg-neutral-100 p-3"
+                    {...dropZoneProps(status)}
+                    className={cn(
+                      "flex flex-col gap-3 rounded-lg bg-neutral-100 p-3 transition",
+                      dropTarget === status &&
+                        "bg-primary-soft ring-2 ring-primary",
+                    )}
                   >
                     <h2 className="flex items-center gap-2 px-1 font-semibold">
                       <span
@@ -413,30 +456,45 @@ function Board({ projectId }) {
                       />
                     ) : (
                       <ul className="flex flex-col gap-2">
-                        {col.items.map((task) => (
-                          <li key={task.id}>
-                            <TaskCard
-                              task={task}
-                              // 프로젝트(내 역할)를 받기 전에는 잠가 둔다.
-                              canChangeStatus={
-                                !!project &&
-                                !!user &&
-                                canChangeStatus(task, project.my_role, user.id)
-                              }
-                              updating={updatingId === task.id}
-                              onStatusChange={(next) =>
-                                changeStatus(task, next)
-                              }
-                              // 상세를 열어도 필터(주소 쿼리)는 그대로 둔다
-                              onOpen={() =>
-                                navigate({
-                                  pathname: `tasks/${task.id}`,
-                                  search: location.search,
-                                })
-                              }
-                            />
-                          </li>
-                        ))}
+                        {col.items.map((task) => {
+                          // 프로젝트(내 역할)를 받기 전에는 잠가 둔다.
+                          const canMove =
+                            !!project &&
+                            !!user &&
+                            canChangeStatus(task, project.my_role, user.id);
+                          return (
+                            <li key={task.id}>
+                              <TaskCard
+                                task={task}
+                                canChangeStatus={canMove}
+                                updating={updatingId === task.id}
+                                onStatusChange={(next) =>
+                                  changeStatus(task, next)
+                                }
+                                // 끌기: 권한이 있고 요청 중이 아닐 때만 (버튼 숨김처럼 편의 기능 — 권한은 서버가 검사)
+                                draggable={canMove && updatingId !== task.id}
+                                dragging={dragTask?.id === task.id}
+                                onDragStart={(e) => {
+                                  e.dataTransfer.effectAllowed = "move";
+                                  // Firefox는 데이터가 있어야 끌린다
+                                  e.dataTransfer.setData(
+                                    "text/plain",
+                                    String(task.id),
+                                  );
+                                  setDragTask(task);
+                                }}
+                                onDragEnd={endDrag}
+                                // 상세를 열어도 필터(주소 쿼리)는 그대로 둔다
+                                onOpen={() =>
+                                  navigate({
+                                    pathname: `tasks/${task.id}`,
+                                    search: location.search,
+                                  })
+                                }
+                              />
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
 

@@ -8,12 +8,14 @@ import { useToast } from "../../core/ui/useToast";
 import { cn } from "../../core/utils/cn";
 import { listMyTasks } from "./api";
 import DueLabel from "./DueLabel";
+import MyTaskCalendar from "./MyTaskCalendar";
 import PriorityBadge from "./PriorityBadge";
 import { STATUSES } from "./taskDisplay";
 
 // 내 대시보드 `/` — DASH-04 · US-23 · REQUIREMENTS §6 (P1, T-F5-08)
 // 나에게 할당된 미완료 업무를 프로젝트 구분 없이 보여 준다. 정렬은 서버 순서 그대로(지연 → 임박 → 나머지, 마감일 순).
 // 지연·임박은 맨 위에 그룹 제목 색으로 강조한다(DASH-04-a). 그룹은 서버가 준 alert로 나눈다(화면에서 날짜를 다시 계산하지 않음).
+// 목록 위에 월간 달력(TASK-11, P2)을 둔다. 할당 업무가 없으면 달력 없이 빈 상태만 보인다(DASH-04-b).
 
 // TODO(Figma): 그룹 제목·색은 시안 확정 전 추정값
 const GROUPS = [
@@ -100,12 +102,16 @@ export default function MyDashboardPage() {
           }
         />
       ) : (
-        GROUPS.map((group) => {
-          const tasks = data.items.filter((t) => t.alert === group.alert);
-          // 비어 있는 그룹은 제목까지 숨긴다
-          if (tasks.length === 0) return null;
-          return <TaskGroup key={group.title} group={group} tasks={tasks} />;
-        })
+        <>
+          {/* TASK-11: 위쪽 월간 달력, 아래는 DASH-04 목록 그대로 (같은 응답을 함께 쓴다) */}
+          <MyTaskCalendar tasks={data.items} total={data.total} />
+          {GROUPS.map((group) => {
+            const tasks = data.items.filter((t) => t.alert === group.alert);
+            // 비어 있는 그룹은 제목까지 숨긴다
+            if (tasks.length === 0) return null;
+            return <TaskGroup key={group.title} group={group} tasks={tasks} />;
+          })}
+        </>
       )}
     </div>
   );

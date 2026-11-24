@@ -21,6 +21,19 @@ export function daysBetween(from, to) {
   return Math.round((toUtcMs(to) - toUtcMs(from)) / DAY_MS);
 }
 
+/**
+ * dateStr에서 n일 뒤(음수면 앞) 날짜 "YYYY-MM-DD". 달·해가 바뀌어도 시간대 영향 없이 계산한다.
+ * 달력·간트(TASK-11)의 날짜 칸을 만들 때 쓴다. 예: addDays("2026-11-30", 1) === "2026-12-01"
+ */
+export function addDays(dateStr, n) {
+  return new Date(toUtcMs(dateStr) + n * DAY_MS).toISOString().slice(0, 10);
+}
+
+/** 요일 번호 0(일)~6(토). 이름은 WEEKDAYS[weekdayOf(d)]. 예: weekdayOf("2026-11-24") === 2(화) */
+export function weekdayOf(dateStr) {
+  return new Date(toUtcMs(dateStr)).getUTCDay();
+}
+
 /** 마감일 표기 "11/20" (UI-DESIGN §6.4) */
 export function formatMonthDay(dateStr) {
   const [, m, d] = dateStr.split("-").map(Number);
@@ -37,7 +50,8 @@ export function formatPeriod(start, end) {
   return `${start ? md(start) : ""} – ${end ? md(end) : ""}`.trim();
 }
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+/** 요일 이름 (일요일 시작). 달력·간트 머리글에도 쓴다 */
+export const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const JUST_NOW_MS = 60 * 1000;
 
@@ -60,6 +74,5 @@ export function formatDateTime(isoString, now = Date.now()) {
 
 /** 마감일 입력창 옆 표기 "2026-11-14 (토)" — UI-DESIGN §6.4 */
 export function formatDateWithWeekday(dateStr) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return `${dateStr} (${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
+  return `${dateStr} (${WEEKDAYS[weekdayOf(dateStr)]})`;
 }

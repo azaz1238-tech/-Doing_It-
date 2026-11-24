@@ -32,6 +32,22 @@ export function ChevronDownIcon(props) {
   );
 }
 
+export function ChevronLeftIcon(props) {
+  return (
+    <Svg {...props}>
+      <path d="m15 18-6-6 6-6" />
+    </Svg>
+  );
+}
+
+export function ChevronRightIcon(props) {
+  return (
+    <Svg {...props}>
+      <path d="m9 18 6-6-6-6" />
+    </Svg>
+  );
+}
+
 export function LogOutIcon(props) {
   return (
     <Svg {...props}>

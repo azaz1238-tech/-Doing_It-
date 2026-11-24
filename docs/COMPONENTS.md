@@ -85,6 +85,7 @@
 | 이름 | 쓰임 |
 | --- | --- |
 | `ChevronDownIcon` | TopBar 메뉴 ▾, 드롭다운 |
+| `ChevronLeftIcon` / `ChevronRightIcon` | 달력·간트 이전·다음 이동 ‹ › (TASK-11) |
 | `LogOutIcon` | 로그아웃, 세션 만료 토스트 |
 | `XIcon` | 모달 닫기 |
 | `PlusIcon` | `+ 새 프로젝트`, `+ 업무 추가` |
@@ -324,6 +325,7 @@ if (loading) return <SkeletonList count={3} className="sm:grid-cols-2 lg:grid-co
 ```
 
 - "오늘"은 `core/utils/date.js`의 `todayKst()`(한국 날짜, API-SPEC §1.6). 브라우저 시간대를 쓰지 않는다.
+- 날짜 칸 계산(달력·간트, TASK-11)은 같은 파일의 `addDays(dateStr, n)`·`weekdayOf(dateStr)`·`daysBetween(from, to)`과 `WEEKDAYS`를 쓴다. 날짜는 `"YYYY-MM-DD"` 문자열 그대로 다루고 `new Date()`로 직접 계산하지 않는다.
 
 ### 3.14 ProjectHeader — `features/projects/ProjectHeader.jsx` (PRJ-07)
 

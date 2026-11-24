@@ -45,11 +45,16 @@ const SOON = cn(BADGE, "bg-warning-soft text-warning");
  * §6.3 마감 표시. 임박 범위(오늘 ~ +3일)는 DASH-03과 같다.
  * @param {string|null} dueDate "YYYY-MM-DD"
  * @param {string} today 한국 날짜 "YYYY-MM-DD"
- * @returns {{ text: string, className: string, Icon?: Function }}
+ * tone은 색 구분만 필요한 곳(간트 막대, TASK-12)이 같은 기준을 쓰도록 함께 돌려준다.
+ * @returns {{ text: string, className: string, Icon?: Function, tone: "none"|"overdue"|"soon"|"normal" }}
  */
 export function getDueInfo(dueDate, today) {
   if (!dueDate)
-    return { text: "마감 없음", className: "text-xs text-neutral-400" };
+    return {
+      text: "마감 없음",
+      className: "text-xs text-neutral-400",
+      tone: "none",
+    };
 
   const diff = daysBetween(today, dueDate);
 
@@ -58,14 +63,21 @@ export function getDueInfo(dueDate, today) {
       text: `${-diff}일 지남`,
       className: cn(BADGE, "bg-danger-soft text-danger"),
       Icon: TriangleAlertIcon,
+      tone: "overdue",
     };
   if (diff === 0)
-    return { text: "오늘 마감", className: SOON, Icon: ClockIcon };
-  if (diff === 1) return { text: "내일 마감", className: SOON };
-  if (diff <= 3) return { text: `D-${diff}`, className: SOON };
+    return {
+      text: "오늘 마감",
+      className: SOON,
+      Icon: ClockIcon,
+      tone: "soon",
+    };
+  if (diff === 1) return { text: "내일 마감", className: SOON, tone: "soon" };
+  if (diff <= 3) return { text: `D-${diff}`, className: SOON, tone: "soon" };
   return {
     text: formatMonthDay(dueDate),
     className: "text-xs text-neutral-500",
+    tone: "normal",
   };
 }
 

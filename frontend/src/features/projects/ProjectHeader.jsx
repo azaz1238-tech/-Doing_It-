@@ -16,7 +16,7 @@ const MAX_AVATARS = 4;
  * @param {object | null} props.project Project 응답. 없으면 스켈레톤
  * @param {Array<{ user_id: number, name: string }> | null} [props.members]
  *   Member 목록(OWNER 먼저). 없으면 아바타 묶음을 그리지 않는다
- * @param {"board" | "stats" | "settings"} props.active 선택된 탭
+ * @param {"board" | "gantt" | "stats" | "settings"} props.active 선택된 탭
  * @param {import("react").ReactNode} [props.actions] 오른쪽 버튼 자리 (S4: `+ 업무 추가`)
  */
 export default function ProjectHeader({ project, members, active, actions }) {
@@ -63,7 +63,7 @@ export default function ProjectHeader({ project, members, active, actions }) {
         {actions}
       </div>
 
-      {/* 탭은 보드·통계·설정. 통계(P1)는 보드와 설정 사이, 모든 탭이 모든 멤버에게 보인다(UI-DESIGN §3.2, S7) */}
+      {/* 탭 순서: 보드 · 간트(P2, TASK-12) · 통계(P1) · 설정. 모든 탭이 모든 멤버에게 보인다(UI-DESIGN §3.2, S7) */}
       <nav
         aria-label="프로젝트 메뉴"
         className="flex gap-1 border-b border-neutral-200"
@@ -73,6 +73,12 @@ export default function ProjectHeader({ project, members, active, actions }) {
           selected={active === "board"}
         >
           보드
+        </Tab>
+        <Tab
+          to={project ? `/projects/${project.id}/gantt` : null}
+          selected={active === "gantt"}
+        >
+          간트
         </Tab>
         <Tab
           to={project ? `/projects/${project.id}/stats` : null}

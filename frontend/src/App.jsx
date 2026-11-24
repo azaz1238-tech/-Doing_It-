@@ -9,6 +9,7 @@ import ProjectListPage from "./features/projects/ProjectListPage";
 import ProjectSettingsPage from "./features/projects/ProjectSettingsPage";
 import ProjectStatsPage from "./features/projects/ProjectStatsPage";
 import BoardPage from "./features/tasks/BoardPage";
+import GanttPage from "./features/tasks/GanttPage";
 import MyDashboardPage from "./features/tasks/MyDashboardPage";
 import TaskDetailModal from "./features/tasks/TaskDetailModal";
 
@@ -47,6 +48,10 @@ export default function App() {
         <Route path="/" element={<MyDashboardPage />} />
         <Route path="/projects" element={<ProjectListPage />} />
         <Route path="/projects/:id" element={<BoardPage />}>
+          <Route path="tasks/:taskId" element={<TaskDetailModal />} />
+        </Route>
+        {/* 간트(P2, TASK-12) — 막대를 누르면 업무 상세(S6)가 간트 위에 열린다 */}
+        <Route path="/projects/:id/gantt" element={<GanttPage />}>
           <Route path="tasks/:taskId" element={<TaskDetailModal />} />
         </Route>
         <Route path="/projects/:id/stats" element={<ProjectStatsPage />} />

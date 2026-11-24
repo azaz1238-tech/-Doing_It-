@@ -49,8 +49,8 @@ export default function TaskDetailModal() {
 function TaskDetail({ taskId }) {
   const navigate = useNavigate();
   const toast = useToast();
-  // BoardPage가 Outlet context로 넘긴다.
-  const { projectId, project, members, user, onTaskChanged } =
+  // BoardPage·GanttPage가 Outlet context로 넘긴다. basePath = 닫으면 돌아갈 화면(없으면 보드)
+  const { projectId, project, members, user, onTaskChanged, basePath } =
     useOutletContext();
 
   const [task, setTask] = useState(null);
@@ -69,11 +69,11 @@ function TaskDetail({ taskId }) {
   // 댓글을 쓰거나 고치는 중이면 닫기 전에 묻는다(T-F4-04, 제목·설명과 같게)
   const [commentDirty, setCommentDirty] = useState(false);
 
-  // 닫아도 보드의 검색·필터(주소 쿼리)는 그대로 둔다(TASK-07).
+  // 닫아도 보드의 검색·필터(주소 쿼리)는 그대로 둔다(TASK-07). 간트에서 열었으면 간트로 돌아간다(TASK-12).
   const { search } = useLocation();
   const close = useCallback(
-    () => navigate(`/projects/${projectId}${search}`),
-    [navigate, projectId, search],
+    () => navigate(`${basePath ?? `/projects/${projectId}`}${search}`),
+    [navigate, basePath, projectId, search],
   );
 
   // 업무 없음(삭제됐거나 잘못된 주소) → 안내 후 보드로. 비멤버 403은 보드가 안내 화면을 띄운다.

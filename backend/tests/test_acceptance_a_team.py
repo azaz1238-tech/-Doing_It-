@@ -30,6 +30,7 @@ def test_auth_01_a_signup_then_login(client):
     assert login.status_code == 200
     token = login.json()["access_token"]
     me = client.get("/api/users/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.status_code == 200
     assert me.json()["login_id"] == "jisoo01"
     assert me.json()["name"] == "지수"
 

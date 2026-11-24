@@ -16,7 +16,7 @@
 
 | 테스트 | 시나리오 | 비어 있던 것 | 변이 확인 |
 | --- | --- | --- | --- |
-| `test_auth_01_a_signup_then_login` | AUTH-01-a | 가입과 로그인을 따로만 확인했다. 가입한 계정으로 바로 로그인되는 흐름은 없었다 | 가입 때 비밀번호를 틀리게 해시하면 실패 |
+| `test_auth_01_a_signup_then_login` | AUTH-01-a | 가입과 로그인을 따로만 확인했다. 가입한 계정으로 바로 로그인되는 흐름은 없었다 | 가입 때 비밀번호를 틀리게 해시하면 실패(기존 `test_password_stored_as_bcrypt_hash`도 같은 변이를 잡음 — 새 테스트의 몫은 가입 API → 로그인 API 연결) |
 | `test_prj_02_a_list_card_has_name_period_role` | PRJ-02-a | 목록 테스트는 id·역할만 확인했다. 카드의 이름·기간은 확인하지 않았다 | 응답의 시작일을 종료일로 바꾸면 실패(같은 변이를 생성·수정 테스트 3개도 잡음 — 응답 모양을 목록·상세·생성이 함께 쓰기 때문) |
 | `test_prj_03_b_member_update_rejected_and_unchanged` | PRJ-03-b | MEMBER 수정은 403만 확인했다. 거절 뒤 이름·설명이 그대로인지는 확인하지 않았다 | 수정 권한을 OWNER → 모든 멤버로 바꾸면 실패 |
 
@@ -46,7 +46,7 @@ pytest 테스트는 `backend/tests/` 기준이다. Postman은 `postman/` 컬렉�
 
 | 시나리오 | 결과서 | pytest | Postman | 화면 전용 |
 | --- | :-: | --- | --- | --- |
-| PRJ-01-a | ✅ | `test_projects.py::test_create_201_creator_is_owner` | F2 프로젝트 생성 | 칸반으로 이동 |
+| PRJ-01-a | ✅ | `test_projects.py::test_create_201_creator_is_owner` (생성 응답 `my_role`·DB 멤버 행. "목록에 나타남"은 이 테스트가 직접 보지 않고 Postman "내 프로젝트 목록"과 PRJ-02-a 목록 테스트가 본다) | F2 프로젝트 생성 | 칸반으로 이동 |
 | PRJ-01-b | ✅ | `test_projects.py::test_create_name_length_422` (빈 값·공백·31자), `test_update_name_invalid_422` | F2 프로젝트 생성 - 이름 31자 422 | `31/30` 글자 수, 버튼 꺼짐 |
 | PRJ-01-c | ✅ | `test_projects.py::test_create_period_reversed_422`, `test_update_end_before_saved_start_422`, `test_update_both_dates_reversed_422` | F2 프로젝트 수정 - 종료일이 시작일보다 앞 422 | 문구, 버튼 꺼짐 |
 | PRJ-01-d | ✅ | `test_projects.py::test_create_description_required_422`, `test_update_description_cannot_be_cleared_422`, `test_create_description_2001_chars_422` | — | 문구, 버튼 꺼짐, Enter 제출 막힘 |
@@ -66,7 +66,7 @@ pytest 테스트는 `backend/tests/` 기준이다. Postman은 `postman/` 컬렉�
 | PRJ-04-d | ✅ | `test_members.py::test_add_by_member_403`, `test_add_by_member_unknown_login_id_403` | F3 멤버 추가 - MEMBER가 시도 403 (PRJ-04-d) | 추가 칸 숨김 |
 | PRJ-07-b | ✅ | `test_members.py::test_list_200_member_fields` (MEMBER 조회 200), `test_add_by_member_403`, `test_remove_by_member_403` | F3 멤버 목록 - MEMBER 200 | 추가 칸·제거 버튼 숨김 |
 | PRJ-05-a | ✅ | `test_members.py::test_remove_204_unassigns_tasks` (담당 해제 + 이력, 제거된 사람 목록에서 사라짐, 상세 403) | F3 멤버 제거 - 업무 담당자 제거 204 (PRJ-05-a) + 확인 2건 | 확인 창 문구 |
-| PRJ-05-b | ✅ | `test_members.py::test_remove_last_owner_self_400`, `test_concurrent_owners_remove_each_other` | F3 멤버 제거 - 마지막 OWNER 자신 400 (PRJ-05-b) | 문구 |
+| PRJ-05-b | ✅ | `test_members.py::test_remove_last_owner_self_400`, `test_concurrent_owners_remove_each_other`(보조: OWNER 2명 동시 제거) | F3 멤버 제거 - 마지막 OWNER 자신 400 (PRJ-05-b) | 문구 |
 | PRJ-08-a | ✅ | `test_member_role.py::test_prj_08_a_demote_last_owner_400`, `test_prj_08_a_demote_self_after_promoting_other_200` | F3 역할 변경 (PRJ-08-a) 3건 | 강등 후 관리 기능 숨김 |
 
 ### F5 현황
@@ -83,7 +83,7 @@ pytest 테스트는 `backend/tests/` 기준이다. Postman은 `postman/` 컬렉�
 
 | 시나리오 | 결과서 | pytest | Postman | 화면 전용 |
 | --- | :-: | --- | --- | --- |
-| TASK-08-a | ✅ | `test_tasks_api.py::test_patch_status_and_assignee_two_activities` (드래그도 같은 `PATCH` 상태 변경 → 이력 1행) | F2-tasks 상태 변경 - 담당자 200 | **끌어 놓기 자체**(HTML5 드래그) |
+| TASK-08-a | ✅ | `test_activity_log.py::test_single_field_change_one_row[status]` (드래그도 같은 `PATCH` 상태 변경 → `TODO → IN_PROGRESS` 이력 1행) | F2-tasks 상태 변경 - 담당자 200 | **끌어 놓기 자체**(HTML5 드래그) |
 | TASK-08-b | ✅ | `test_tasks_api.py::test_patch_other_member_status_403` | F2-tasks 상태 변경 - 작성자도 담당자도 아닌 MEMBER 403 | 카드가 끌리지 않음, 원래 컬럼 복귀·문구 |
 
 ## 4. 참고

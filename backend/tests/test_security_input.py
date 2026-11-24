@@ -82,7 +82,7 @@ def test_huge_assignee_id_in_body_not_500(client, owner_project, big):
 _PAGE_OVERFLOW = pytest.mark.xfail(
     strict=True,
     raises=ProgrammingError,
-    reason="D10-03: page 상한 없음 → OFFSET 범위 초과 500 (이슈 #141)",
+    reason="D10-03: page 상한 없음 → OFFSET 범위 초과 500 (이슈 #142)",
 )
 
 

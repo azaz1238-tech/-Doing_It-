@@ -6,12 +6,20 @@
 
 import pytest
 from sqlalchemy import func, select
+from sqlalchemy.exc import ProgrammingError
 
-from app.models import Task, User
+from app.models import Project, Task, TaskComment, User
 from core.security import create_access_token
 from tests.factories import make_project, make_task, make_user
 
-HUGE_IDS = [str(2**63), str(10**30), "9" * 4301, "-1", "0"]
+# 4301자리는 정수 변환 단계에서 422, 나머지는 정수로 받아 DB에서 못 찾으므로 404
+HUGE_IDS = [
+    (str(2**63), 404),
+    (str(10**30), 404),
+    ("9" * 4301, 422),
+    ("-1", 404),
+    ("0", 404),
+]
 HUGE_ID_NAMES = ["2^63", "10^30", "4301자리", "-1", "0"]
 
 
@@ -29,7 +37,7 @@ def owner_project(db):
 # --- 1. 아주 큰 경로 id (Review Focus 1) ---
 
 
-@pytest.mark.parametrize("big", HUGE_IDS, ids=HUGE_ID_NAMES)
+@pytest.mark.parametrize(("big", "expected"), HUGE_IDS, ids=HUGE_ID_NAMES)
 @pytest.mark.parametrize(
     ("method", "path"),
     [
@@ -41,14 +49,14 @@ def owner_project(db):
     ],
     ids=["project", "project-tasks", "task", "comment", "member"],
 )
-def test_huge_path_id_not_500(client, owner_project, method, path, big):
+def test_huge_path_id_not_500(client, owner_project, method, path, big, expected):
     owner, project = owner_project
     url = path.format(id=big, pid=project.id)
     body = {"content": "c"} if method == "PATCH" else None
 
     res = client.request(method, url, headers=_auth(owner), json=body)
 
-    assert res.status_code in (403, 404, 422), res.text
+    assert res.status_code == expected, res.text
     assert "code" in res.json()
 
 
@@ -68,35 +76,41 @@ def test_huge_assignee_id_in_body_not_500(client, owner_project, big):
     assert res.status_code in (400, 422), res.text
 
 
-# page 위쪽 한도가 없어 OFFSET이 MariaDB 정수 범위를 넘으면 SQL 오류 → 500 (core/pagination.py, A조).
-# 목록 API 7개 공통, page ≥ 10^18부터. 고치면 XPASS가 실패로 보이므로 그때 이 표시를 지운다.
+# page 위쪽 한도가 없어 OFFSET = (page-1)×size가 MariaDB 한도(2^64-1)를 넘으면 SQL 오류 → 500
+# (core/pagination.py, A조). 목록 API 7개 공통. size=20이면 page ≈ 9.2×10^17, size=100이면 ≈ 1.8×10^17부터.
+# 고치면 XPASS가 실패로 보이므로 그때 이 표시를 지운다. raises: 다른 이유의 실패를 흡수하지 않게.
 _PAGE_OVERFLOW = pytest.mark.xfail(
     strict=True,
+    raises=ProgrammingError,
     reason="D10-03: page 상한 없음 → OFFSET 범위 초과 500 (양준석 확인 요청)",
 )
 
 
 @pytest.mark.parametrize(
-    ("param", "value"),
+    ("param", "value", "size"),
     [
-        pytest.param("page", str(10**30), marks=_PAGE_OVERFLOW, id="page-10^30"),
-        pytest.param("page", str(10**18), marks=_PAGE_OVERFLOW, id="page-10^18"),
-        ("page", "-1"),
-        ("page", "0"),
-        ("page", "abc"),
-        ("size", str(10**30)),
-        ("size", "-1"),
-        ("size", "0"),
-        ("size", "abc"),
+        pytest.param("page", str(10**30), None, marks=_PAGE_OVERFLOW, id="page-10^30"),
+        pytest.param("page", str(10**18), None, marks=_PAGE_OVERFLOW, id="page-10^18"),
+        pytest.param(
+            "page", "190000000000000000", "100", marks=_PAGE_OVERFLOW, id="page-size100"
+        ),
+        ("page", "-1", None),
+        ("page", "0", None),
+        ("page", "abc", None),
+        ("size", str(10**30), None),
+        ("size", "-1", None),
+        ("size", "0", None),
+        ("size", "abc", None),
     ],
 )
-def test_page_size_out_of_range_422(client, owner_project, param, value):
+def test_page_size_out_of_range_422(client, owner_project, param, value, size):
     owner, project = owner_project
+    params = {param: value} if size is None else {param: value, "size": size}
 
     res = client.get(
         f"/api/projects/{project.id}/tasks",
         headers=_auth(owner),
-        params={param: value},
+        params=params,
     )
 
     assert res.status_code == 422, res.text
@@ -113,14 +127,16 @@ def test_page_size_out_of_range_422(client, owner_project, param, value):
         ("%", ["50%_할인"]),
         ("_", ["50%_할인"]),
         ("50%_", ["50%_할인"]),
-        ("\\", []),
+        ("\\", ["c\\d"]),
+        ("/", ["a/b"]),
+        ("없는말", []),
     ],
-    ids=["sql", "percent", "underscore", "both", "backslash"],
+    ids=["sql", "percent", "underscore", "both", "backslash", "slash", "none"],
 )
 def test_search_q_sql_and_wildcards_literal(client, db, owner_project, q, expected):
     owner, project = owner_project
-    make_task(db, project, owner, title="50%_할인")
-    make_task(db, project, owner, title="일반")
+    for title in ("50%_할인", "일반", "c\\d", "a/b"):
+        make_task(db, project, owner, title=title)
 
     res = client.get(
         f"/api/projects/{project.id}/tasks", headers=_auth(owner), params={"q": q}
@@ -156,29 +172,28 @@ def test_sql_like_title_stored_literally(client, db, owner_project):
     ids=["null-byte", "emoji-30", "zwj"],
 )
 def test_null_byte_and_emoji_round_trip(client, owner_project, text):
-    """저장되면 보낸 값 그대로 돌아오고, 거절되면 422 — 어느 쪽이든 500·글자 깨짐은 없다."""
+    """11/24 동작 고정: 업무 제목·댓글·이름 모두 저장되고 보낸 값 그대로 돌아온다(500·깨짐 없음).
+    널 바이트를 거절하기로 정하면 이 테스트를 그때 고친다(명세에 규칙 없음)."""
     owner, project = owner_project
     headers = _auth(owner)
 
     task = client.post(
         f"/api/projects/{project.id}/tasks", headers=headers, json={"title": text}
     )
-    assert task.status_code in (201, 422), task.text
-    if task.status_code == 201:
-        assert task.json()["title"] == text
-        tid = task.json()["id"]
-        comment = client.post(
-            f"/api/tasks/{tid}/comments", headers=headers, json={"content": text}
-        )
-        assert comment.status_code in (201, 422), comment.text
-        if comment.status_code == 201:
-            listed = client.get(f"/api/tasks/{tid}/comments", headers=headers).json()
-            assert listed["items"][0]["content"] == text
+    assert task.status_code == 201, task.text
+    assert task.json()["title"] == text
+    tid = task.json()["id"]
+
+    comment = client.post(
+        f"/api/tasks/{tid}/comments", headers=headers, json={"content": text}
+    )
+    assert comment.status_code == 201, comment.text
+    listed = client.get(f"/api/tasks/{tid}/comments", headers=headers).json()
+    assert listed["items"][0]["content"] == text
 
     me = client.patch("/api/users/me", headers=headers, json={"name": text})
-    assert me.status_code in (200, 422), me.text
-    if me.status_code == 200:
-        assert client.get("/api/users/me", headers=headers).json()["name"] == text
+    assert me.status_code == 200, me.text
+    assert client.get("/api/users/me", headers=headers).json()["name"] == text
 
 
 # --- 5. 정의되지 않은 필드 끼워 넣기 (Review Focus 4) ---
@@ -218,14 +233,19 @@ def test_task_create_extra_field_rejected(client, db, owner_project, extra):
     assert db.scalar(select(func.count()).select_from(Task)) == 0
 
 
-def test_project_update_my_role_rejected(client, owner_project):
+def test_project_update_my_role_rejected(client, db, owner_project):
     owner, project = owner_project
+    name = project.name
 
     res = client.patch(
-        f"/api/projects/{project.id}", headers=_auth(owner), json={"my_role": "OWNER"}
+        f"/api/projects/{project.id}",
+        headers=_auth(owner),
+        json={"name": "바꿈", "my_role": "OWNER"},
     )
 
     assert res.status_code == 422
+    db.expire_all()
+    assert db.get(Project, project.id).name == name
 
 
 def test_comment_user_id_rejected(client, db, owner_project):
@@ -240,6 +260,8 @@ def test_comment_user_id_rejected(client, db, owner_project):
     )
 
     assert res.status_code == 422
+    db.rollback()
+    assert db.scalar(select(func.count()).select_from(TaskComment)) == 0
 
 
 # --- 6. JSON이 아닌 본문·틀린 타입 ---

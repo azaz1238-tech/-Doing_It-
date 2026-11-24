@@ -6,7 +6,6 @@
 
 import pytest
 from sqlalchemy import func, select
-from sqlalchemy.exc import ProgrammingError
 
 from app.models import Project, Task, TaskComment, User
 from core.security import create_access_token
@@ -76,24 +75,14 @@ def test_huge_assignee_id_in_body_not_500(client, owner_project, big):
     assert res.status_code in (400, 422), res.text
 
 
-# page 위쪽 한도가 없어 OFFSET = (page-1)×size가 MariaDB 한도(2^64-1)를 넘으면 SQL 오류 → 500
-# (core/pagination.py, A조). 목록 API 7개 공통. size=20이면 page ≈ 9.2×10^17, size=100이면 ≈ 1.8×10^17부터.
-# 고치면 XPASS가 실패로 보이므로 그때 이 표시를 지운다. raises: 다른 이유의 실패를 흡수하지 않게.
-_PAGE_OVERFLOW = pytest.mark.xfail(
-    strict=True,
-    raises=ProgrammingError,
-    reason="D10-03: page 상한 없음 → OFFSET 범위 초과 500 (이슈 #142)",
-)
-
-
+# 아주 큰 page는 OFFSET = (page-1)×size가 MariaDB 한도(2^64-1)를 넘어 SQL 오류(500)가 났다.
+# page 상한 1,000,000을 두어 422로 막는다 (이슈 #142, API-SPEC §1.3, core/pagination.py).
 @pytest.mark.parametrize(
     ("param", "value", "size"),
     [
-        pytest.param("page", str(10**30), None, marks=_PAGE_OVERFLOW, id="page-10^30"),
-        pytest.param("page", str(10**18), None, marks=_PAGE_OVERFLOW, id="page-10^18"),
-        pytest.param(
-            "page", "190000000000000000", "100", marks=_PAGE_OVERFLOW, id="page-size100"
-        ),
+        pytest.param("page", str(10**30), None, id="page-10^30"),
+        pytest.param("page", str(10**18), None, id="page-10^18"),
+        pytest.param("page", "190000000000000000", "100", id="page-size100"),
         ("page", "-1", None),
         ("page", "0", None),
         ("page", "abc", None),

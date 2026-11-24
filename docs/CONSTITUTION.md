@@ -1,6 +1,6 @@
 # 프로젝트 헌법 (CONSTITUTION.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 방식: SDD | 버전: v1.2 (2026-11-16 오류 응답 예시 문구에서 끝 마침표 제거) · v1.1 (2026-11-16 개발 로그 파일명 예외, 10-2) · v1.0 (2026-11-16 스펙 동결) · v0.7 (11/16 회의 결정 반영) · v0.6
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 방식: SDD | 버전: v1.3 (2026-11-24 10-4 병합된 브랜치는 최종본 후 일괄 삭제·병합된 브랜치에 추가 커밋 금지, SPEC-CHANGELOG #31) · v1.2 (2026-11-16 오류 응답 예시 문구에서 끝 마침표 제거) · v1.1 (2026-11-16 개발 로그 파일명 예외, 10-2) · v1.0 (2026-11-16 스펙 동결) · v0.7 (11/16 회의 결정 반영) · v0.6
 > 상위 문서: 팀 협업 관리 시스템 기획서 (정식 문서)
 > 하위 문서: [REQUIREMENTS.md](./REQUIREMENTS.md), [SPEC.md](./SPEC.md), [USER-STORIES.md](./USER-STORIES.md), [DATABASE-DESIGN.md](./DATABASE-DESIGN.md), [API-SPEC.md](./API-SPEC.md), [UI-DESIGN.md](./UI-DESIGN.md), [ARCHITECTURE.md](./ARCHITECTURE.md)
 
@@ -142,6 +142,8 @@
 3. 커밋 메시지는 `종류(기능 ID): 한국어 설명` 형식입니다. 종류는 `feat`, `fix`, `refactor`, `test`, `docs`, `chore` 중 하나입니다.
    - 예: `feat(TASK-02): 업무 상태 변경 API 추가`
 4. 브랜치 이름은 `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup`처럼 종류, 기능 ID, 영어 요약을 붙입니다.
+   - 병합된 브랜치는 바로 지우지 않습니다. 팀장이 최종본(`v1.0` 태그)을 올린 뒤 원격 브랜치를 한꺼번에 지웁니다. 이를 위해 저장소의 "병합 후 브랜치 자동 삭제" 설정은 끕니다.
+   - 병합된 브랜치에는 더 커밋하지 않습니다. 고칠 것이 생기면 `main`에서 새 브랜치를 만듭니다.
 
 ## 11. 단순함
 

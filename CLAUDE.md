@@ -90,7 +90,7 @@ frontend/src/core/ ★ 스타터킷: API 클라이언트(Axios), 인증 Context,
 ## 6. Workflow
 - 개발 로그: 작업한 날마다 docs/devlog/<한국이름>.md 맨 아래에 하루치를 추가한다(사람별 파일 — 충돌 방지, TASKS D5-01. 로그만 바꾸면 커밋 `docs: Day N 개발 로그`).
 - 커밋: `종류(기능 ID): 한국어 설명` — 종류는 feat|fix|refactor|test|docs|chore. 예: `feat(TASK-02): 업무 상태 변경 API 추가`
-- 브랜치: `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup`. `main`에 직접 push 금지, PR 리뷰 1명 승인 후 병합.
+- 브랜치: `feat/TASK-02-status-change`, `fix/AUTH-01-login-id-dup`. `main`에 직접 push 금지, PR 리뷰 1명 승인 후 병합. 병합된 브랜치에는 더 커밋하지 않고 `main`에서 새로 딴다. 브랜치 삭제는 최종본 후 팀장이 일괄(CONSTITUTION 10-4).
 - 리뷰: 조 안에서 영역을 바꿔 고정(양준석 ↔ 최진영, 서승범 ↔ 김서현). `core/`·마이그레이션 PR은 같은 영역 리뷰어(양준석 ↔ 서승범, 최진영 ↔ 김서현)를 한 명 더 넣는다(CONSTITUTION 3-2).
 - 스펙 v1.0 동결(11/16) 후 명세를 바꾸면 바꾼 사람이 docs/SPEC-CHANGELOG.md에 적고 팀장 승인을 받는다(CONSTITUTION 1-4).
 - PR 전에 ruff·black·ESLint·Prettier(백엔드는 pytest도)를 로컬에서 통과시키고, **PR 설명에 결과를 한 줄 적는다.** CI는 두지 않으므로 리뷰어는 이 줄이 없으면 승인하지 않는다.

@@ -255,6 +255,9 @@ def test_pagination_default_and_offset(client):
     ("query", "field", "message"),
     [
         ("page=0", "page", "1 이상이어야 합니다"),
+        ("page=1000001", "page", "1000000 이하여야 합니다"),
+        # 상한이 없으면 OFFSET이 MariaDB 한도를 넘어 500이 났다 (#142)
+        ("page=923000000000000000", "page", "1000000 이하여야 합니다"),
         ("size=0", "size", "1 이상이어야 합니다"),
         ("size=101", "size", "100 이하여야 합니다"),
         ("size=abc", "size", "정수를 입력해 주세요"),
@@ -268,6 +271,13 @@ def test_pagination_out_of_range_422(client, query, field, message):
 
 def test_pagination_max_size_100_ok(client):
     assert client.get("/items?size=100").json()["size"] == 100
+
+
+def test_pagination_max_page_ok(client):
+    # 상한 경계값은 허용 — 데이터가 없으니 빈 목록
+    body = client.get("/items?page=1000000&size=100").json()
+    assert body["page"] == 1000000
+    assert body["items"] == []
 
 
 # ── 비밀번호 ──

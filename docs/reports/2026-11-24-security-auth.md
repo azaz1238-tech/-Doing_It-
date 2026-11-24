@@ -2,7 +2,7 @@
 
 > 프로젝트: 동잇(Doing_It) | 점검일: 2026-11-24 | 기준: main `5e18360`(기능 동결 시점) | 담당: 양준석
 > 근거: CONSTITUTION §6·§9, CLAUDE.md §5, API-SPEC §1.2·§1.5
-> 다른 절: DB·입력값(서승범) → [2026-11-24-security-db-input.md](2026-11-24-security-db-input.md) · XSS·토큰 노출(최진영) → (작성 예정)
+> 다른 절: DB·입력값(서승범) → [2026-11-24-security-db-input.md](2026-11-24-security-db-input.md) · XSS·토큰 노출(최진영) → [2026-11-24-security-xss-token.md](2026-11-24-security-xss-token.md) · 취합 → [2026-11-24-security-summary.md](2026-11-24-security-summary.md)
 > 결과: **통과** · **문제**(이슈 번호) · **한계**(이번 범위 밖, 아래 표)
 
 ## 점검 방법

@@ -9,10 +9,10 @@
 | 구분 | 결과 |
 | --- | --- |
 | 점검 항목 | 19개 (정적 11 · 동적 8) |
-| ✅ 통과 | 16 |
+| ✅ 통과 | 16 (점검 당시) |
 | ❌ 실패 | **1** — `page`가 아주 크면 목록 API 7개가 500 (§3 D-2, 이슈 #142) → **11/24 해결**(`4ec8d3c`, page 상한 1,000,000 → 422) |
 | ⚠️ 주의 | 2 — DB 포트가 모든 네트워크에 열림, 검색어 길이 제한 없음 |
-| 회귀 테스트 | `backend/tests/test_security_input.py` 60개 → 점검 당시 57 통과 + 알려진 실패 3개(`xfail`). #142 수정 뒤 `xfail` 표시를 지워 **60개 모두 통과**, 전체 pytest **464 passed**(main `5e18360`) |
+| 회귀 테스트 | `backend/tests/test_security_input.py` 60개 → 점검 당시 57 통과 + 알려진 실패 3개(`xfail`). #142 수정 뒤 `xfail` 표시를 지워 **60개 모두 통과**, 전체 pytest **464 passed**(main `5e18360`, 서승범 11/24 직접 실행) |
 
 - **SQL 주입 경로는 찾지 못했다.** 모든 쿼리가 ORM 식과 바인딩 파라미터를 쓰고, LIKE 검색은 와일드카드를 글자 그대로 처리한다.
 - 동적 점검은 테스트 DB에서만 했다. 개발 DB(시연 데이터)는 건드리지 않았다.
@@ -38,7 +38,7 @@
 | # | 항목 | 입력 | 결과 | 테스트 |
 | --- | --- | --- | :-: | --- |
 | D-1 | 아주 큰 경로 id | 프로젝트·업무 목록·업무·댓글·멤버 경로 × `2^63`·`10^30`·4301자리·`-1`·`0` | ✅ | `test_huge_path_id_not_500` (25개) → 4301자리는 422(정수 변환 단계), 나머지는 404 |
-| D-2 | `page`·`size` 범위 | `10^30`·`-1`·`0`·`abc`, `page` 1.9×10^17 + `size=100` | **❌ → ✅** | `test_page_size_out_of_range_422` — `size` 4개와 `page` 3개(`-1`·`0`·`abc`)는 422. **`(page-1)×size`가 약 1.8×10^19를 넘으면 500** → 아래 §4 |
+| D-2 | `page`·`size` 범위 | `10^30`·`-1`·`0`·`abc`, `page` 1.9×10^17 + `size=100` | **❌ → ✅** | `test_page_size_out_of_range_422` — `size` 4개와 `page` 3개(`-1`·`0`·`abc`)는 422. (점검 당시) **`(page-1)×size`가 약 1.8×10^19를 넘으면 500** → 지금은 422(#142 해결) → 아래 §4 |
 | D-3 | 본문의 아주 큰 정수 | 업무 등록 `assignee_id` = `2^63`·`10^30` | ✅ | `test_huge_assignee_id_in_body_not_500` → 400·422 |
 | D-4 | 검색어의 SQL·와일드카드 | `' OR 1=1 --`·`%`·`_`·`50%_`·`\`·`/`(이스케이프 문자)·없는 말 | ✅ | `test_search_q_sql_and_wildcards_literal` → 제목 `50%_할인`·`c\d`·`a/b`·`일반` 중 글자 그대로 일치하는 것만 |
 | D-5 | SQL처럼 생긴 값 저장 | 제목 `'; DROP TABLE tasks; --` | ✅ | `test_sql_like_title_stored_literally` → 201, 값 그대로, 업무 1개 |
@@ -70,7 +70,7 @@
 - **제안(코드는 `core/` 담당 양준석):** `page`에 상한을 둔다(예: `le=10**6` → 422). API-SPEC §1.3에 "page 상한"을 한 줄 더한다.
   - 고치면 `test_page_size_out_of_range_422`의 `xfail` 표시 3개를 지운다(남겨 두면 strict라 실패로 알려 준다).
 - **처리:** 이슈 #142 → 양준석.
-- **해결(11/24):** `4ec8d3c fix(NFR-05): 목록 API page 상한 추가` — `core/pagination.py` `MAX_PAGE = 1_000_000`(`le=MAX_PAGE`), API-SPEC §1.3 `page` 1~1,000,000(v1.11, SPEC-CHANGELOG #34). 같은 커밋에서 `xfail` 표시 3개를 지웠고, 세 케이스는 이제 422로 통과한다. 재확인: `test_security_input.py` 60 passed(서승범, main `5e18360`).
+- **해결(11/24):** `4ec8d3c fix(NFR-05): 목록 API page 상한 추가` — `core/pagination.py` `MAX_PAGE = 1_000_000`(`le=MAX_PAGE`), API-SPEC §1.3 `page` 1~1,000,000(v1.11, SPEC-CHANGELOG #34). `xfail` 표시 3개는 같은 PR(#145)의 main 병합 커밋 `e5282fb`에서 지웠고, 세 케이스는 이제 422로 통과한다. 재확인: `test_security_input.py` 60 passed(서승범, main `5e18360`).
 
 ## 5. 범위 밖 · 참고
 

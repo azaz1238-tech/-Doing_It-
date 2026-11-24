@@ -43,12 +43,16 @@ const TONES = {
 };
 const LEGEND = ["overdue", "soon", "normal", "done"];
 
-// 날짜 칸 너비(데스크톱은 남는 폭을 나눠 쓴다)
+// 날짜 칸 너비(데스크톱은 남는 폭을 나눠 쓴다). 한 칸 최소 1.5rem → 날짜 영역 최소 28 × 1.5 = 42rem(672px)
 const DAY_COLUMNS = {
   gridTemplateColumns: `repeat(${DAYS}, minmax(1.5rem, 1fr))`,
 };
 // 왼쪽 업무 칸(고정) + 날짜 축. 좁은 화면은 날짜 축만 상자 안에서 가로로 스크롤한다.
 const ROW_GRID = "grid grid-cols-[8.5rem_1fr] sm:grid-cols-[15rem_1fr]";
+// 표 최소 폭 = 업무 칸 + 날짜 영역 최소 42rem. 머리줄(날짜 글자가 있어 42rem 밑으로 안 줄어듦)과
+// 막대 줄(배경 칸이 absolute라 폭 계산에 안 들어감)의 날짜 영역 폭을 항상 같게 한다.
+// 이게 없으면 창 폭 약 960px 미만에서 막대·오늘 선이 머리줄과 어긋났다(이슈 #149).
+const TABLE_MIN_WIDTH = "min-w-[50.5rem] sm:min-w-[57rem]";
 
 /** 오늘이 든 주(일요일 시작)의 1주 전 일요일 */
 const firstWindowStart = (today) => addDays(today, -weekdayOf(today) - 7);
@@ -262,7 +266,7 @@ function Gantt({ projectId }) {
             />
           ) : (
             <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white">
-              <div className="min-w-[44rem]">
+              <div className={TABLE_MIN_WIDTH}>
                 <DateAxis days={days} today={today} />
                 <ul>
                   {rows.map((task) => (

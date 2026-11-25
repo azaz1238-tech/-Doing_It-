@@ -133,6 +133,20 @@ def _page(db: Session, condition, params: PageParams) -> tuple[list[ActivityOut]
     return _to_out(db, list(rows)), total or 0
 
 
+def _task_title(row: TaskActivity, titles: dict[int, str]) -> str | None:
+    """이력 행의 task_title (API-SPEC §6, SPEC-CHANGELOG #20). DB를 보지 않는다.
+
+    - 업무가 있으면 그 업무의 지금 제목(titles는 _to_out이 묶음으로 읽은 값)
+    - 삭제된 업무(task_id NULL)의 DELETED 행은 자기 old_value(삭제 전 제목)
+    - 삭제된 업무의 다른 행은 None — 같은 업무의 DELETED 행을 이어 줄 값이 없다
+    """
+    if row.task_id is not None:
+        return titles.get(row.task_id)
+    if row.action == ActivityAction.DELETED:
+        return row.old_value
+    return None
+
+
 def _to_out(db: Session, rows: list[TaskActivity]) -> list[ActivityOut]:
     """응답 모양으로 바꾼다. 사용자·업무 제목은 행 수와 관계없이 묶음 조회 2번(N+1 방지)."""
     user_ids: set[int] = set()
@@ -167,16 +181,10 @@ def _to_out(db: Session, rows: list[TaskActivity]) -> list[ActivityOut]:
 
     result = []
     for row in rows:
-        if row.task_id is not None:
-            title = titles.get(row.task_id)
-        elif row.action == ActivityAction.DELETED:
-            title = row.old_value  # 삭제 전 제목
-        else:
-            title = None  # 같은 업무의 DELETED 행을 찾을 수 없음 (SPEC-CHANGELOG #20)
         data = {
             "id": row.id,
             "task_id": row.task_id,
-            "task_title": title,
+            "task_title": _task_title(row, titles),
             "user": users[row.user_id],
             "action": row.action,
             "field": row.field,

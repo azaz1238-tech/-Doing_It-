@@ -22,7 +22,7 @@ NAME_MAX = 30
 NAME_MESSAGE = "프로젝트 이름은 1~30자로 입력해 주세요"  # SPEC PRJ-01-b
 PERIOD_MESSAGE = "종료일은 시작일 이후여야 합니다"  # SPEC PRJ-01-c
 DESCRIPTION_MAX = 2000
-# 설명 필수 (11/22 팀장 결정 — 명세 반영 예정)
+# 설명 필수 — PRJ-01-d (11/22 팀장 결정, SPEC-CHANGELOG #21)
 DESCRIPTION_MESSAGE = "프로젝트 설명을 입력해 주세요"
 
 

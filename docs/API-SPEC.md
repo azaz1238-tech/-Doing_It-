@@ -1,6 +1,6 @@
 # API 명세서 (API-SPEC.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.11 (2026-11-24 §1.3 `page` 상한 1,000,000 — 넘으면 422, SPEC-CHANGELOG #34) · v1.10 (2026-11-24 §8 TASK-12 간트는 새 API 없이 업무 목록 재사용, SPEC-CHANGELOG #33) · v1.9 (2026-11-24 §8 TASK-11 달력은 `GET /users/me/tasks` 응답을 그대로 사용, §5.4 `due_from`·`due_to` 설명에서 달력 제거, SPEC-CHANGELOG #32) · v1.8 (2026-11-24 §8 TASK-08 1단계는 새 API 없이 상태 변경 재사용, `position`은 2단계(보류), SPEC-CHANGELOG #30) · v1.7 (2026-11-23 §5.2 프로젝트 `description` 필수: 생성 시 빠뜨림·`null`·공백 422, 수정으로 비울 수 없음, SPEC-CHANGELOG #21) · v1.6 (2026-11-19 §6 Activity `task_title`: 삭제된 업무는 `DELETED` 행만 삭제 전 제목, 나머지 행은 `null`) · v1.5 (2026-11-19 §2 공통 오류 405 `METHOD_NOT_ALLOWED` 추가) · v1.4 (2026-11-18 §5.3 멤버 제거: 검사 순서와 `MEMBER_NOT_FOUND` 문구) · v1.3 (2026-11-18 §5.2·§5.4 프로젝트·업무 `description` 최대 2000자, 넘으면 422) · v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-24
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.12 (2026-11-25 최종본 표현 정리 — §3·§7 P2 API 미구현 표시, §4 Project `progress` 예시, §6 담당자별 현황 정렬, SPEC-CHANGELOG #37) · v1.11 (2026-11-24 §1.3 `page` 상한 1,000,000 — 넘으면 422, SPEC-CHANGELOG #34) · v1.10 (2026-11-24 §8 TASK-12 간트는 새 API 없이 업무 목록 재사용, SPEC-CHANGELOG #33) · v1.9 (2026-11-24 §8 TASK-11 달력은 `GET /users/me/tasks` 응답을 그대로 사용, §5.4 `due_from`·`due_to` 설명에서 달력 제거, SPEC-CHANGELOG #32) · v1.8 (2026-11-24 §8 TASK-08 1단계는 새 API 없이 상태 변경 재사용, `position`은 2단계(보류), SPEC-CHANGELOG #30) · v1.7 (2026-11-23 §5.2 프로젝트 `description` 필수: 생성 시 빠뜨림·`null`·공백 422, 수정으로 비울 수 없음, SPEC-CHANGELOG #21) · v1.6 (2026-11-19 §6 Activity `task_title`: 삭제된 업무는 `DELETED` 행만 삭제 전 제목, 나머지 행은 `null`) · v1.5 (2026-11-19 §2 공통 오류 405 `METHOD_NOT_ALLOWED` 추가) · v1.4 (2026-11-18 §5.3 멤버 제거: 검사 순서와 `MEMBER_NOT_FOUND` 문구) · v1.3 (2026-11-18 §5.2·§5.4 프로젝트·업무 `description` 최대 2000자, 넘으면 422) · v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-24
 > 근거: [CONSTITUTION.md](./CONSTITUTION.md) §6·§7·§8 · [REQUIREMENTS.md](./REQUIREMENTS.md) v1.3 · [USER-STORIES.md](./USER-STORIES.md) v1.3 · [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) v1.5
 > 상위 문서와 다르면 상위 문서를 따르고 이 문서를 고친다. API를 바꿀 때는 **이 문서를 먼저 수정**한다(CONSTITUTION 7-5).
 > 각 API에 근거 기능 ID와 우선순위를 표시한다. **P0 API부터 구현하고, P1·P2 API는 P0 게이트 통과 후에 만든다.**
@@ -26,7 +26,7 @@
 - 로그인은 JSON 본문(§5.1)이다. OAuth2 폼 로그인(`OAuth2PasswordRequestForm`)과 `python-multipart`는 쓰지 않는다 (§9-12).
 - `GET /health`는 서버 동작 확인용이다. 인증 없이 200 `{ "status": "ok" }`만 돌려주고, DB 조회나 사용자 데이터는 없다 (CONSTITUTION 6-1 예외).
 - 토큰: JWT, 알고리즘 `HS256`, 만료 **2시간**(`ACCESS_TOKEN_EXPIRE_MINUTES=120`). 담는 값은 `sub`(사용자 id 문자열), `exp`만 둔다.
-- 요청마다 `sub`로 사용자를 조회한다. 사용자가 없거나 탈퇴했으면(`deleted_at` 있음, P2) 401 `UNAUTHORIZED`, 비활성(`is_active=0`)이면 403 `ACCOUNT_DISABLED`.
+- 요청마다 `sub`로 사용자를 조회한다. 사용자가 없거나 탈퇴했으면(`deleted_at` 있음, P2 미구현) 401 `UNAUTHORIZED`, 비활성(`is_active=0`)이면 403 `ACCOUNT_DISABLED`.
 - 로그아웃 API는 없다. 프론트에서 localStorage의 토큰을 지운다 (US-03).
 
 ### 1.3 목록 응답과 페이지네이션 (NFR-05)
@@ -146,7 +146,8 @@
 | P2 | PATCH | `/checklist-items/{item_id}` | 항목 수정·체크 | OWNER·작성자·담당자 | TASK-09 |
 | P2 | DELETE | `/checklist-items/{item_id}` | 항목 삭제 | OWNER·작성자·담당자 | TASK-09 |
 
-P2 중 TASK-08(드래그 앤 드롭)·TASK-10(업무 진행률)·TASK-11(달력)은 새 API 없이 기존 API를 확장한다(§8). AUTH-05·PRJ-06·ADM-01은 착수할 때 이 문서에 추가한다.
+**P2 API 6개(위 표의 P2 행)는 구현하지 않았다**(11/24 기능 동결, 향후 계획). 상세는 §7에 설계로만 남긴다.
+P2 중 TASK-08(드래그 앤 드롭)·TASK-10(업무 진행률)·TASK-11(달력)·TASK-12(간트)는 새 API 없이 기존 API를 확장한다(§8). 이 중 TASK-08 1단계·TASK-11·TASK-12만 구현했다. AUTH-05·PRJ-06·ADM-01은 착수할 때 이 문서에 추가한다.
 
 ## 4. 공통 객체
 
@@ -167,11 +168,12 @@ P2 중 TASK-08(드래그 앤 드롭)·TASK-10(업무 진행률)·TASK-11(달력)
   "start_date": "2026-11-10",
   "end_date": "2026-11-26",
   "my_role": "OWNER",
+  "progress": { "total": 10, "done": 4, "percent": 40 },
   "created_at": "2026-11-11T05:30:00Z",
   "updated_at": "2026-11-11T05:30:00Z"
 }
 ```
-P1(DASH-01)에서 `"progress": { "total": 10, "done": 4, "percent": 40 }`을 추가한다.
+`progress`는 DASH-01(P1). 업무가 없으면 `{ "total": 0, "done": 0, "percent": 0 }`.
 
 **Member**
 ```json
@@ -236,7 +238,7 @@ P1(DASH-01)에서 `"progress": { "total": 10, "done": 4, "percent": 40 }`을 추
 
 검사 순서 (앞에서 걸리면 뒤는 보지 않는다):
 1. 아이디가 없으면 → 401 `INVALID_CREDENTIALS`
-2. 탈퇴한 계정(`deleted_at` 있음, P2)이면 → 401 `INVALID_CREDENTIALS` (없는 아이디와 구분하지 않음)
+2. 탈퇴한 계정(`deleted_at` 있음, P2 미구현)이면 → 401 `INVALID_CREDENTIALS` (없는 아이디와 구분하지 않음)
 3. 비밀번호가 틀리면 → 401 `INVALID_CREDENTIALS`
 4. 비활성 계정(`is_active=0`)이면 → 403 `ACCOUNT_DISABLED`
 
@@ -327,7 +329,7 @@ P1(DASH-01)에서 `"progress": { "total": 10, "done": 4, "percent": 40 }`을 추
 
 검사 순서: 프로젝트 404 `PROJECT_NOT_FOUND` → 403 `NOT_PROJECT_MEMBER`·`FORBIDDEN` → 대상 404 `MEMBER_NOT_FOUND` → 400 `LAST_OWNER`. §1.5의 404 → 403은 경로의 프로젝트에 적용하고, 경로의 `user_id`가 멤버인지는 권한 검사 뒤에 본다(멤버 추가의 `login_id` 조회와 같은 방식). 비멤버·MEMBER가 이 API로 누가 멤버인지 알아내지 못하게 하기 위해서다.
 
-**P2 확장 (PRJ-09 프로젝트 나가기):** `user_id`가 요청자 본인이면 MEMBER도 호출할 수 있다. 처리(1~3단계)와 `LAST_OWNER` 규칙은 같고, 이력의 변경자는 나간 본인이다. P0 구현에서는 MEMBER의 호출을 모두 403으로 막는다.
+**P2 확장 (PRJ-09 프로젝트 나가기, 미구현):** `user_id`가 요청자 본인이면 MEMBER도 호출할 수 있다. 처리(1~3단계)와 `LAST_OWNER` 규칙은 같고, 이력의 변경자는 나간 본인이다. P0 구현에서는 MEMBER의 호출을 모두 403으로 막는다.
 
 ### 5.4 업무 (TASK)
 
@@ -461,7 +463,7 @@ Activity
   { "assignee": null, "todo": 2, "in_progress": 0, "done": 0 }
 ] }
 ```
-집계 결과라 페이지네이션하지 않는다(§1.3). `assignee: null`은 담당자 미지정.
+집계 결과라 페이지네이션하지 않는다(§1.3). `assignee: null`은 담당자 미지정. 정렬: 담당자 이름순(같으면 id 순), 담당자 없음(`null`)은 맨 뒤. 업무가 0건인 멤버는 응답에 없고 화면이 멤버 목록으로 0을 채운다(UI-DESIGN §9).
 
 #### GET `/projects/{project_id}/stats/deadlines` — 마감 임박·지연 · DASH-03 · US-22
 응답 `200` — `{ "overdue": [Task...], "due_soon": [Task...] }`
@@ -473,7 +475,9 @@ Activity
 응답 `200` — `Task` 목록 + 각 항목에 `"project": { "id", "name" }`, `"alert": "OVERDUE" | "DUE_SOON" | null`
 대상: 나에게 할당된 미완료 업무. 정렬: 지연 → 임박 → 나머지, 각 그룹 안에서 마감일 빠른 순(없음은 뒤) → `id` 순. "오늘"은 한국 날짜(§1.6).
 
-## 7. P2 API 상세
+## 7. P2 API 상세 — 미구현 (11/24 기능 동결, 향후 계획)
+
+> 아래 API는 설계만 하고 구현하지 않았다. 호출하면 404 `NOT_FOUND`(없는 경로)이고, `DELETE /users/me`만 같은 경로에 GET·PATCH가 있어 405 `METHOD_NOT_ALLOWED`다.
 
 #### 체크리스트 · TASK-09 · US-28
 

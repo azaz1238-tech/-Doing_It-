@@ -15,13 +15,18 @@ from sqlalchemy.orm import Session
 
 from app.models import Project, ProjectMember, Task, User
 from app.models.enums import ProjectRole, TaskStatus
-from core.security import hash_password
+from core.security import create_access_token, hash_password
 
 # 로그인 테스트에서 쓸 공통 비밀번호. 앱과 같은 hash_password()로 한 번만 만든다(bcrypt는 느림).
 DEFAULT_PASSWORD = "password123"
 DEFAULT_PASSWORD_HASH = hash_password(DEFAULT_PASSWORD)
 
 _seq = itertools.count(1)
+
+
+def auth_header(user: User) -> dict[str, str]:
+    """API 테스트용 인증 헤더. 로그인 API를 거치지 않고 앱과 같은 함수로 토큰을 만든다."""
+    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
 
 
 def make_user(db: Session, login_id: str | None = None, **fields: Any) -> User:

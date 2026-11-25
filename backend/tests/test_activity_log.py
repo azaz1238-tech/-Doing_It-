@@ -18,12 +18,8 @@ import pytest
 from sqlalchemy import func, select
 
 from app.models import TaskActivity
-from core.security import create_access_token
 from tests.factories import add_member, make_project, make_user
-
-
-def _auth(user) -> dict:
-    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
+from tests.factories import auth_header as _auth
 
 
 def _rows(db) -> list[tuple]:

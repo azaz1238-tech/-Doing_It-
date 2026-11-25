@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import func, select
 
 from app.models import Project, Task, TaskComment, User
-from core.security import create_access_token
+from tests.factories import auth_header as _auth
 from tests.factories import make_project, make_task, make_user
 
 # 4301자리는 정수 변환 단계에서 422, 나머지는 정수로 받아 DB에서 못 찾으므로 404
@@ -20,10 +20,6 @@ HUGE_IDS = [
     ("0", 404),
 ]
 HUGE_ID_NAMES = ["2^63", "10^30", "4301자리", "-1", "0"]
-
-
-def _auth(user) -> dict:
-    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
 
 
 @pytest.fixture

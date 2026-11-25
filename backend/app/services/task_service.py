@@ -52,10 +52,15 @@ def _require_assignee_member(
         )
 
 
+def _task_not_found() -> NotFound:
+    """업무 없음 404. 부를 때마다 새 예외 객체를 만든다(예외 객체는 공유하지 않는다)."""
+    return NotFound("TASK_NOT_FOUND", activity_service.TASK_NOT_FOUND_MESSAGE)
+
+
 def _get_task_or_404(db: Session, task_id: int) -> Task:
     task = db.get(Task, task_id)
     if task is None:
-        raise NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다")
+        raise _task_not_found()
     return task
 
 
@@ -168,9 +173,7 @@ def update_task(db: Session, user: User, task_id: int, data: TaskUpdate) -> Task
     task, member = _task_with_member(db, user, task_id)
     fields = data.model_fields_set
     require_task_edit(member, task, fields)  # 403이면 아무것도 바꾸지 않는다
-    _lock_project(
-        db, task.project_id, NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다")
-    )
+    _lock_project(db, task.project_id, _task_not_found())
     # 담당자를 보낸 경우만, 값 반영 전에 검사 → 400이면 아무것도 안 바뀜
     if "assignee_id" in fields:
         _require_assignee_member(db, task.project_id, data.assignee_id)
@@ -200,9 +203,7 @@ def delete_task(db: Session, user: User, task_id: int) -> None:
     """
     task, member = _task_with_member(db, user, task_id)
     require_task_delete(member, task)
-    _lock_project(
-        db, task.project_id, NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다")
-    )
+    _lock_project(db, task.project_id, _task_not_found())
     activity_service.record(
         db, task, user.id, ActivityAction.DELETED, old_value=task.title
     )

@@ -7,14 +7,10 @@
 
 from datetime import date
 
-from core.security import create_access_token
 from tests.factories import add_member, make_project, make_user
+from tests.factories import auth_header as _auth
 
 PROJECTS = "/api/projects"
-
-
-def _auth(user) -> dict:
-    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
 
 
 def test_auth_01_a_signup_then_login(client):

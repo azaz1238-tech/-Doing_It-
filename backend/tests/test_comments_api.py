@@ -14,14 +14,10 @@ import pytest
 from sqlalchemy import event, func, select, update
 
 from app.models import Project, TaskComment
-from core.security import create_access_token
 from tests.factories import add_member, make_project, make_task, make_user
+from tests.factories import auth_header as _auth
 
 PAST = datetime(2026, 11, 20, 1, 0, 0)  # UTC, 작성 시각을 직접 정할 때
-
-
-def _auth(user) -> dict:
-    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
 
 
 def _brief(user) -> dict:

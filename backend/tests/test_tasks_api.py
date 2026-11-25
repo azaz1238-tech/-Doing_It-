@@ -19,12 +19,8 @@ from sqlalchemy import select
 
 from app.models import Task, TaskActivity
 from app.models.enums import TaskPriority
-from core.security import create_access_token
 from tests.factories import add_member, make_project, make_task, make_user
-
-
-def _auth(user) -> dict:
-    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
+from tests.factories import auth_header as _auth
 
 
 def _tasks_url(project_id: int) -> str:

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models import TaskActivity
 from app.models.enums import ActivityAction, TaskPriority, TaskStatus
+from app.services import activity_service
 from app.services.activity_service import record, record_changes, snapshot
 from tests.factories import make_project, make_task, make_user
 
@@ -114,3 +115,32 @@ def test_record_does_not_commit(db: Session) -> None:
     db.rollback()  # 커밋하지 않았으므로 되돌리면 사라져야 한다
 
     assert _rows(db) == []
+
+
+# --- task_title 규칙 (API-SPEC §6, SPEC-CHANGELOG #20). DB를 보지 않는 함수라 행 객체만 만든다 ---
+
+
+def test_task_title_live_task_uses_titles() -> None:
+    row = TaskActivity(task_id=1, action=ActivityAction.UPDATED, old_value="x")
+    assert activity_service._task_title(row, {1: "제목"}) == "제목"
+
+
+def test_task_title_deleted_row_uses_old_value() -> None:
+    row = TaskActivity(task_id=None, action=ActivityAction.DELETED, old_value="삭제 전")
+    assert activity_service._task_title(row, {}) == "삭제 전"
+
+
+def test_task_title_deleted_task_other_row_none() -> None:
+    row = TaskActivity(task_id=None, action=ActivityAction.UPDATED, old_value="TODO")
+    assert activity_service._task_title(row, {}) is None
+
+
+def test_task_title_live_task_wins_over_deleted_action() -> None:
+    """업무가 있으면 action이 DELETED여도 지금 제목 — task_id 검사가 먼저다."""
+    row = TaskActivity(task_id=1, action=ActivityAction.DELETED, old_value="옛 제목")
+    assert activity_service._task_title(row, {1: "지금 제목"}) == "지금 제목"
+
+
+def test_task_title_live_task_missing_from_titles_none() -> None:
+    row = TaskActivity(task_id=2, action=ActivityAction.UPDATED, old_value="TODO")
+    assert activity_service._task_title(row, {}) is None

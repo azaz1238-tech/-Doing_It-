@@ -13,12 +13,8 @@ from datetime import date
 
 import pytest
 
-from core.security import create_access_token
 from tests.factories import add_member, make_project, make_task, make_user
-
-
-def _auth(user) -> dict:
-    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
+from tests.factories import auth_header as _auth
 
 
 @pytest.fixture

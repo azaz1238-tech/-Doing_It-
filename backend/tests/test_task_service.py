@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.models import Project, Task, TaskActivity, User
 from app.models.enums import TaskPriority, TaskStatus
 from app.schemas.task import TaskCreate, TaskUpdate
-from app.services import activity_service, member_service
+from app.services import activity_service, member_service, task_service
 from app.services.task_service import (
     create_task,
     delete_task,
@@ -185,6 +185,16 @@ def test_get_task_not_found(db: Session) -> None:
         get_task(db, make_user(db), 999_999)
     assert exc.value.code == "TASK_NOT_FOUND"
     assert exc.value.message == "업무를 찾을 수 없습니다"
+
+
+def test_task_not_found_error_is_fresh_and_exact() -> None:
+    """업무 없음 오류는 부를 때마다 새 객체이고, 코드·문구는 API-SPEC §2 그대로 (D11-05)."""
+    first, second = task_service._task_not_found(), task_service._task_not_found()
+    assert first is not second
+    for err in (first, second):
+        assert isinstance(err, NotFound)
+        assert err.code == "TASK_NOT_FOUND"
+        assert err.message == "업무를 찾을 수 없습니다"
 
 
 def test_get_task_non_member_forbidden(db: Session) -> None:

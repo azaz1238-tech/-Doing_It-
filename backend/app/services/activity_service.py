@@ -28,6 +28,10 @@ from core.pagination import PageParams
 # 이력을 남기는 필드(ActivityField 값과 같음). 기록 순서도 이 순서다.
 TRACKED_FIELDS: tuple[str, ...] = tuple(f.value for f in ActivityField)
 
+# 업무 없음 404 문구 (API-SPEC §2). task_service도 이 값을 쓴다 — task_service가 이 파일을
+# import하므로 반대로는 가져올 수 없어(순환) 정의를 여기에 둔다.
+TASK_NOT_FOUND_MESSAGE = "업무를 찾을 수 없습니다"
+
 
 def _to_text(value: object) -> str | None:
     """이력 저장용 문자열. None은 그대로 None(NULL)."""
@@ -103,7 +107,7 @@ def list_task_activities(
     # task_service.get_task는 쓰지 않는다(task_service가 이 파일을 import해 순환이 생김)
     task = db.get(Task, task_id)
     if task is None:
-        raise NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다")
+        raise NotFound("TASK_NOT_FOUND", TASK_NOT_FOUND_MESSAGE)
     require_project_role(db, task.project_id, user, ANY_MEMBER)
     return _page(db, TaskActivity.task_id == task_id, params)
 
@@ -127,6 +131,20 @@ def _page(db: Session, condition, params: PageParams) -> tuple[list[ActivityOut]
         .limit(params.size)
     ).all()
     return _to_out(db, list(rows)), total or 0
+
+
+def _task_title(row: TaskActivity, titles: dict[int, str]) -> str | None:
+    """이력 행의 task_title (API-SPEC §6, SPEC-CHANGELOG #20). DB를 보지 않는다.
+
+    - 업무가 있으면 그 업무의 지금 제목(titles는 _to_out이 묶음으로 읽은 값)
+    - 삭제된 업무(task_id NULL)의 DELETED 행은 자기 old_value(삭제 전 제목)
+    - 삭제된 업무의 다른 행은 None — 같은 업무의 DELETED 행을 이어 줄 값이 없다
+    """
+    if row.task_id is not None:
+        return titles.get(row.task_id)
+    if row.action == ActivityAction.DELETED:
+        return row.old_value
+    return None
 
 
 def _to_out(db: Session, rows: list[TaskActivity]) -> list[ActivityOut]:
@@ -163,16 +181,10 @@ def _to_out(db: Session, rows: list[TaskActivity]) -> list[ActivityOut]:
 
     result = []
     for row in rows:
-        if row.task_id is not None:
-            title = titles.get(row.task_id)
-        elif row.action == ActivityAction.DELETED:
-            title = row.old_value  # 삭제 전 제목
-        else:
-            title = None  # 같은 업무의 DELETED 행을 찾을 수 없음 (SPEC-CHANGELOG #20)
         data = {
             "id": row.id,
             "task_id": row.task_id,
-            "task_title": title,
+            "task_title": _task_title(row, titles),
             "user": users[row.user_id],
             "action": row.action,
             "field": row.field,

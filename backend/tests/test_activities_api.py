@@ -15,14 +15,10 @@ import pytest
 from sqlalchemy import event, update
 
 from app.models import Project, TaskActivity
-from core.security import create_access_token
 from tests.factories import add_member, make_project, make_user
+from tests.factories import auth_header as _auth
 
 SAME_SECOND = datetime(2026, 11, 19, 1, 0, 0)  # UTC, 시각이 같은 이력을 만들 때
-
-
-def _auth(user) -> dict:
-    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
 
 
 def _brief(user) -> dict:

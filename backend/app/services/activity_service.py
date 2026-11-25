@@ -28,6 +28,10 @@ from core.pagination import PageParams
 # 이력을 남기는 필드(ActivityField 값과 같음). 기록 순서도 이 순서다.
 TRACKED_FIELDS: tuple[str, ...] = tuple(f.value for f in ActivityField)
 
+# 업무 없음 404 문구 (API-SPEC §2). task_service도 이 값을 쓴다 — task_service가 이 파일을
+# import하므로 반대로는 가져올 수 없어(순환) 정의를 여기에 둔다.
+TASK_NOT_FOUND_MESSAGE = "업무를 찾을 수 없습니다"
+
 
 def _to_text(value: object) -> str | None:
     """이력 저장용 문자열. None은 그대로 None(NULL)."""
@@ -103,7 +107,7 @@ def list_task_activities(
     # task_service.get_task는 쓰지 않는다(task_service가 이 파일을 import해 순환이 생김)
     task = db.get(Task, task_id)
     if task is None:
-        raise NotFound("TASK_NOT_FOUND", "업무를 찾을 수 없습니다")
+        raise NotFound("TASK_NOT_FOUND", TASK_NOT_FOUND_MESSAGE)
     require_project_role(db, task.project_id, user, ANY_MEMBER)
     return _page(db, TaskActivity.task_id == task_id, params)
 

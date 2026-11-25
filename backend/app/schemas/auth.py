@@ -1,8 +1,7 @@
 """인증 요청·응답 스키마 (API-SPEC §5.1, REQUIREMENTS AUTH-01).
 
 입력 정리(공백 제거·소문자 변환)와 검증은 여기서 한다(ARCHITECTURE §4.2).
-LoginId·Password·UserName 타입은 멤버 추가·비밀번호 변경(P1) 등에서 다시 쓴다.
-422 오류 문구는 프론트 화면 자료가 나오면 확정한다(임시 문구).
+UserName은 내 이름 수정(AUTH-06)에서도 쓴다. Password는 비밀번호 변경(AUTH-07, P2 미구현)에서 다시 쓸 수 있다.
 """
 
 import re

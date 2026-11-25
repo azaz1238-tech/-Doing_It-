@@ -4,7 +4,7 @@
 export const NAME_MAX = 30;
 export const NAME_ERROR = "프로젝트 이름은 1~30자로 입력해 주세요"; // PRJ-01-b
 export const PERIOD_ERROR = "종료일은 시작일 이후여야 합니다"; // PRJ-01-c
-// 설명 필수 (11/22 팀장 결정 — 명세 반영 예정). 백엔드 DESCRIPTION_MESSAGE와 같은 문구
+// 설명 필수 — PRJ-01-d (11/22 팀장 결정, SPEC-CHANGELOG #21). 백엔드 DESCRIPTION_MESSAGE와 같은 문구
 export const DESCRIPTION_ERROR = "프로젝트 설명을 입력해 주세요";
 
 // 글자 수는 공통 유틸을 쓴다(서버 Python len과 같게 — 이모지도 1자)

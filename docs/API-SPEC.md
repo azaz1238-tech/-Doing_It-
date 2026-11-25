@@ -1,6 +1,6 @@
 # API 명세서 (API-SPEC.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.13 (2026-11-25 최종본 — 업무·댓글·이력·내 이름 수정 API를 코드와 대조해 빠진 규칙·오류 줄 보충, 동작 변경 없음, SPEC-CHANGELOG #38) · v1.12 (2026-11-25 최종본 표현 정리 — §3·§7 P2 API 미구현 표시, §4 Project `progress` 예시, §6 담당자별 현황 정렬, SPEC-CHANGELOG #37) · v1.11 (2026-11-24 §1.3 `page` 상한 1,000,000 — 넘으면 422, SPEC-CHANGELOG #34) · v1.10 (2026-11-24 §8 TASK-12 간트는 새 API 없이 업무 목록 재사용, SPEC-CHANGELOG #33) · v1.9 (2026-11-24 §8 TASK-11 달력은 `GET /users/me/tasks` 응답을 그대로 사용, §5.4 `due_from`·`due_to` 설명에서 달력 제거, SPEC-CHANGELOG #32) · v1.8 (2026-11-24 §8 TASK-08 1단계는 새 API 없이 상태 변경 재사용, `position`은 2단계(보류), SPEC-CHANGELOG #30) · v1.7 (2026-11-23 §5.2 프로젝트 `description` 필수: 생성 시 빠뜨림·`null`·공백 422, 수정으로 비울 수 없음, SPEC-CHANGELOG #21) · v1.6 (2026-11-19 §6 Activity `task_title`: 삭제된 업무는 `DELETED` 행만 삭제 전 제목, 나머지 행은 `null`) · v1.5 (2026-11-19 §2 공통 오류 405 `METHOD_NOT_ALLOWED` 추가) · v1.4 (2026-11-18 §5.3 멤버 제거: 검사 순서와 `MEMBER_NOT_FOUND` 문구) · v1.3 (2026-11-18 §5.2·§5.4 프로젝트·업무 `description` 최대 2000자, 넘으면 422) · v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-24
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.13 (2026-11-25 최종본 — §5.4·§6 업무·댓글·이력·내 이름 수정 API를 코드와 대조해 빠진 규칙·오류 줄 보충, 동작 변경 없음, SPEC-CHANGELOG #38) · v1.12 (2026-11-25 최종본 표현 정리 — §3·§7 P2 API 미구현 표시, §4 Project `progress` 예시, §6 담당자별 현황 정렬, SPEC-CHANGELOG #37) · v1.11 (2026-11-24 §1.3 `page` 상한 1,000,000 — 넘으면 422, SPEC-CHANGELOG #34) · v1.10 (2026-11-24 §8 TASK-12 간트는 새 API 없이 업무 목록 재사용, SPEC-CHANGELOG #33) · v1.9 (2026-11-24 §8 TASK-11 달력은 `GET /users/me/tasks` 응답을 그대로 사용, §5.4 `due_from`·`due_to` 설명에서 달력 제거, SPEC-CHANGELOG #32) · v1.8 (2026-11-24 §8 TASK-08 1단계는 새 API 없이 상태 변경 재사용, `position`은 2단계(보류), SPEC-CHANGELOG #30) · v1.7 (2026-11-23 §5.2 프로젝트 `description` 필수: 생성 시 빠뜨림·`null`·공백 422, 수정으로 비울 수 없음, SPEC-CHANGELOG #21) · v1.6 (2026-11-19 §6 Activity `task_title`: 삭제된 업무는 `DELETED` 행만 삭제 전 제목, 나머지 행은 `null`) · v1.5 (2026-11-19 §2 공통 오류 405 `METHOD_NOT_ALLOWED` 추가) · v1.4 (2026-11-18 §5.3 멤버 제거: 검사 순서와 `MEMBER_NOT_FOUND` 문구) · v1.3 (2026-11-18 §5.2·§5.4 프로젝트·업무 `description` 최대 2000자, 넘으면 422) · v1.2 (2026-11-18 §5.3 멤버 추가: `login_id` 조회는 권한 검사 뒤, 비활성 계정은 404 `USER_NOT_FOUND`) · v1.1 (2026-11-16 §5.1 로그인 입력 규칙: 공백 제거·소문자 변환만, 형식이 틀린 아이디도 401 / §1 오류 `message` 예시에서 끝 마침표 제거(UI-DESIGN §6.5)) · v1.0 (2026-11-16 스펙 동결: §1.2 OAuth2 Bearer 규격·`HTTPBearer` 명시, `GET /health` 추가, PRJ-07에 US-07 표기) · v0.4 (§9 결정 8건 확정: `/api` 접두어·size 100·집계 페이지네이션 없음·오늘=한국 날짜·422 공통 형식·담당자 이력 id·Vite 프록시·JSON 로그인 / 검사 순서 401 먼저 / Activity에 `task_title` / 로그인 검사 순서 / OWNER 행 잠금 / 정렬 기준 통일) · v0.3 (P2 비밀번호 변경·회원 탈퇴·프로젝트 나가기, 댓글 300자, 체크리스트 10개) · v0.2 (업무 수정 권한 세분화, 마감일 오늘 = 임박) | 작성일: 2026-11-11 · 수정일: 2026-11-25
 > 근거: [CONSTITUTION.md](./CONSTITUTION.md) §6·§7·§8 · [REQUIREMENTS.md](./REQUIREMENTS.md) v1.3 · [USER-STORIES.md](./USER-STORIES.md) v1.3 · [DATABASE-DESIGN.md](./DATABASE-DESIGN.md) v1.5
 > 상위 문서와 다르면 상위 문서를 따르고 이 문서를 고친다. API를 바꿀 때는 **이 문서를 먼저 수정**한다(CONSTITUTION 7-5).
 > 각 API에 근거 기능 ID와 우선순위를 표시한다. **P0 API부터 구현하고, P1·P2 API는 P0 게이트 통과 후에 만든다.**
@@ -339,7 +339,7 @@ P2 중 TASK-08(드래그 앤 드롭)·TASK-10(업무 진행률)·TASK-11(달력)
 | --- | :-: | --- |
 | `status` | P0 | `TODO` \| `IN_PROGRESS` \| `DONE`. 칸반은 컬럼마다 1번씩 호출 |
 | `page`, `size` | P0 | 기본 20, 최대 100 |
-| `q` | P1 | 제목 키워드(부분 일치, 대소문자 무시) — TASK-07. 앞뒤 공백을 지우고, 비면 조건 없음. `%`·`_`는 와일드카드가 아니라 글자 그대로 찾는다 |
+| `q` | P1 | 제목 키워드(부분 일치, 대소문자 무시 — DB 정렬 규칙 `utf8mb4_unicode_ci` 기준) — TASK-07. 앞뒤 공백을 지우고, 비면 조건 없음. `%`·`_`는 와일드카드가 아니라 글자 그대로 찾는다 |
 | `assignee_id` | P1 | 담당자 id(숫자) 또는 `none`(담당자 미지정만) — TASK-07. 그 밖의 값은 422. 멤버가 아닌 id는 400이 아니라 빈 결과 |
 | `priority` | P1 | 우선순위 — TASK-07 |
 | `due_from`, `due_to` | P1 | 마감일 범위(양 끝 포함) — TASK-07. 하나라도 주면 마감일 없는 업무는 빠진다. `due_from`이 `due_to`보다 늦으면 빈 결과(422 아님) |
@@ -387,7 +387,7 @@ P2 중 TASK-08(드래그 앤 드롭)·TASK-10(업무 진행률)·TASK-11(달력)
 | `title` | 1~30자. `null` 불가 |
 | `description` | 문자열 또는 `null`, 최대 2000자(넘으면 422) |
 | `status` | 어느 방향으로든 변경 가능(TASK-02). `null` 불가 |
-| `assignee_id` | 멤버 id 또는 `null`(담당 해제) |
+| `assignee_id` | 멤버 id 또는 `null`(담당 해제). 멤버가 아니면 400 `ASSIGNEE_NOT_MEMBER`(없는 사용자 id도 같은 400) |
 | `due_date` | 날짜 또는 `null`(마감일 해제) |
 | `priority` | `null` 불가 |
 
@@ -406,7 +406,7 @@ P2 중 TASK-08(드래그 앤 드롭)·TASK-10(업무 진행률)·TASK-11(달력)
 3. `title`, `description` 변경은 이력 대상이 아니다(LOG-01 범위).
 4. 이력 기록이 실패하면 업무 변경도 취소된다.
 5. 동시 수정은 막지 않는다. 요청에 보낸 필드만 바꾸므로 서로 다른 필드는 둘 다 반영되고, 같은 필드는 나중 요청이 남는다(잠금·버전 검사 없음, SPEC Q5).
-6. 빈 본문 `{}`은 권한 검사만 하고, 바뀌는 것·이력 없이 `200`을 돌려준다.
+6. 빈 본문 `{}`은 권한 검사만 하고, 바뀌는 것·이력 없이 `200`을 돌려준다(OWNER·작성자·담당자는 200, 작성자도 담당자도 아닌 MEMBER는 403 `FORBIDDEN`).
 
 응답 `200` — Task
 오류: 404 `TASK_NOT_FOUND`, 403 `NOT_PROJECT_MEMBER`, 403 `FORBIDDEN`, 400 `ASSIGNEE_NOT_MEMBER`, 422
@@ -423,7 +423,7 @@ P2 중 TASK-08(드래그 앤 드롭)·TASK-10(업무 진행률)·TASK-11(달력)
 #### PATCH `/users/me` — 내 이름 수정 · AUTH-06 · US-04
 요청 `{ "name": "지수" }` (앞뒤 공백 제거 후 1~50자, 회원가입 이름 규칙과 같음) → `200` User
 - `name` 말고 다른 필드(`login_id`·`system_role` 등)나 빈 본문은 422.
-- 오류: 401 `UNAUTHORIZED`, 403 `ACCOUNT_DISABLED`, 422
+- 오류: 422 (토큰 401·비활성 계정 403 `ACCOUNT_DISABLED`는 §2 공통)
 
 #### PATCH `/projects/{project_id}/members/{user_id}` — 역할 변경 · PRJ-08 · US-26
 요청 `{ "role": "OWNER" }` → `200` Member
@@ -438,7 +438,7 @@ P2 중 TASK-08(드래그 앤 드롭)·TASK-10(업무 진행률)·TASK-11(달력)
 | PATCH `/comments/{comment_id}` | `{ "content": "..." }` | `200` Comment | 작성자만. OWNER도 남의 댓글은 403 `FORBIDDEN` |
 | DELETE `/comments/{comment_id}` | — | `204` | 작성자만 |
 
-Comment: `{ "id", "task_id", "user": UserBrief, "content", "created_at", "updated_at" }` — 수정하면 `updated_at`이 바뀐다. 화면은 `updated_at`이 `created_at`과 다르면 "수정됨"을 표시한다.
+Comment: `{ "id", "task_id", "user": UserBrief, "content", "created_at", "updated_at" }` — 수정하면 `updated_at`이 바뀐다(초 단위라 작성한 그 초 안의 수정이나 같은 내용으로 보낸 수정은 그대로일 수 있다). 화면은 `updated_at`이 `created_at`과 다르면 "수정됨"을 표시한다.
 
 - 정의되지 않은 필드를 보내면 422.
 - 오류: 404 `TASK_NOT_FOUND`(목록·작성) · `COMMENT_NOT_FOUND`(수정·삭제), 403 `NOT_PROJECT_MEMBER`, 403 `FORBIDDEN`(수정·삭제, 작성자가 아님), 422

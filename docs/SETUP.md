@@ -57,7 +57,7 @@ py -3.12 -c "import secrets; print(secrets.token_urlsafe(48))"
 | DB 이름 `doing_it` · `doing_it_test` | init.sql이 이 이름으로 DB를 만든다 |
 | 포트 `3307` | `docker-compose.yml`에 고정 |
 | `ACCESS_TOKEN_EXPIRE_MINUTES=120` | 스펙 결정값 (2시간) |
-| `FRONTEND_ORIGIN=http://localhost:5173` | Vite 기본 포트. 다르면 CORS 오류 |
+| `FRONTEND_ORIGIN=http://localhost:5173` | Vite 기본 포트. 화면은 프록시(`/api`)로 부르므로 개발 중에는 CORS와 상관없고, 브라우저가 8000을 직접 부를 때만 이 값과 같아야 한다 |
 
 ### 작성 예시
 
@@ -150,7 +150,7 @@ cd ..
 | Activate 할 때 "이 시스템에서 스크립트를 실행할 수 없으므로…" | Windows 기본 보안 설정 | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` 한 번 실행 후 다시 Activate |
 | `.env에 MARIADB_…를 넣어 주세요` | `.env` 파일이 없음 | 1번 다시 |
 | `port is already allocated` / 3307 사용 중 | 그 PC에서 다른 프로그램이 3307을 씀 | 가상환경 담당에게 알리기 |
-| `Access denied for user 'doingit'` | `.env` 비밀번호를 바꿨는데 DB는 예전 비밀번호로 이미 만들어짐 | `docker compose down -v` 후 2번부터 다시 (**DB 데이터가 지워짐** — 지금은 테이블이 없어서 괜찮다) |
+| `Access denied for user 'doingit'` | `.env` 비밀번호를 바꿨는데 DB는 예전 비밀번호로 이미 만들어짐 | `docker compose down -v` 후 2번부터 다시 → 5번의 `alembic upgrade head`(필요하면 seed)까지 다시 (**테이블·데이터가 모두 지워짐**) |
 | `docker: command not found` / 연결 오류 | Docker Desktop이 꺼져 있음 | Docker Desktop 실행 후 1분 기다리기 |
 | `pip install` 실패 | 가상환경 Python이 3.12가 아님 | `.venv` 폴더를 지우고 `py -3.12 -m venv .venv`부터 다시 |
 | `ModuleNotFoundError: No module named 'dotenv'` 등 | 가상환경이 꺼진 상태에서 실행 | `.venv\Scripts\Activate.ps1` 후 다시 |

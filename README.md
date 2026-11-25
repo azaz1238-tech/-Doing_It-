@@ -3,7 +3,7 @@
 팀이 프로젝트 단위로 업무를 등록하고 담당자·마감일·우선순위를 정해 칸반 보드로 관리하는 웹 서비스입니다.
 업무 **변경 이력**과 **마감 임박·지연 대시보드**로 "누가 언제 무엇을 바꿨는지", "무엇이 늦어지는지"를 한눈에 봅니다.
 
-> **현재 단계:** 스프린트 0 (명세·설계) 완료, 11/13 개발 환경 세팅, 11/16 스펙 v1.0 동결 — 11/16 스프린트 1부터 코드 작성. 처음이라면 [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)부터 읽어 주세요.
+> **현재 단계:** 11/24 기능 동결 — 수용 테스트·보안 점검 완료, 11/26 최종 발표 준비 중. 처음이라면 [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)부터 읽어 주세요.
 
 ## 주요 기능
 
@@ -41,8 +41,8 @@
 
 ## 시작하기
 
-> 🚧 코드 작성 후 채웁니다. 아래는 확정된 부분만 적었습니다.
-> 처음 세팅하는 팀원은 단계별 안내 [docs/SETUP.md](docs/SETUP.md)를 따라 하면 됩니다(Windows PowerShell 기준, 막힐 때 해결법 포함).
+> 아래는 저장소 루트에서 Windows PowerShell(VS Code 터미널) 기준으로 실행하는 순서입니다. 각 값의 이유와 막힐 때 해결법은 단계별 안내 [docs/SETUP.md](docs/SETUP.md)에 있습니다.
+> 순서: 0 준비물 → 1 `.env` → 2 DB → 3 백엔드 → 4 프론트엔드 → 브라우저에서 <http://localhost:5173>
 
 ### 0. 준비물
 
@@ -57,12 +57,16 @@
 
 ### 1. 환경 변수
 
-```bash
-cp .env.example .env   # .env는 Git에 올리지 않습니다 (cmd 창이면: copy .env.example .env)
-# MARIADB_PASSWORD의 change-me를 바꾸면 DATABASE_URL·TEST_DATABASE_URL 안의 비밀번호도 같이 바꾼다
-# JWT_SECRET_KEY 만들기:
-python -c "import secrets; print(secrets.token_urlsafe(48))"
+```powershell
+Copy-Item .env.example .env   # .env는 Git에 올리지 않습니다 (macOS/Linux: cp .env.example .env)
+# MARIADB_PASSWORD를 바꾸면 DATABASE_URL·TEST_DATABASE_URL 안의 비밀번호도 똑같이 바꾼다 (총 3곳)
+# JWT_SECRET_KEY 만들기 (결과를 붙여 넣는다):
+py -3.12 -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
+
+- 비밀번호는 **영문·숫자만** 씁니다. `@ : / # ?`가 들어가면 `DATABASE_URL`이 깨집니다.
+- `JWT_SECRET_KEY`가 32자 미만이면 백엔드가 시작하지 않습니다.
+- `MARIADB_USER=doingit`, DB 이름, 포트 3307은 `docker/mariadb/init.sql`·`docker-compose.yml`에 고정이라 바꾸지 않습니다.
 
 | 변수 | 설명 | 예시 |
 | --- | --- | --- |
@@ -80,7 +84,7 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 
 Docker Desktop을 먼저 켜 둔다. PC 쪽 포트는 **3307**이다(수업 PC의 MariaDB가 3306을 쓰므로. 컨테이너 안은 3306).
 
-```bash
+```powershell
 docker compose up -d --wait   # MariaDB만 컨테이너로 실행 (doing_it, doing_it_test 스키마 생성)
 docker compose ps             # STATUS에 healthy가 보이면 성공 (처음 한 번은 1~3분)
 ```
@@ -89,36 +93,76 @@ docker compose ps             # STATUS에 healthy가 보이면 성공 (처음 �
 
 ### 3. 백엔드
 
-```bash
-py -3.12 -m venv .venv
-.venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
+```powershell
+py -3.12 -m venv .venv            # 처음 한 번만
+.venv\Scripts\Activate.ps1        # 터미널을 새로 열 때마다 (macOS/Linux: source .venv/bin/activate)
+python -m pip install --upgrade pip
 pip install -r requirements.txt   # 실행 + 테스트·린트 패키지 전부
 ```
 
 DB 접속 확인 — 아래 두 줄이 나오면 성공:
 
-```bash
+```powershell
 python -c "from dotenv import dotenv_values; from sqlalchemy import create_engine, text; v=dotenv_values('.env'); [print(k, create_engine(v[k]).connect().execute(text('SELECT DATABASE()')).scalar()) for k in ('DATABASE_URL','TEST_DATABASE_URL')]"
 # DATABASE_URL doing_it
 # TEST_DATABASE_URL doing_it_test
 ```
 
-_마이그레이션·서버 실행 명령 작성 예정_
+테이블 만들기 → (선택) 시연 데이터 → 서버 실행:
+
+```powershell
+python -m alembic -c backend/alembic.ini upgrade head   # 개발 DB에 테이블 생성 — 저장소 루트에서 (스키마가 바뀌면 다시 실행)
+cd backend
+python -m scripts.seed                                  # (선택) 시연 데이터 — 빈 DB에만 들어감
+python -m uvicorn app.main:app --reload --port 8000     # 백엔드 서버
+```
+
+- 확인: <http://localhost:8000/api/health>가 `{"status":"ok"}`를 돌려주면 성공. API 문서(Swagger)는 <http://localhost:8000/docs>
+- 시연 계정: `jisoo01`(프로젝트 OWNER), `minho`, `seoyeon`, `hyunwoo` / 비밀번호 모두 `password123` — **로컬 시연 전용**이며 배포 환경에서는 실행하지 않습니다.
+- 마감일이 실행한 날 기준이라 시연 당일 아침에 다시 넣는 것이 좋습니다. 초기화 방법은 [SETUP §5](docs/SETUP.md#5-시연-데이터-넣기-seed)(개발 DB 데이터가 모두 지워짐).
 
 ### 4. 프론트엔드
 
-_작성 예정_
+새 터미널에서 실행합니다(백엔드 서버는 켜 둔 채로).
+
+```powershell
+cd frontend
+npm ci        # 처음 한 번, package-lock.json 그대로 설치
+npm run dev   # 개발 서버 → http://localhost:5173
+```
+
+- Node는 22 LTS여야 합니다(`package.json`의 `engines`: `>=22 <23`). 확인: `node --version`
+- 화면은 `/api/...`로 호출하고, Vite가 `http://localhost:8000`(백엔드)로 넘겨 줍니다(`vite.config.js`의 proxy). 백엔드가 꺼져 있으면 로그인 등 모든 요청이 실패합니다.
+- 화면은 항상 같은 주소의 `/api`로 부르므로(프록시) 개발 중에는 CORS가 걸리지 않습니다. `.env`의 `FRONTEND_ORIGIN`은 브라우저가 백엔드(8000)를 직접 부를 때만 쓰입니다.
+
+### 5. 테스트·린트 (PR 전에)
+
+```powershell
+# 새 터미널(3·4번 터미널은 서버가 쓰는 중) → .venv\Scripts\Activate.ps1 → 저장소 루트에서
+python -m pytest -q   # 테스트 DB(doing_it_test)만 사용, 시작할 때 마이그레이션 자동 적용
+ruff check backend
+black --check backend
+
+# 프론트엔드
+cd frontend; npm run lint; npm run format:check; cd ..
+```
+
+- 그 밖의 API 확인은 Postman 컬렉션 5개를 씁니다. 실행 방법: [postman/README.md](postman/README.md)
+- PR 설명에 위 결과를 한 줄 적습니다(CI 없음 — 아래 "협업 규칙").
 
 ### 자주 나는 문제
 
 | 증상 | 원인 | 해결 |
 | --- | --- | --- |
-| `.env에 MARIADB_…를 넣어 주세요` | `.env` 파일이 없음 | 1번 `cp .env.example .env` |
-| `port is already allocated` / 3307 사용 중 | 다른 프로그램이 3307을 씀 | 팀(DB 담당 서승범)에 알리기 |
-| `Access denied for user 'doingit'` | `.env` 비밀번호를 바꿨는데 DB는 예전 비밀번호로 이미 만들어짐 | `docker compose down -v` 후 2번 다시 (**DB 데이터가 지워짐**) |
+| `.env에 MARIADB_…를 넣어 주세요` | `.env` 파일이 없음 | 1번 `Copy-Item .env.example .env` |
+| `port is already allocated` / 3307 사용 중 | 다른 프로그램이 3307을 씀 | 그 프로그램을 끄거나, 팀원이면 DB 담당(서승범)에게 알리기 |
+| `Access denied for user 'doingit'` | `.env` 비밀번호를 바꿨는데 DB는 예전 비밀번호로 이미 만들어짐 | `docker compose down -v` 후 2번 다시 → 3번 `alembic upgrade head`(필요하면 seed)까지 다시 (**테이블·데이터가 모두 지워짐**) |
 | `docker: command not found` / 연결 오류 | Docker Desktop이 꺼져 있음 | Docker Desktop 실행 후 1분 기다리기 |
 | `pip install` 실패 | Python 버전이 3.12가 아님 | `.venv` 폴더를 지우고 `py -3.12 -m venv .venv`로 다시 만들기 |
 | PowerShell activate 시 "스크립트를 실행할 수 없으므로…" | Windows 기본 보안 설정 | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` 한 번 실행 후 다시 activate |
+| `ModuleNotFoundError: No module named 'dotenv'` 등 | 가상환경이 꺼진 상태에서 실행 | `.venv\Scripts\Activate.ps1` 후 다시 |
+| `[seed] 멈춤: 이미 데이터가 있습니다` | 개발 DB에 사용자가 이미 있음 | 그대로 쓰거나 [SETUP §5](docs/SETUP.md#5-시연-데이터-넣기-seed) 방법으로 초기화 후 다시 |
+| 화면에서 로그인 등 모든 요청 실패 | 백엔드(8000)가 꺼져 있음 | 3번 서버 실행 명령 다시 |
 
 ## 폴더 구조 (확정 — 상세는 [docs/ARCHITECTURE.md §3](docs/ARCHITECTURE.md))
 
@@ -140,6 +184,7 @@ postman/                 Postman 컬렉션
 | 문서 | 내용 |
 | --- | --- |
 | [PROJECT-OVERVIEW](docs/PROJECT-OVERVIEW.md) | 1페이지 소개 |
+| [USER-MANUAL](docs/USER-MANUAL.md) | 사용자 매뉴얼 (화면별 사용법, 스크린샷) |
 | [PROPOSAL](docs/PROPOSAL.md) | 기획서 (최상위 근거) |
 | [CONSTITUTION](docs/CONSTITUTION.md) | 팀 규칙 |
 | [REQUIREMENTS](docs/REQUIREMENTS.md) | 기능 ID·우선순위·권한 |
@@ -152,9 +197,14 @@ postman/                 Postman 컬렉션
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | 폴더·계층·버전·실행 환경 |
 | [PRD](docs/PRD.md) | 기능·스토리 연결표 |
 | [TASKS](docs/TASKS.md) | 태스크 분해·담당·일정 |
+| [SETUP](docs/SETUP.md) | 개발 환경 세팅 단계별 안내 |
 | [SPEC-CHANGELOG](docs/SPEC-CHANGELOG.md) | 스펙 v1.0 동결 후 변경 이력 |
+| [CONSISTENCY-CHECK](docs/CONSISTENCY-CHECK.md) | 11/16 회의 결정 |
+| [verify](docs/verify.md) | 기능 검증표 |
+| [reports/](docs/reports/) | 수용 테스트·보안 점검 등 보고서 |
+| [devlog/](docs/devlog/) · [daily/](docs/daily/) | 사람별 개발 로그 · 팀 일일 보고 |
 
-문서끼리 다르면 위쪽(기획서 → 헌법 → 요구사항) 문서를 따릅니다.
+문서끼리 다르면 기획서 → 헌법 → 요구사항·스펙 → 설계(DB·API·화면·아키텍처) 순서로 앞쪽 문서를 따릅니다(표 순서와는 무관). PROJECT-OVERVIEW·PRD는 요약이라 원본 문서가 우선이고, 운영 문서(TASKS·SETUP·SPEC-CHANGELOG·CONSISTENCY-CHECK·COMPONENTS), 기록 문서(verify·reports·devlog·daily), USER-MANUAL은 명세가 아니며, 명세와 다르면 명세를 따릅니다.
 
 ### 과정 가이드 산출물 이름과의 대응
 

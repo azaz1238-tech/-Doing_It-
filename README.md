@@ -96,6 +96,7 @@ docker compose ps             # STATUS에 healthy가 보이면 성공 (처음 �
 ```powershell
 py -3.12 -m venv .venv            # 처음 한 번만
 .venv\Scripts\Activate.ps1        # 터미널을 새로 열 때마다 (macOS/Linux: source .venv/bin/activate)
+python -m pip install --upgrade pip
 pip install -r requirements.txt   # 실행 + 테스트·린트 패키지 전부
 ```
 
@@ -110,7 +111,7 @@ python -c "from dotenv import dotenv_values; from sqlalchemy import create_engin
 테이블 만들기 → (선택) 시연 데이터 → 서버 실행:
 
 ```powershell
-python -m alembic -c backend/alembic.ini upgrade head   # 개발 DB에 테이블 생성 (스키마가 바뀌면 다시 실행)
+python -m alembic -c backend/alembic.ini upgrade head   # 개발 DB에 테이블 생성 — 저장소 루트에서 (스키마가 바뀌면 다시 실행)
 cd backend
 python -m scripts.seed                                  # (선택) 시연 데이터 — 빈 DB에만 들어감
 python -m uvicorn app.main:app --reload --port 8000     # 백엔드 서버
@@ -132,13 +133,13 @@ npm run dev   # 개발 서버 → http://localhost:5173
 
 - Node는 22 LTS여야 합니다(`package.json`의 `engines`: `>=22 <23`). 확인: `node --version`
 - 화면은 `/api/...`로 호출하고, Vite가 `http://localhost:8000`(백엔드)로 넘겨 줍니다(`vite.config.js`의 proxy). 백엔드가 꺼져 있으면 로그인 등 모든 요청이 실패합니다.
-- 프론트 주소를 5173이 아닌 곳으로 바꾸면 `.env`의 `FRONTEND_ORIGIN`도 같이 바꿔야 합니다(CORS).
+- 화면은 항상 같은 주소의 `/api`로 부르므로(프록시) 개발 중에는 CORS가 걸리지 않습니다. `.env`의 `FRONTEND_ORIGIN`은 브라우저가 백엔드(8000)를 직접 부를 때만 쓰입니다.
 
 ### 5. 테스트·린트 (PR 전에)
 
 ```powershell
-# 백엔드 — .venv를 켠 상태, 저장소 루트에서
-cd backend; python -m pytest -q; cd ..   # 테스트 DB(doing_it_test)만 사용, 시작할 때 마이그레이션 자동 적용
+# 새 터미널(3·4번 터미널은 서버가 쓰는 중) → .venv\Scripts\Activate.ps1 → 저장소 루트에서
+python -m pytest -q   # 테스트 DB(doing_it_test)만 사용, 시작할 때 마이그레이션 자동 적용
 ruff check backend
 black --check backend
 
@@ -155,7 +156,7 @@ cd frontend; npm run lint; npm run format:check; cd ..
 | --- | --- | --- |
 | `.env에 MARIADB_…를 넣어 주세요` | `.env` 파일이 없음 | 1번 `Copy-Item .env.example .env` |
 | `port is already allocated` / 3307 사용 중 | 다른 프로그램이 3307을 씀 | 그 프로그램을 끄거나, 팀원이면 DB 담당(서승범)에게 알리기 |
-| `Access denied for user 'doingit'` | `.env` 비밀번호를 바꿨는데 DB는 예전 비밀번호로 이미 만들어짐 | `docker compose down -v` 후 2번 다시 (**DB 데이터가 지워짐**) |
+| `Access denied for user 'doingit'` | `.env` 비밀번호를 바꿨는데 DB는 예전 비밀번호로 이미 만들어짐 | `docker compose down -v` 후 2번 다시 → 3번 `alembic upgrade head`(필요하면 seed)까지 다시 (**테이블·데이터가 모두 지워짐**) |
 | `docker: command not found` / 연결 오류 | Docker Desktop이 꺼져 있음 | Docker Desktop 실행 후 1분 기다리기 |
 | `pip install` 실패 | Python 버전이 3.12가 아님 | `.venv` 폴더를 지우고 `py -3.12 -m venv .venv`로 다시 만들기 |
 | PowerShell activate 시 "스크립트를 실행할 수 없으므로…" | Windows 기본 보안 설정 | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` 한 번 실행 후 다시 activate |
@@ -203,7 +204,7 @@ postman/                 Postman 컬렉션
 | [reports/](docs/reports/) | 수용 테스트·보안 점검 등 보고서 |
 | [devlog/](docs/devlog/) · [daily/](docs/daily/) | 사람별 개발 로그 · 팀 일일 보고 |
 
-문서끼리 다르면 위쪽(기획서 → 헌법 → 요구사항) 문서를 따릅니다. 운영 문서(TASKS·SETUP·SPEC-CHANGELOG·CONSISTENCY-CHECK·COMPONENTS), 기록 문서(verify·reports·devlog·daily), USER-MANUAL은 명세가 아니며, 명세와 다르면 명세를 따릅니다.
+문서끼리 다르면 기획서 → 헌법 → 요구사항·스펙 → 설계(DB·API·화면·아키텍처) 순서로 앞쪽 문서를 따릅니다(표 순서와는 무관). PROJECT-OVERVIEW·PRD는 요약이라 원본 문서가 우선이고, 운영 문서(TASKS·SETUP·SPEC-CHANGELOG·CONSISTENCY-CHECK·COMPONENTS), 기록 문서(verify·reports·devlog·daily), USER-MANUAL은 명세가 아니며, 명세와 다르면 명세를 따릅니다.
 
 ### 과정 가이드 산출물 이름과의 대응
 

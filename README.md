@@ -107,7 +107,24 @@ _마이그레이션·서버 실행 명령 작성 예정_
 
 ### 4. 프론트엔드
 
-_작성 예정_
+Node **22 LTS**가 필요하다(`package.json`의 `engines`). 확인: `node --version` → `v22.x`
+
+```bash
+cd frontend
+npm install          # 처음 한 번, package.json이 바뀌었을 때 다시
+npm run dev          # 개발 서버 → http://localhost:5173
+```
+
+- 화면이 API를 부르려면 **백엔드(3번)가 8000 포트에 켜져 있어야** 한다. 프론트는 `/api`로 시작하는 요청을 Vite 프록시로 `http://localhost:8000`에 넘긴다(`vite.config.js`). 그래서 프론트용 `.env`는 따로 없다.
+- 백엔드 CORS는 `.env`의 `FRONTEND_ORIGIN=http://localhost:5173`만 허용하므로 **5173 포트로 열어야** 한다.
+
+| 명령 (`frontend/` 안에서) | 하는 일 |
+| --- | --- |
+| `npm run dev` | 개발 서버 (코드를 고치면 화면이 바로 바뀜) |
+| `npm run lint` | ESLint 검사 — PR 전에 통과 |
+| `npm run format:check` | Prettier 형식 검사 — PR 전에 통과 (`npm run format`은 자동으로 고침) |
+| `npm run build` | 배포용 파일을 `frontend/dist/`에 만든다 |
+| `npm run preview` | 만든 `dist/`를 미리 보기 |
 
 ### 자주 나는 문제
 

@@ -3,7 +3,13 @@
 팀이 프로젝트 단위로 업무를 등록하고 담당자·마감일·우선순위를 정해 칸반 보드로 관리하는 웹 서비스입니다.
 업무 **변경 이력**과 **마감 임박·지연 대시보드**로 "누가 언제 무엇을 바꿨는지", "무엇이 늦어지는지"를 한눈에 봅니다.
 
-> **현재 단계:** 11/24 기능 동결 — 수용 테스트·보안 점검 완료, 11/26 최종 발표 준비 중. 처음이라면 [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)부터 읽어 주세요.
+> **현재 단계:** 11/24 기능 동결 — 수용 테스트·보안 점검 완료, 11/26 최종 발표·배포. 처음이라면 [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)부터 읽어 주세요.
+
+## 바로 써 보기 (배포)
+
+- 주소: **<https://doing-it.netlify.app>** — 화면은 Netlify, 서버·DB는 Railway ([ARCHITECTURE §9.1](docs/ARCHITECTURE.md))
+- 시연 계정: `jisoo01`(프로젝트 OWNER), `minho`, `seoyeon`, `hyunwoo` / 비밀번호 모두 `password123` — 발표용 공개 계정이라 누구나 데이터를 바꿀 수 있습니다. 발표 후 내리거나 비밀번호를 바꿉니다.
+- 발표 시연은 아래 "시작하기"대로 로컬에서 합니다.
 
 ## 주요 기능
 
@@ -118,7 +124,7 @@ python -m uvicorn app.main:app --reload --port 8000     # 백엔드 서버
 ```
 
 - 확인: <http://localhost:8000/api/health>가 `{"status":"ok"}`를 돌려주면 성공. API 문서(Swagger)는 <http://localhost:8000/docs>
-- 시연 계정: `jisoo01`(프로젝트 OWNER), `minho`, `seoyeon`, `hyunwoo` / 비밀번호 모두 `password123` — **로컬 시연 전용**이며 배포 환경에서는 실행하지 않습니다.
+- 시연 계정: `jisoo01`(프로젝트 OWNER), `minho`, `seoyeon`, `hyunwoo` / 비밀번호 모두 `password123` — 공개된 비밀번호라 원칙적으로 로컬 시연 전용입니다(예외: 11/26 발표용 배포, [ARCHITECTURE §9.1](docs/ARCHITECTURE.md)).
 - 마감일이 실행한 날 기준이라 시연 당일 아침에 다시 넣는 것이 좋습니다. 초기화 방법은 [SETUP §5](docs/SETUP.md#5-시연-데이터-넣기-seed)(개발 DB 데이터가 모두 지워짐).
 
 ### 4. 프론트엔드

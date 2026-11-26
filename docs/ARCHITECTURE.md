@@ -1,6 +1,6 @@
 # 아키텍처 설계 (ARCHITECTURE.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.6 (2026-11-26 §9 클라우드 배포 기록 — 프론트 Netlify·백엔드 Railway, `frontend/public/_redirects`, SPEC-CHANGELOG #39) · v1.5 (2026-11-23 §3 저장소 구조에서 `.github/` PR 템플릿 삭제 — 쓰지 않기로 결정, SPEC-CHANGELOG #28) · v1.4 (2026-11-16 §5.1 core/ui에 Input, core/layout 추가 — UI-DESIGN §5와 맞춤) · v1.3 (2026-11-16 §4.1·§4.4 get_current_user를 app/services/auth_service로, core/auth는 토큰 검사만) · v1.2 (2026-11-16 §1·§3 가상환경 위치를 저장소 루트 `.venv`로) · v1.1 (2026-11-16 §3 저장소 구조에 루트 파일·문서 산출물 위치 추가, §8 완료 표시) · v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.7 (2026-11-26 §1·§9 클라우드 배포 완료 반영 — DB·비용·Python 버전·배포 명령·시연 계정 위험, SPEC-CHANGELOG #40) · v1.6 (2026-11-26 §9 클라우드 배포 기록 — 프론트 Netlify·백엔드 Railway, `frontend/public/_redirects`, SPEC-CHANGELOG #39) · v1.5 (2026-11-23 §3 저장소 구조에서 `.github/` PR 템플릿 삭제 — 쓰지 않기로 결정, SPEC-CHANGELOG #28) · v1.4 (2026-11-16 §5.1 core/ui에 Input, core/layout 추가 — UI-DESIGN §5와 맞춤) · v1.3 (2026-11-16 §4.1·§4.4 get_current_user를 app/services/auth_service로, core/auth는 토큰 검사만) · v1.2 (2026-11-16 §1·§3 가상환경 위치를 저장소 루트 `.venv`로) · v1.1 (2026-11-16 §3 저장소 구조에 루트 파일·문서 산출물 위치 추가, §8 완료 표시) · v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
 > 근거: PROPOSAL §5·§6 → CONSTITUTION §4~§9 → REQUIREMENTS v1.3 → API-SPEC v1.13 · DATABASE-DESIGN v1.5 · UI-DESIGN v1.13
 > 이 문서는 **코드를 어디에, 어떤 규칙으로 둘지**를 정한다. 기능·API·테이블 정의는 위 문서를 따르고 여기서 다시 적지 않는다.
 
@@ -21,7 +21,7 @@ flowchart LR
 | 프론트 | `frontend`에서 `npm run dev` | 5173 |
 
 - 브라우저는 항상 5173 하나만 본다. `/api`로 시작하는 요청만 Vite가 8000으로 넘기므로 개발 중에는 CORS 문제가 생기지 않는다(API-SPEC §1.1).
-- **시연은 로컬에서 한다.** 클라우드 배포는 P2로 두고, 마무리 단계에 시간이 남을 때만 시도한다(§9).
+- **시연은 로컬에서 한다.** 클라우드 배포는 P2로 두고, 마무리 단계에 시간이 남을 때만 시도한다(§9). 11/26에 Netlify(화면)·Railway(서버·DB)로 배포했다(§9.1).
 
 ## 2. 기술 스택 버전
 
@@ -290,20 +290,25 @@ flowchart LR
 - 11/26 발표는 발표자 PC에서 로컬로 시연한다. 전날 `seed.py`로 시연 데이터를 넣고, 시연 순서대로 한 번 리허설한다.
 - 클라우드 배포는 P2 수준의 선택 작업이다. P0·P1이 끝나고 마무리 단계에 시간이 남을 때만 시도하고, 맞지 않으면 버린다. **REQUIREMENTS에는 등록하지 않고 이 문서에서만 관리한다.** 시도할 때는 이 절에 대상 서비스·DB 위치·비용을 먼저 적는다.
 
-### 9.1 클라우드 배포 기록 (2026-11-26 시도)
-발표 시연은 위대로 로컬이 기준이다. 아래는 발표와 별개로 시도한 배포다.
+### 9.1 클라우드 배포 기록 (2026-11-26 배포 완료)
+발표 시연은 위대로 로컬이 기준이다. 아래는 발표와 별개로 배포한 환경이며, 11/26에 화면 주소·시연 계정 4개 로그인·권한 403까지 확인했다.
 
 | 항목 | 값 |
 | --- | --- |
-| 프론트엔드 | Netlify — `https://doing-it.netlify.app` (`npm run build` 결과 `dist/`) |
-| 백엔드 | Railway — `https://doingit-production.up.railway.app` (`/api/health` 200 확인) |
-| DB 위치 | Railway (확인 필요) — 접속 정보는 Railway Variables의 `DATABASE_URL`, 저장소에 두지 않는다 |
-| 비용 | 각 서비스 무료 플랜 (확인 필요) |
-| 환경 변수 | 백엔드 `FRONTEND_ORIGIN=https://doing-it.netlify.app`(끝 `/` 없음). 프론트는 `VITE_` 변수를 쓰지 않는다 |
+| 접속 주소 | **`https://doing-it.netlify.app`** (사용자는 이 주소만 쓴다) |
+| 프론트엔드 | Netlify — `main` 병합 시 자동 배포, `npm run build` 결과 `dist/` |
+| 백엔드 | Railway — `https://doingit-production.up.railway.app`, `main` 병합 시 자동 배포. Python 3.13(Railway 빌드 기본값, 로컬 기준은 §2의 3.12) |
+| DB 위치 | Railway MariaDB 서비스(스키마 이름 `railway`) — 로컬과 같은 MariaDB, 버전은 Railway 템플릿 기준(로컬 기준은 10.11). 접속 정보는 Railway Variables의 `DATABASE_URL`, 저장소에 두지 않는다 |
+| 비용 | 무료 (Netlify·Railway 무료 플랜) |
+| 환경 변수 (Railway 백엔드) | `DATABASE_URL`, `JWT_SECRET_KEY`, `FRONTEND_ORIGIN=https://doing-it.netlify.app`(끝 `/` 없음) 등 `.env.example`의 이름 그대로. 프론트는 `VITE_` 변수를 쓰지 않는다 |
+| 시작 명령 (Railway Start) | `cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port ...` (포트 부분은 Railway 설정 화면에서 확인) |
+| 배포 전 명령 (Railway Pre-deploy) | `python -m alembic -c backend/alembic.ini upgrade head` — 배포마다 마이그레이션을 맞춘다 |
 
-- **API 연결:** `frontend/public/_redirects`(빌드 때 `dist/`로 복사)에서 Netlify가 `/api/*`를 Railway 백엔드로 넘긴다. 로컬의 Vite 프록시와 같은 방식이라 프론트 코드(`baseURL: "/api"`)는 바꾸지 않는다.
+- **API 연결:** `frontend/public/_redirects`(빌드 때 `dist/`로 복사)에서 Netlify가 `/api/*`를 Railway 백엔드로 넘긴다. 로컬의 Vite 프록시와 같은 방식이라 프론트 코드(`baseURL: "/api"`)는 바꾸지 않는다. 브라우저는 Netlify 주소 하나만 보므로 CORS가 일어나지 않는다.
 - **화면 주소:** 같은 파일에서 나머지 주소를 `index.html`로 돌려 `/login`·`/projects/1` 같은 주소를 직접 열거나 새로고침해도 앱이 뜬다.
-- **남은 문제(11/26):** 배포 백엔드의 로그인이 500 — DB 연결 또는 마이그레이션 미적용으로 보임. Railway 로그로 확인한 뒤 `alembic upgrade head` → `seed.py` 순서로 맞춘다.
+- **Pre-deploy는 셸을 거치지 않는다:** `cd backend && ...`가 적용되지 않아 `No 'script_location' key found` 오류가 났다(11/26). `-c backend/alembic.ini`로 설정 파일을 직접 지정한다(`alembic.ini`는 `%(here)s` 기준이라 어디서 실행해도 된다). 셸이 필요하면 `sh -c "..."`로 감싼다.
+- **시연 데이터:** 첫 배포 때 한 번만 `sh -c "cd backend && python -m alembic upgrade head && python -m scripts.seed"`로 넣었다(11/26, 업무 마감일은 이날 기준). seed는 데이터가 있으면 실패하므로 Pre-deploy에 남겨 두지 않는다.
+- **⚠ 시연 계정 위험:** 배포 DB에 공개 비밀번호(`password123`) 계정 4개가 있어 누구나 로그인해 데이터를 바꿀 수 있다(SETUP §5 "배포 환경에서는 실행하지 않는다"의 예외 — 발표용으로 팀장이 결정). 발표가 끝나면 서비스를 내리거나 계정 비밀번호를 바꾼다.
 
 ## 10. 결정 기록 (2026-11-12)
 
@@ -312,7 +317,7 @@ flowchart LR
 | 1 | Python · Node · MariaDB | 3.12 · 22 LTS · 10.11 | 이 문서 §2, CONSTITUTION §5 |
 | 2 | React · Tailwind | 19 · 4 (색 토큰은 CSS `@theme`) | 이 문서 §2, UI-DESIGN §7 |
 | 3 | docker compose 범위 | MariaDB만 | 이 문서 §1 |
-| 4 | 시연·배포 | 로컬 시연. 배포는 여유 있을 때만, 요구사항에는 등록하지 않음 | 이 문서 §9 |
+| 4 | 시연·배포 | 로컬 시연. 배포는 여유 있을 때만, 요구사항에는 등록하지 않음 (→ 11/26 Netlify·Railway 배포, §9.1) | 이 문서 §9 |
 | 5 | 비밀번호 길이 | 8~64자 + UTF-8 72바이트 이하 | REQUIREMENTS AUTH-01, API-SPEC §5.1, SPEC |
 | 6 | 프론트 폴더 | `core/` + `features/`만 | CLAUDE.md §4 |
 | 7 | CI | 두지 않음. 로컬 린트·pytest 결과를 PR 설명에 적음 | 이 문서 §7, CONSTITUTION(PR 규칙) |

@@ -131,7 +131,7 @@ cd ..
 ```
 
 - 로그인: `jisoo01`(프로젝트 OWNER), `minho`, `seoyeon`, `hyunwoo` / 비밀번호 모두 `password123`
-- **로컬 개발·시연 전용이다.** 비밀번호가 공개돼 있으므로 배포 환경(클라우드 등)에서는 실행하지 않는다.
+- **로컬 개발·시연 전용이다.** 비밀번호가 공개돼 있으므로 배포 환경(클라우드 등)에서는 실행하지 않는다. 예외: 11/26 발표용 Railway 배포에 한 번 넣었다(팀장 결정, 발표 후 내리거나 비밀번호 변경 — ARCHITECTURE §9.1).
 - **빈 DB에만 넣는다.** 사용자가 한 명이라도 있으면 `[seed] 멈춤: 이미 데이터가 있습니다`가 나오고 아무것도 넣지 않는다.
 - 마감일이 실행한 날 기준이라, 전날 넣으면 시연 날에는 하루씩 밀린다(오늘 마감 → 지연). 날짜를 정확히 보이려면 **시연 당일 아침**에 아래 방법으로 초기화 후 다시 넣는다.
 - seed가 중간에 오류로 끝나면 일부 데이터만 남는다(다시 실행하면 "이미 데이터가 있습니다"로 멈춤). 이때도 아래 방법으로 초기화 후 다시 실행한다.
@@ -142,6 +142,15 @@ cd ..
   python -m alembic -c backend/alembic.ini upgrade head
   cd backend; python -m scripts.seed; cd ..
   ```
+
+## 6. 배포 환경 (참고)
+
+로컬 세팅과는 별개다. 접속 주소는 <https://doing-it.netlify.app>, 설정 전체는 [ARCHITECTURE §9.1](ARCHITECTURE.md)에 있다.
+
+- `main`에 병합하면 Netlify(화면)·Railway(서버)가 자동으로 다시 배포한다.
+- Railway Pre-deploy가 `python -m alembic -c backend/alembic.ini upgrade head`를 실행하므로, 마이그레이션을 추가해도 배포 DB에 따로 적용할 필요가 없다.
+- 비밀 값(`DATABASE_URL`, `JWT_SECRET_KEY` 등)은 Railway Variables에만 있다. 저장소·채팅에 붙여 넣지 않는다.
+- 배포 서버 오류는 Railway 서비스 → Deployments → View logs에서 본다. Pre-deploy 실패는 실패한 배포 안의 Deploy Logs에 있다.
 
 ## 막히면
 

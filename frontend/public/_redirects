@@ -1,0 +1,3 @@
+# Netlify 설정 (ARCHITECTURE §9): /api는 Railway 백엔드로 넘기고, 나머지 주소는 앱(index.html)으로
+/api/*  https://doingit-production.up.railway.app/api/:splat  200
+/*      /index.html  200

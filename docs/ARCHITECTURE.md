@@ -1,6 +1,6 @@
 # 아키텍처 설계 (ARCHITECTURE.md)
 
-> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.5 (2026-11-23 §3 저장소 구조에서 `.github/` PR 템플릿 삭제 — 쓰지 않기로 결정, SPEC-CHANGELOG #28) · v1.4 (2026-11-16 §5.1 core/ui에 Input, core/layout 추가 — UI-DESIGN §5와 맞춤) · v1.3 (2026-11-16 §4.1·§4.4 get_current_user를 app/services/auth_service로, core/auth는 토큰 검사만) · v1.2 (2026-11-16 §1·§3 가상환경 위치를 저장소 루트 `.venv`로) · v1.1 (2026-11-16 §3 저장소 구조에 루트 파일·문서 산출물 위치 추가, §8 완료 표시) · v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
+> 프로젝트: 동잇(Doing_It) — 팀 협업 프로젝트 관리 시스템 | 버전: v1.6 (2026-11-26 §9 클라우드 배포 기록 — 프론트 Netlify·백엔드 Railway, `frontend/public/_redirects`, SPEC-CHANGELOG #39) · v1.5 (2026-11-23 §3 저장소 구조에서 `.github/` PR 템플릿 삭제 — 쓰지 않기로 결정, SPEC-CHANGELOG #28) · v1.4 (2026-11-16 §5.1 core/ui에 Input, core/layout 추가 — UI-DESIGN §5와 맞춤) · v1.3 (2026-11-16 §4.1·§4.4 get_current_user를 app/services/auth_service로, core/auth는 토큰 검사만) · v1.2 (2026-11-16 §1·§3 가상환경 위치를 저장소 루트 `.venv`로) · v1.1 (2026-11-16 §3 저장소 구조에 루트 파일·문서 산출물 위치 추가, §8 완료 표시) · v1.0 (2026-11-16 스펙 동결: 패키지 한 파일·DB 포트 3307 확정, §8 첫날 담당을 TASKS.md에 맞춤) · v0.1 (2026-11-12 결정 반영, §10) | 작성일: 2026-11-12
 > 근거: PROPOSAL §5·§6 → CONSTITUTION §4~§9 → REQUIREMENTS v1.3 → API-SPEC v1.13 · DATABASE-DESIGN v1.5 · UI-DESIGN v1.13
 > 이 문서는 **코드를 어디에, 어떤 규칙으로 둘지**를 정한다. 기능·API·테이블 정의는 위 문서를 따르고 여기서 다시 적지 않는다.
 
@@ -289,6 +289,21 @@ flowchart LR
 
 - 11/26 발표는 발표자 PC에서 로컬로 시연한다. 전날 `seed.py`로 시연 데이터를 넣고, 시연 순서대로 한 번 리허설한다.
 - 클라우드 배포는 P2 수준의 선택 작업이다. P0·P1이 끝나고 마무리 단계에 시간이 남을 때만 시도하고, 맞지 않으면 버린다. **REQUIREMENTS에는 등록하지 않고 이 문서에서만 관리한다.** 시도할 때는 이 절에 대상 서비스·DB 위치·비용을 먼저 적는다.
+
+### 9.1 클라우드 배포 기록 (2026-11-26 시도)
+발표 시연은 위대로 로컬이 기준이다. 아래는 발표와 별개로 시도한 배포다.
+
+| 항목 | 값 |
+| --- | --- |
+| 프론트엔드 | Netlify — `https://doing-it.netlify.app` (`npm run build` 결과 `dist/`) |
+| 백엔드 | Railway — `https://doingit-production.up.railway.app` (`/api/health` 200 확인) |
+| DB 위치 | Railway (확인 필요) — 접속 정보는 Railway Variables의 `DATABASE_URL`, 저장소에 두지 않는다 |
+| 비용 | 각 서비스 무료 플랜 (확인 필요) |
+| 환경 변수 | 백엔드 `FRONTEND_ORIGIN=https://doing-it.netlify.app`(끝 `/` 없음). 프론트는 `VITE_` 변수를 쓰지 않는다 |
+
+- **API 연결:** `frontend/public/_redirects`(빌드 때 `dist/`로 복사)에서 Netlify가 `/api/*`를 Railway 백엔드로 넘긴다. 로컬의 Vite 프록시와 같은 방식이라 프론트 코드(`baseURL: "/api"`)는 바꾸지 않는다.
+- **화면 주소:** 같은 파일에서 나머지 주소를 `index.html`로 돌려 `/login`·`/projects/1` 같은 주소를 직접 열거나 새로고침해도 앱이 뜬다.
+- **남은 문제(11/26):** 배포 백엔드의 로그인이 500 — DB 연결 또는 마이그레이션 미적용으로 보임. Railway 로그로 확인한 뒤 `alembic upgrade head` → `seed.py` 순서로 맞춘다.
 
 ## 10. 결정 기록 (2026-11-12)
 

@@ -56,12 +56,12 @@ export default function TopBar() {
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:gap-8 sm:px-6">
-        {/* 로고: 시안 v0.3 — "동"은 본문색, "잇"은 주 색 */}
+        {/* 로고: 시안 v0.3 — "동"은 주 색, "잇"은 본문색(발표 자료와 맞춤) */}
         <Link
           to="/projects"
           className="shrink-0 whitespace-nowrap text-lg font-bold text-neutral-900"
         >
-          동<span className="text-primary">잇</span>
+          <span className="text-primary">동</span>잇
         </Link>
 
         {/* 현재 메뉴: 시안 v0.3 — 굵은 본문색 글자 + 아래 밑줄 (헤더 아래 테두리에 붙는다) */}

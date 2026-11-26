@@ -92,9 +92,9 @@ export default function SignupPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-4 py-10">
-      {/* 로고: 시안 v0.3 — "동"은 본문색, "잇"은 주 색 (S2에는 부제 없음) */}
+      {/* 로고: 시안 v0.3 — "동"은 주 색, "잇"은 본문색(발표 자료와 맞춤) (S2에는 부제 없음) */}
       <p className="mb-8 text-4xl font-bold text-neutral-900">
-        동<span className="text-primary">잇</span>
+        <span className="text-primary">동</span>잇
       </p>
       <form
         onSubmit={handleSubmit}

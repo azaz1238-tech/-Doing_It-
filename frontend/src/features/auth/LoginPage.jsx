@@ -79,9 +79,9 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-4 py-10">
-      {/* 로고 + 한 줄 소개: 시안 v0.3 S1 — "동"은 본문색, "잇"은 주 색 */}
+      {/* 로고 + 한 줄 소개: 시안 v0.3 S1 — "동"은 주 색, "잇"은 본문색(발표 자료와 맞춤) */}
       <p className="text-4xl font-bold text-neutral-900">
-        동<span className="text-primary">잇</span>
+        <span className="text-primary">동</span>잇
       </p>
       <p className="mt-2 mb-8 text-sm text-neutral-500">
         팀 업무를 한눈에, 마감은 놓치지 않게

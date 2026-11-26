@@ -16,25 +16,25 @@
 
 | 이슈 | 내용 | 영향 | 담당 | 처리 시점 |
 | --- | --- | --- | --- | --- |
-| [#72](https://github.com/azaz1238-tech/-Doing_It-/issues/72) | 프로젝트 삭제와 멤버 제거·업무 수정이 동시에 일어나면 교착(1213) → 삭제 쪽 500. 데이터는 롤백되어 안전 | 동시 조작에서만. 시연 영향 낮음 | 양준석 | P0 게이트 이후 |
-| [#73](https://github.com/azaz1238-tech/-Doing_It-/issues/73) | 프로젝트 `description` 2000자 제한이 코드에 없음 → 아주 긴 설명이면 500 (업무는 #52로 적용) | 명세(API-SPEC v1.3)와 코드 불일치 | 양준석 | 가능하면 게이트 전 |
-| [#74](https://github.com/azaz1238-tech/-Doing_It-/issues/74) | Postman F2 컬렉션 테스트 아이디가 같은 밀리초에 겹칠 수 있음 (F2-tasks는 작성자·담당자 접두어가 같아 위험이 더 큼) | 반복 실행 중 드물게 가입 409 | 김서현(F2-tasks), 양준석(F2-projects) | 시연 리허설 전 |
+| [#72](https://github.com/azaz1238-tech/Doing_It/issues/72) | 프로젝트 삭제와 멤버 제거·업무 수정이 동시에 일어나면 교착(1213) → 삭제 쪽 500. 데이터는 롤백되어 안전 | 동시 조작에서만. 시연 영향 낮음 | 양준석 | P0 게이트 이후 |
+| [#73](https://github.com/azaz1238-tech/Doing_It/issues/73) | 프로젝트 `description` 2000자 제한이 코드에 없음 → 아주 긴 설명이면 500 (업무는 #52로 적용) | 명세(API-SPEC v1.3)와 코드 불일치 | 양준석 | 가능하면 게이트 전 |
+| [#74](https://github.com/azaz1238-tech/Doing_It/issues/74) | Postman F2 컬렉션 테스트 아이디가 같은 밀리초에 겹칠 수 있음 (F2-tasks는 작성자·담당자 접두어가 같아 위험이 더 큼) | 반복 실행 중 드물게 가입 409 | 김서현(F2-tasks), 양준석(F2-projects) | 시연 리허설 전 |
 
 ### B. 문서 불일치
 
 | 이슈 | 내용 | 담당 |
 | --- | --- | --- |
-| [#75](https://github.com/azaz1238-tech/-Doing_It-/issues/75) | 멤버 중복 문구: SPEC PRJ-04-c "이미 프로젝트 멤버입니다"(코드) vs UI-DESIGN S7 "이미 멤버입니다" → UI-DESIGN 수정 | 양준석(문서 주인) |
-| [#76](https://github.com/azaz1238-tech/-Doing_It-/issues/76) | 업무 삭제 확인 문구: SPEC TASK-06-c "삭제할까요?"(코드) vs 말투 규칙 "~하시겠습니까?"(미리보기·다른 삭제 확인 창) → 하나로 결정 | 팀 결정 → 김서현 |
-| [#77](https://github.com/azaz1238-tech/-Doing_It-/issues/77) | SPEC-CHANGELOG #20(삭제된 업무 이력의 `task_title`) 승인 칸 비어 있음 | 양준석 |
+| [#75](https://github.com/azaz1238-tech/Doing_It/issues/75) | 멤버 중복 문구: SPEC PRJ-04-c "이미 프로젝트 멤버입니다"(코드) vs UI-DESIGN S7 "이미 멤버입니다" → UI-DESIGN 수정 | 양준석(문서 주인) |
+| [#76](https://github.com/azaz1238-tech/Doing_It/issues/76) | 업무 삭제 확인 문구: SPEC TASK-06-c "삭제할까요?"(코드) vs 말투 규칙 "~하시겠습니까?"(미리보기·다른 삭제 확인 창) → 하나로 결정 | 팀 결정 → 김서현 |
+| [#77](https://github.com/azaz1238-tech/Doing_It/issues/77) | SPEC-CHANGELOG #20(삭제된 업무 이력의 `task_title`) 승인 칸 비어 있음 | 양준석 |
 
 ### C. 미완료 운영 작업
 
 | 이슈 | 내용 | 담당 |
 | --- | --- | --- |
-| [#78](https://github.com/azaz1238-tech/-Doing_It-/issues/78) | D4-03 미완: 저장소 라벨이 GitHub 기본뿐, `.github/` PR 템플릿 없음 | 김서현 |
-| [#79](https://github.com/azaz1238-tech/-Doing_It-/issues/79) | D4-05 Figma 누락 화면 정리 — S2 성공 토스트 포함 여부 | 김서현 |
-| [#80](https://github.com/azaz1238-tech/-Doing_It-/issues/80) | 저장소 "병합 후 브랜치 자동 삭제"가 팀 규칙("최종본 후 일괄 삭제")과 다름 | 양준석(저장소 설정) |
+| [#78](https://github.com/azaz1238-tech/Doing_It/issues/78) | D4-03 미완: 저장소 라벨이 GitHub 기본뿐, `.github/` PR 템플릿 없음 | 김서현 |
+| [#79](https://github.com/azaz1238-tech/Doing_It/issues/79) | D4-05 Figma 누락 화면 정리 — S2 성공 토스트 포함 여부 | 김서현 |
+| [#80](https://github.com/azaz1238-tech/Doing_It/issues/80) | 저장소 "병합 후 브랜치 자동 삭제"가 팀 규칙("최종본 후 일괄 삭제")과 다름 | 양준석(저장소 설정) |
 
 ### D. 이슈 없이 기록만 (P1 이후·작업 계획에 이미 있음)
 
